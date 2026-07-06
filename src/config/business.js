@@ -13,7 +13,18 @@ export const BUSINESS = {
   googleReviews: 44,
   googleReviewsUrl: null,
   googlePlaceId: null,
-  serviceAreas: ['Modesto', 'Manteca', 'Riverbank', 'Turlock', 'Salida', 'Ripon'],
+  serviceAreas: [
+    'Modesto',
+    'Salida',
+    'Riverbank',
+    'Oakdale',
+    'Ripon',
+    'Turlock',
+    'Ceres',
+    'Manteca',
+    'Tracy',
+    'Stockton',
+  ],
   region: 'Central Valley',
   hours: [
     { days: 'Monday – Friday', time: '7:00 AM – 6:00 PM' },
@@ -72,12 +83,13 @@ export const HERO_STATS = [
 ]
 
 export const NAV_LINKS = [
-  { label: 'Services', href: '#services' },
-  { label: 'Our Work', href: '#gallery' },
-  { label: 'Results', href: '#results' },
-  { label: 'Reviews', href: '#reviews' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Services', href: '/#services' },
+  { label: 'Our Work', href: '/#gallery' },
+  { label: 'Results', href: '/#results' },
+  { label: 'Reviews', href: '/#reviews' },
+  { label: 'Service Areas', href: '/service-areas' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Contact', href: '/#contact' },
 ]
 
 export const MAP = {

@@ -78,6 +78,19 @@ body {
   @apply mt-5 text-[1.0625rem] leading-[1.7] text-gray-500 sm:mt-6 sm:text-lg;
 }
 
+/* Service pages — tighter mobile rhythm, readable prose */
+.service-section {
+  @apply py-14 sm:py-24 lg:py-28;
+}
+
+.service-prose {
+  @apply space-y-5 text-[1rem] leading-[1.8] text-gray-600 sm:text-[1.0625rem] sm:leading-[1.75];
+}
+
+.service-prose h2 {
+  @apply font-display text-2xl font-semibold text-navy-900 sm:text-3xl;
+}
+
 /* ─── Surfaces ─── */
 .card {
   @apply relative overflow-hidden rounded-[1.25rem] border border-black/[0.04] bg-white transition-[transform,box-shadow,border-color] duration-500;

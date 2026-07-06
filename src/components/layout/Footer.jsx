@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import {
   BUSINESS,
   NAV_LINKS,
@@ -7,8 +8,19 @@ import { LogoMark } from '../ui/Icons'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 
 function FooterLink({ href, children }) {
+  const isRoute = href.startsWith('/') && !href.includes('#')
+  const className = 'text-[0.8125rem] text-white/45 transition-colors duration-300 hover:text-white/80'
+
+  if (isRoute) {
+    return (
+      <Link to={href} className={className}>
+        {children}
+      </Link>
+    )
+  }
+
   return (
-    <a href={href} className="text-[0.8125rem] text-white/45 transition-colors duration-300 hover:text-white/80">
+    <a href={href} className={className}>
       {children}
     </a>
   )

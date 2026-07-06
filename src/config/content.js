@@ -7,6 +7,13 @@ export const SERVICES = [
     icon: 'window',
   },
   {
+    title: 'Pressure Washing',
+    slug: 'pressure-washing',
+    description: 'Restore driveways, patios, and siding with professional-grade equipment and eco-friendly solutions.',
+    seo: 'Pressure Washing Modesto',
+    icon: 'pressure',
+  },
+  {
     title: 'Solar Panel Cleaning',
     slug: 'solar-panel-cleaning',
     description: 'Maximize energy output with specialized cleaning that removes dust, pollen, and residue safely.',
@@ -14,18 +21,18 @@ export const SERVICES = [
     icon: 'solar',
   },
   {
-    title: 'Roof Cleaning',
-    slug: 'roof-cleaning',
-    description: 'Remove moss, algae, and debris to protect your roof and restore curb appeal with safe soft-wash methods.',
-    seo: 'Roof Cleaning Modesto',
-    icon: 'roof',
+    title: 'Gutter Cleaning',
+    slug: 'gutter-cleaning',
+    description: 'Protect your roofline and foundation with thorough debris removal, flushing, and inspection.',
+    seo: 'Gutter Cleaning Modesto',
+    icon: 'gutter',
   },
   {
-    title: 'Pressure Washing',
-    slug: 'pressure-washing',
-    description: 'Restore driveways, patios, and siding with professional-grade equipment and eco-friendly solutions.',
-    seo: 'Pressure Washing Modesto',
-    icon: 'pressure',
+    title: 'Commercial Window Cleaning',
+    slug: 'commercial-window-cleaning',
+    description: 'Storefronts, offices, and multi-story glass — reliable schedules and spotless results for your business.',
+    seo: 'Commercial Window Cleaning Modesto',
+    icon: 'window',
   },
 ]
 

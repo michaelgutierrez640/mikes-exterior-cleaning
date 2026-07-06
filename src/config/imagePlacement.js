@@ -56,6 +56,20 @@ export const SERVICE_IMAGES = {
     alt: 'Roof cleaning transformation — moss removal in progress',
     objectPosition: 'center 35%',
   },
+  'gutter-cleaning': {
+    ...img('/images/gallery/gutter-cleaning/gutter-cleaning-01.jpg'),
+    srcSet:
+      '/images/gallery/gutter-cleaning/gutter-cleaning-01-480w.webp 480w, /images/gallery/gutter-cleaning/gutter-cleaning-01-800w.webp 800w, /images/gallery/gutter-cleaning/gutter-cleaning-01-1200w.webp 1200w',
+    alt: 'Clogged gutter before professional gutter cleaning in Modesto',
+    objectPosition: 'center center',
+  },
+  'commercial-window-cleaning': {
+    ...img('/images/gallery/window-cleaning/window-cleaning-01.jpg'),
+    srcSet:
+      '/images/gallery/window-cleaning/window-cleaning-01-480w.webp 480w, /images/gallery/window-cleaning/window-cleaning-01-800w.webp 800w, /images/gallery/window-cleaning/window-cleaning-01-1200w.webp 1200w',
+    alt: 'Commercial window cleaning at a luxury property in Modesto',
+    objectPosition: 'center center',
+  },
   'solar-panel-cleaning': {
     ...img('/images/gallery/solar-panel-cleaning/solar-panel-cleaning-01.jpg'),
     srcSet:

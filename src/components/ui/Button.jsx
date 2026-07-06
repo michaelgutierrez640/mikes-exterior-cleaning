@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router-dom'
 import { BUSINESS } from '../../config/business'
 import { scrollToContact } from '../../utils/scroll'
 
@@ -22,14 +23,30 @@ export function CallButton({ className = '', variant = 'primary', size = 'md', c
 
 export function QuoteButton({ className = '', variant = 'secondary', size = 'md', children = 'Get Free Quote', showIcon = true }) {
   const v = { primary: 'btn-primary', secondary: 'btn-secondary', royal: 'btn-royal', nav: 'btn-nav' }[variant] || 'btn-secondary'
+  const { pathname } = useLocation()
+  const onHome = pathname === '/'
+
+  if (onHome) {
+    return (
+      <a href="#contact" onClick={scrollToContact} className={`group ${v} ${sizes[size]} ${className}`}>
+        {children}
+        {showIcon && (
+          <svg className="h-[1.125rem] w-[1.125rem] shrink-0 opacity-90 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        )}
+      </a>
+    )
+  }
+
   return (
-    <a href="#contact" onClick={scrollToContact} className={`group ${v} ${sizes[size]} ${className}`}>
+    <Link to="/#contact" className={`group ${v} ${sizes[size]} ${className}`}>
       {children}
       {showIcon && (
         <svg className="h-[1.125rem] w-[1.125rem] shrink-0 opacity-90 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
         </svg>
       )}
-    </a>
+    </Link>
   )
 }

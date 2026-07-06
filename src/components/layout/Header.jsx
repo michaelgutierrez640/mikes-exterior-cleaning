@@ -1,8 +1,30 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { BUSINESS, NAV_LINKS } from '../../config/business'
 import { LogoMark } from '../ui/Icons'
 import { QuoteButton } from '../ui/Button'
-import { scrollToContact } from '../../utils/scroll'
+
+function NavLink({ href, children, onClick, mobile = false }) {
+  const isRoute = href.startsWith('/') && !href.includes('#')
+  const desktopClass = 'nav-link'
+  const mobileClass =
+    'block border-b border-white/[0.06] py-4 text-[1.0625rem] font-medium tracking-[-0.01em] text-white/90 transition-colors active:text-white'
+  const className = mobile ? mobileClass : desktopClass
+
+  if (isRoute) {
+    return (
+      <Link to={href} onClick={onClick} className={className}>
+        {children}
+      </Link>
+    )
+  }
+
+  return (
+    <a href={href} onClick={onClick} className={className}>
+      {children}
+    </a>
+  )
+}
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -36,7 +58,7 @@ export default function Header() {
         }}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5 sm:px-10 lg:px-12">
-          <a href="#" className="group flex min-w-0 items-center gap-3" aria-label={`${BUSINESS.name} home`}>
+          <Link to="/" className="group flex min-w-0 items-center gap-3" aria-label={`${BUSINESS.name} home`}>
             <div className="icon-wrap-royal transition-transform duration-300 group-hover:scale-[1.03]">
               <LogoMark />
             </div>
@@ -44,14 +66,14 @@ export default function Header() {
               <p className="font-display text-[1.0625rem] font-semibold leading-tight text-white">{BUSINESS.shortName}</p>
               <p className="text-[10px] font-medium tracking-[0.2em] text-white/50 uppercase">{BUSINESS.tagline}</p>
             </div>
-          </a>
+          </Link>
 
           <nav
             className="hidden items-center gap-0.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-1 py-1 backdrop-blur-2xl lg:flex"
             aria-label="Main navigation"
           >
             {NAV_LINKS.map((link) => (
-              <a key={link.href} href={link.href} className="nav-link">{link.label}</a>
+              <NavLink key={link.href} href={link.href}>{link.label}</NavLink>
             ))}
           </nav>
 
@@ -96,26 +118,15 @@ export default function Header() {
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
             {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={closeMenu}
-                className="border-b border-white/[0.06] py-4 text-[1.0625rem] font-medium tracking-[-0.01em] text-white/90 transition-colors active:text-white"
-              >
+              <NavLink key={link.href} href={link.href} onClick={closeMenu} mobile>
                 {link.label}
-              </a>
+              </NavLink>
             ))}
             <div className="mt-8 flex flex-col gap-3">
               <a href={BUSINESS.phoneHref} className="btn-secondary btn-md rounded-2xl text-center">
                 Call {BUSINESS.phone}
               </a>
-              <a
-                href="#contact"
-                onClick={(e) => { scrollToContact(e); closeMenu() }}
-                className="btn-primary btn-md rounded-2xl text-center"
-              >
-                Get Free Quote
-              </a>
+              <QuoteButton variant="primary" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
             </div>
           </nav>
         </div>
