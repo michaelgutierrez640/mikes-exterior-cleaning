@@ -1,9 +1,31 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { BUSINESS } from '../../config/business'
+import { buildQuoteSummaryText } from '../../utils/quotePricing'
+import { buildBookingPrefill, saveBookingPrefill } from '../../utils/bookingPrefill'
 import { CallButton } from '../ui/Button'
 import QuoteSummary from './QuoteSummary'
 
-export default function QuoteConfirmation({ quote, contact, selectedServices }) {
+export default function QuoteConfirmation({ quote, contact, selectedServices, answers }) {
+  const navigate = useNavigate()
+
+  const serviceNames = selectedServices
+    .map((id) => quote.lineItems.find((l) => l.serviceId === id)?.serviceName)
+    .filter(Boolean)
+
+  const handleSchedule = () => {
+    const prefill = buildBookingPrefill({
+      name: contact?.name ?? '',
+      phone: contact?.phone ?? '',
+      email: contact?.email ?? '',
+      address: contact?.address ?? '',
+      services: serviceNames,
+      estimateRange: quote?.formattedRange ?? '',
+      quoteDetails: buildQuoteSummaryText(selectedServices, answers, quote),
+    })
+    saveBookingPrefill(prefill)
+    navigate('/book-online', { state: prefill })
+  }
+
   return (
     <div className="text-center">
       <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-royal-100 text-royal-600">
@@ -16,7 +38,7 @@ export default function QuoteConfirmation({ quote, contact, selectedServices }) 
         Your quote is on the way{contact?.name ? `, ${contact.name.split(' ')[0]}` : ''}!
       </h2>
       <p className="mx-auto mt-3 max-w-md text-[0.9375rem] leading-relaxed text-gray-500">
-        We received your instant quote request and will reach out shortly to confirm your estimate and schedule a free on-site walkthrough.
+        We received your instant quote request. Ready to pick a date? Schedule your appointment below — Mike will confirm availability before it&apos;s official.
       </p>
 
       <div className="mx-auto mt-8 max-w-sm text-left">
@@ -24,16 +46,21 @@ export default function QuoteConfirmation({ quote, contact, selectedServices }) 
       </div>
 
       <div className="mx-auto mt-8 max-w-md rounded-2xl border border-royal-100 bg-royal-50/50 px-5 py-4">
-        <p className="text-[0.8125rem] font-medium text-royal-800">Expected response time</p>
-        <p className="mt-1 font-display text-xl font-semibold text-navy-900">Within 24 hours</p>
-        <p className="mt-1 text-[0.8125rem] text-gray-500">Most requests answered same business day</p>
+        <p className="text-[0.8125rem] font-medium text-royal-800">Next step — request your appointment</p>
+        <p className="mt-1 text-[0.8125rem] leading-relaxed text-gray-500">
+          Choose a preferred date and time window. Your estimate and contact details will be included automatically.
+        </p>
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <CallButton className="w-full sm:w-auto" />
-        <Link to="/#contact" className="btn-royal btn-md w-full !rounded-xl sm:w-auto">
-          Book Free Estimate
-        </Link>
+        <button
+          type="button"
+          onClick={handleSchedule}
+          className="btn-royal btn-md w-full !rounded-xl sm:w-auto"
+        >
+          Schedule Appointment
+        </button>
+        <CallButton variant="secondary" className="w-full sm:w-auto" />
       </div>
 
       <p className="mt-6 text-[0.8125rem] text-gray-400">

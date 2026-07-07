@@ -253,6 +253,53 @@ export function getInstantQuotePageSeo() {
   }
 }
 
+export function getBookOnlinePageSeo() {
+  return {
+    title: 'Book Online | Schedule Exterior Cleaning | Mike\'s Exterior Cleaning',
+    description:
+      'Request an appointment for window cleaning, pressure washing, gutter cleaning, or solar panel service in Modesto and the Central Valley. Choose your preferred date and time — Mike confirms availability personally.',
+    keywords:
+      'book window cleaning Modesto, schedule pressure washing Central Valley, exterior cleaning appointment, book gutter cleaning online, solar panel cleaning booking',
+    canonical: absoluteUrl('/book-online'),
+  }
+}
+
+export function getBookOnlinePageSchemas() {
+  return [
+    getLocalBusinessSchema({
+      potentialAction: {
+        '@type': 'ReserveAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: absoluteUrl('/book-online'),
+          actionPlatform: [
+            'http://schema.org/DesktopWebPlatform',
+            'http://schema.org/MobileWebPlatform',
+          ],
+        },
+        result: {
+          '@type': 'Reservation',
+          name: 'Exterior Cleaning Appointment Request',
+        },
+      },
+    }),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': `${absoluteUrl('/book-online')}#webpage`,
+      name: 'Book Online — Mike\'s Exterior Cleaning Services',
+      description: getBookOnlinePageSeo().description,
+      url: absoluteUrl('/book-online'),
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#localbusiness` },
+      potentialAction: {
+        '@type': 'ReserveAction',
+        target: absoluteUrl('/book-online'),
+      },
+    },
+  ]
+}
+
 export function getBlogIndexSeo() {
   return {
     title: 'Exterior Cleaning Resources | Tips for Modesto & Central Valley | Mike\'s Exterior',

@@ -45,6 +45,7 @@ const urls = [
   url('/', '1.0', 'weekly'),
   url('/resources', '0.8'),
   url('/instant-quote', '0.9'),
+  url('/book-online', '0.9'),
   url('/service-areas', '0.85'),
   ...services.map((s) => url(`/services/${s}`, '0.9')),
   ...articles.map((a) => url(`/resources/${a}`, '0.75')),

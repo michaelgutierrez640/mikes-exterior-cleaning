@@ -11,6 +11,7 @@ const CityPage = lazy(() => import('./pages/CityPage'))
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'))
 const ResourceArticlePage = lazy(() => import('./pages/ResourceArticlePage'))
 const InstantQuotePage = lazy(() => import('./pages/InstantQuotePage'))
+const BookOnlinePage = lazy(() => import('./pages/BookOnlinePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/resources" element={<LazyPage><ResourcesPage /></LazyPage>} />
           <Route path="/resources/:slug" element={<LazyPage><ResourceArticlePage /></LazyPage>} />
           <Route path="/instant-quote" element={<LazyPage><InstantQuotePage /></LazyPage>} />
+          <Route path="/book-online" element={<LazyPage><BookOnlinePage /></LazyPage>} />
           <Route path="*" element={<LazyPage><NotFoundPage /></LazyPage>} />
         </Route>
       </Routes>

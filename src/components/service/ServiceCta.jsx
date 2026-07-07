@@ -1,4 +1,4 @@
-import { CallButton, QuoteButton } from '../ui/Button'
+import { CallButton, QuoteButton, BookOnlineButton } from '../ui/Button'
 import ScrollReveal from '../ScrollReveal'
 
 export default function ServiceCta({
@@ -35,7 +35,8 @@ export default function ServiceCta({
           </p>
         )}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          <QuoteButton variant={isDark ? 'primary' : 'primary'} />
+          <BookOnlineButton variant={isDark ? 'primary' : 'primary'} />
+          <QuoteButton variant={isDark ? 'secondary' : 'secondary'} />
           <CallButton variant={isDark ? 'secondary' : 'secondary'} />
         </div>
       </ScrollReveal>
