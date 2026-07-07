@@ -38,8 +38,25 @@ const articles = [
   'ceres-homeowner-exterior-cleaning-checklist',
 ]
 
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
 function url(loc, priority, changefreq = 'monthly') {
-  return `  <url>\n    <loc>${SITE}${loc}</loc>\n    <lastmod>${LASTMOD}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
+  const href = escapeXml(`${SITE}${loc}`)
+  return [
+    '  <url>',
+    `    <loc>${href}</loc>`,
+    `    <lastmod>${LASTMOD}</lastmod>`,
+    `    <changefreq>${changefreq}</changefreq>`,
+    `    <priority>${priority}</priority>`,
+    '  </url>',
+  ].join('\n')
 }
 
 const urls = [
@@ -54,11 +71,14 @@ const urls = [
   ...wcCities.map((c) => url(`/window-cleaning/${c}`, '0.8')),
 ]
 
-const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.join('\n')}
-</urlset>
-`
+const xml = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  ...urls,
+  '</urlset>',
+  '',
+].join('\n')
 
-writeFileSync(join(root, 'public/sitemap.xml'), xml)
-console.log(`Wrote sitemap.xml with ${urls.length} URLs`)
+const outPath = join(root, 'public/sitemap.xml')
+writeFileSync(outPath, xml, { encoding: 'utf8' })
+console.log(`Wrote ${outPath} with ${urls.length} URLs`)
