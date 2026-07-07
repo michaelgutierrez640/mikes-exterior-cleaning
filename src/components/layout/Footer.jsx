@@ -4,6 +4,7 @@ import {
   NAV_LINKS,
   getGoogleReviewsLink,
 } from '../../config/business'
+import { PRIORITY_LOCATION_SLUGS, getLocationPage } from '../../content/cities/location'
 import { LogoMark } from '../ui/Icons'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 
@@ -96,9 +97,20 @@ export default function Footer() {
               ))}
             </ul>
             <p className="mt-7 text-[10px] font-semibold tracking-[0.2em] text-royal-400 uppercase">Service Areas</p>
-            <p className="mt-3 text-[0.8125rem] leading-[1.65] text-white/45">
-              {BUSINESS.serviceAreas.join(' · ')}
-            </p>
+            <nav className="mt-3 flex flex-wrap gap-x-3 gap-y-2" aria-label="Footer service areas">
+              {PRIORITY_LOCATION_SLUGS.map((slug) => {
+                const loc = getLocationPage(slug)
+                return (
+                  <Link
+                    key={slug}
+                    to={`/service-areas/${slug}`}
+                    className="text-[0.8125rem] text-white/45 transition-colors hover:text-white/75"
+                  >
+                    {loc?.cityName ?? slug}
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
         </div>
 

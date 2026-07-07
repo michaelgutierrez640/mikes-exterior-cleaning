@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { BUSINESS } from '../config/business'
-import { absoluteUrl } from '../config/site'
+import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { getServicePageSchemas } from '../config/seo'
 import { getServiceEnhancements } from '../config/servicePageEnhancements'
 import { getServiceImage } from '../config/images'
@@ -25,6 +25,7 @@ import ServiceTestimonials from '../components/service/ServiceTestimonials'
 import AllServicesLinks from '../components/service/AllServicesLinks'
 import RelatedServicesGrid from '../components/service/RelatedServicesGrid'
 import WindowCleaningCitiesNav from '../components/service/WindowCleaningCitiesNav'
+import LocationLinks from '../components/service/LocationLinks'
 
 function ServiceFaq({ faqs }) {
   const [open, setOpen] = useState(0)
@@ -115,6 +116,7 @@ export default function ServicePage() {
         description={meta.description}
         keywords={meta.keywords}
         canonical={canonical}
+        ogImage={DEFAULT_OG_IMAGE}
       />
       <JsonLd data={schemas} id={`service-${slug}`} />
 
@@ -248,6 +250,8 @@ export default function ServicePage() {
       />
 
       {slug === 'window-cleaning' && <WindowCleaningCitiesNav />}
+
+      <LocationLinks serviceName={serviceName} />
 
       <RelatedServicesGrid
         services={otherServices}

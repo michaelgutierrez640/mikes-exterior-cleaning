@@ -17,7 +17,9 @@ import SectionDivider from '../components/ui/SectionDivider'
 import BackToTop from '../components/ui/BackToTop'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
-import { SEO, getLocalBusinessSchema } from '../config/seo'
+import { SEO, getHomePageSchemas } from '../config/seo'
+import { FAQS } from '../config/content'
+import { DEFAULT_OG_IMAGE } from '../config/site'
 
 import { scrollToHash } from '../utils/scroll'
 
@@ -35,8 +37,9 @@ export default function HomePage() {
         description={SEO.description}
         keywords={SEO.keywords}
         canonical={SEO.canonical}
+        ogImage={DEFAULT_OG_IMAGE}
       />
-      <JsonLd data={getLocalBusinessSchema()} id="home-localbusiness" />
+      <JsonLd data={getHomePageSchemas(FAQS)} id="home-schema" />
       <Particles />
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <Header />

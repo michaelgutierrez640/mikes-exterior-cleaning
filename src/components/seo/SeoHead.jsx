@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { DEFAULT_OG_IMAGE } from '../../config/site'
 
 function upsertMeta(attr, key, content) {
   if (!content) return
@@ -36,6 +37,7 @@ export default function SeoHead({
   noindex = false,
 }) {
   useEffect(() => {
+    const image = ogImage || DEFAULT_OG_IMAGE
     document.title = title
     upsertMeta('name', 'description', description)
     upsertMeta('name', 'keywords', keywords)
@@ -43,10 +45,15 @@ export default function SeoHead({
     upsertMeta('property', 'og:title', title)
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:type', ogType)
-    if (ogImage) upsertMeta('property', 'og:image', ogImage)
+    upsertMeta('property', 'og:image', image)
+    upsertMeta('name', 'twitter:card', 'summary_large_image')
     upsertMeta('name', 'twitter:title', title)
     upsertMeta('name', 'twitter:description', description)
-    if (canonical) upsertLink('canonical', canonical)
+    upsertMeta('name', 'twitter:image', image)
+    if (canonical) {
+      upsertLink('canonical', canonical)
+      upsertMeta('property', 'og:url', canonical)
+    }
   }, [title, description, keywords, canonical, ogType, ogImage, noindex])
 
   return null
