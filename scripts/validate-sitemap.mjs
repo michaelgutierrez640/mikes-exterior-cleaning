@@ -4,7 +4,11 @@ import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const sitemapPath = join(__dirname, '..', 'public/sitemap.xml')
+const sitemapPath = join(
+  __dirname,
+  '..',
+  process.argv.includes('--dist') ? 'dist/sitemap.xml' : 'public/sitemap.xml',
+)
 const xml = readFileSync(sitemapPath, 'utf8')
 
 const errors = []
