@@ -89,6 +89,7 @@ export const NAV_LINKS = [
   { label: 'Reviews', href: '/#reviews' },
   { label: 'Service Areas', href: '/service-areas' },
   { label: 'Resources', href: '/resources' },
+  { label: 'Instant Quote', href: '/instant-quote' },
   { label: 'FAQ', href: '/#faq' },
   { label: 'Contact', href: '/#contact' },
 ]

@@ -232,6 +232,16 @@ export function getLocationPageSchemas({ cityName, state, description, citySlug,
   ]
 }
 
+export function getNotFoundPageSeo() {
+  return {
+    title: 'Page Not Found | Mike\'s Exterior Cleaning Services',
+    description:
+      'The page you requested could not be found. Browse our window cleaning, pressure washing, gutter, and solar services in Modesto and the Central Valley — or get an instant quote.',
+    keywords: 'Mike\'s Exterior Cleaning Services, Modesto exterior cleaning',
+    canonical: absoluteUrl('/404'),
+  }
+}
+
 export function getInstantQuotePageSeo() {
   return {
     title: 'Instant Quote Calculator | Free Exterior Cleaning Estimate | Mike\'s Exterior',

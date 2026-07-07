@@ -1,5 +1,5 @@
-const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID
-const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID
+const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || ''
+const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID?.trim() || ''
 
 function hasGtag() {
   return typeof window !== 'undefined' && typeof window.gtag === 'function'
