@@ -29,7 +29,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
-      <MobileCTA />
+      {pathname !== '/instant-quote' && <MobileCTA />}
       <BackToTop />
     </div>
   )

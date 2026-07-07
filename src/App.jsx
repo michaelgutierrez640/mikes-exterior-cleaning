@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import Layout from './components/layout/Layout'
+import Analytics from './components/Analytics'
 
 const ServicePage = lazy(() => import('./pages/ServicePage'))
 const WindowCleaningCityPage = lazy(() => import('./pages/WindowCleaningCityPage'))
@@ -9,6 +10,7 @@ const ServiceAreasPage = lazy(() => import('./pages/ServiceAreasPage'))
 const CityPage = lazy(() => import('./pages/CityPage'))
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'))
 const ResourceArticlePage = lazy(() => import('./pages/ResourceArticlePage'))
+const InstantQuotePage = lazy(() => import('./pages/InstantQuotePage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -27,6 +29,7 @@ function LazyPage({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <Analytics />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route element={<Layout />}>
@@ -36,6 +39,7 @@ export default function App() {
           <Route path="/service-areas/:citySlug" element={<LazyPage><CityPage /></LazyPage>} />
           <Route path="/resources" element={<LazyPage><ResourcesPage /></LazyPage>} />
           <Route path="/resources/:slug" element={<LazyPage><ResourceArticlePage /></LazyPage>} />
+          <Route path="/instant-quote" element={<LazyPage><InstantQuotePage /></LazyPage>} />
           <Route path="*" element={<LazyPage><NotFoundPage /></LazyPage>} />
         </Route>
       </Routes>

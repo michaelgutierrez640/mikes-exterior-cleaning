@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, NAV_LINKS } from '../../config/business'
 import { LogoMark } from '../ui/Icons'
-import { QuoteButton } from '../ui/Button'
+import { InstantQuoteButton, QuoteButton } from '../ui/Button'
 
 function NavLink({ href, children, onClick, mobile = false }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -88,7 +88,7 @@ export default function Header() {
               <span className="hidden xl:inline">{BUSINESS.phone}</span>
               <span className="xl:hidden">Call</span>
             </a>
-            <QuoteButton variant="nav" size="sm" showIcon={false}>Get Free Quote</QuoteButton>
+            <InstantQuoteButton variant="nav" size="sm" showIcon={false}>Get Instant Quote</InstantQuoteButton>
           </div>
 
           <button
@@ -126,7 +126,10 @@ export default function Header() {
               <a href={BUSINESS.phoneHref} className="btn-secondary btn-md rounded-2xl text-center">
                 Call {BUSINESS.phone}
               </a>
-              <QuoteButton variant="primary" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
+              <InstantQuoteButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
+              <QuoteButton variant="secondary" size="md" className="rounded-2xl text-center justify-center" showIcon={false}>
+                Free Estimate
+              </QuoteButton>
             </div>
           </nav>
         </div>
