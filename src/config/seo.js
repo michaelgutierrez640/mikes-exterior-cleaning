@@ -54,6 +54,37 @@ export const SEO = {
 }
 
 export function getLocalBusinessSchema(overrides = {}) {
+  const openingHoursSpecification = BUSINESS.hours.flatMap((row) => {
+    if (row.time.toLowerCase().includes('appointment')) return []
+    const [openRaw, closeRaw] = row.time.split(' – ')
+    const to24 = (t) => {
+      const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+      if (!match) return t
+      let hour = parseInt(match[1], 10)
+      const mins = match[2]
+      const meridiem = match[3].toUpperCase()
+      if (meridiem === 'PM' && hour !== 12) hour += 12
+      if (meridiem === 'AM' && hour === 12) hour = 0
+      return `${String(hour).padStart(2, '0')}:${mins}`
+    }
+    const opens = to24(openRaw)
+    const closes = to24(closeRaw)
+    const days = row.days.includes('Monday') && row.days.includes('Friday')
+      ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+      : row.days.includes('Saturday')
+        ? ['Saturday']
+        : [row.days]
+    return days.map((dayOfWeek) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek,
+      opens,
+      closes,
+    }))
+  })
+
+  const sameAs = [BUSINESS.social.facebook, BUSINESS.social.instagram, BUSINESS.social.google, BUSINESS.googleReviewsUrl]
+    .filter(Boolean)
+
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
@@ -69,8 +100,15 @@ export function getLocalBusinessSchema(overrides = {}) {
       '@type': 'PostalAddress',
       addressLocality: 'Modesto',
       addressRegion: 'CA',
+      postalCode: '95350',
       addressCountry: 'US',
     },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: 37.6391,
+      longitude: -120.9969,
+    },
+    openingHoursSpecification,
     areaServed: SERVICE_CITIES.map((city) => ({
       '@type': 'City',
       name: `${city.name}, ${city.state}`,
@@ -84,6 +122,7 @@ export function getLocalBusinessSchema(overrides = {}) {
       'Gutter Cleaning',
       'Pressure Washing',
     ],
+    ...(sameAs.length ? { sameAs } : {}),
     ...overrides,
   }
 
@@ -154,6 +193,34 @@ export function getServiceAreasPageSeo() {
       'exterior cleaning service areas, window cleaning Modesto, pressure washing Central Valley, gutter cleaning Stanislaus County, solar panel cleaning San Joaquin County',
     canonical: absoluteUrl('/service-areas'),
   }
+}
+
+export function getServiceAreasPageSchemas() {
+  return [
+    getOrganizationSchema(),
+    getLocalBusinessSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Service Areas', url: absoluteUrl('/service-areas') },
+    ]),
+  ]
+}
+
+export function getThinCityFaqs(city) {
+  return [
+    {
+      q: `Do you provide exterior cleaning in ${city.name}, CA?`,
+      a: `Yes. ${BUSINESS.name} serves ${city.name} and nearby Central Valley communities with window cleaning, pressure washing, gutter cleaning, and solar panel cleaning. Call ${BUSINESS.phone} for a free estimate.`,
+    },
+    {
+      q: `What services are available in ${city.name}?`,
+      a: `We offer residential and commercial window cleaning, driveway and patio pressure washing, gutter cleaning and flushing, and safe solar panel washing for properties in ${city.name}, ${city.state}.`,
+    },
+    {
+      q: `How do I get a quote for ${city.name}?`,
+      a: `Use our instant quote calculator online, book an appointment at ${absoluteUrl('/book-online')}, or call ${BUSINESS.phone}. We respond within 24 hours — usually the same business day.`,
+    },
+  ]
 }
 
 export function getCityPageSeo(city) {
@@ -251,6 +318,32 @@ export function getInstantQuotePageSeo() {
       'instant quote window cleaning Modesto, exterior cleaning estimate, pressure washing quote Central Valley, gutter cleaning price, solar panel cleaning cost',
     canonical: absoluteUrl('/instant-quote'),
   }
+}
+
+export function getInstantQuotePageSchemas() {
+  return [
+    getOrganizationSchema(),
+    getWebSiteSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Instant Quote', url: absoluteUrl('/instant-quote') },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': `${absoluteUrl('/instant-quote')}#webpage`,
+      name: 'Instant Quote Calculator — Mike\'s Exterior Cleaning Services',
+      description: getInstantQuotePageSeo().description,
+      url: absoluteUrl('/instant-quote'),
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#localbusiness` },
+      potentialAction: {
+        '@type': 'InteractAction',
+        target: absoluteUrl('/instant-quote'),
+        name: 'Get instant exterior cleaning estimate',
+      },
+    },
+  ]
 }
 
 export function getBookOnlinePageSeo() {

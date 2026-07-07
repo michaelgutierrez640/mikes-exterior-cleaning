@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { BUSINESS } from '../config/business'
 import { SERVICE_CITIES } from '../config/serviceAreas'
 import { WINDOW_CLEANING_CITY_SLUGS } from '../content/cities/window-cleaning'
-import { getServiceAreasPageSeo, getLocalBusinessSchema, getBreadcrumbSchema } from '../config/seo'
+import { getServiceAreasPageSeo, getServiceAreasPageSchemas } from '../config/seo'
 import { absoluteUrl } from '../config/site'
 import { SERVICE_PAGES } from '../content/services'
 import SeoHead from '../components/seo/SeoHead'
@@ -13,13 +13,7 @@ import { CallButton, QuoteButton } from '../components/ui/Button'
 const pageSeo = getServiceAreasPageSeo()
 
 export default function ServiceAreasPage() {
-  const schemas = [
-    getLocalBusinessSchema(),
-    getBreadcrumbSchema([
-      { name: 'Home', url: absoluteUrl('/') },
-      { name: 'Service Areas', url: pageSeo.canonical },
-    ]),
-  ]
+  const schemas = getServiceAreasPageSchemas()
 
   return (
     <>

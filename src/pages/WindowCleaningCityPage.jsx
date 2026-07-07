@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link, useParams, Navigate } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import NotFoundPage from './NotFoundPage'
 import { BUSINESS } from '../config/business'
 import { absoluteUrl } from '../config/site'
 import { getServiceImage } from '../config/images'
@@ -64,7 +65,7 @@ export default function WindowCleaningCityPage() {
   const page = getWindowCleaningCityPage(citySlug)
 
   if (!page) {
-    return <Navigate to="/services/window-cleaning" replace />
+    return <NotFoundPage />
   }
 
   const { meta, hero, sections, faqs, cta, cityName, county, state } = page

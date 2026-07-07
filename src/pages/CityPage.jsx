@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useParams, Navigate } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import NotFoundPage from './NotFoundPage'
 import { BUSINESS } from '../config/business'
 import { getCityBySlug } from '../config/serviceAreas'
 import { getLocationPage, getOtherLocationPages } from '../content/cities/location'
 import { WINDOW_CLEANING_CITY_SLUGS } from '../content/cities/window-cleaning'
-import { getLocationPageSchemas, getCityPageSeo, getLocalBusinessSchema, getBreadcrumbSchema } from '../config/seo'
+import { getLocationPageSchemas, getCityPageSeo, getLocalBusinessSchema, getBreadcrumbSchema, getThinCityFaqs, getFaqPageSchema } from '../config/seo'
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { SERVICE_PAGES } from '../content/services'
 import { getNearbyCityNames } from '../config/serviceAreas'
@@ -67,6 +68,7 @@ function CityBreadcrumbs({ cityName }) {
 /** Thin fallback for cities without full location content (Manteca, Tracy, Stockton). */
 function CityPageBasic({ city }) {
   const pageSeo = getCityPageSeo(city)
+  const thinFaqs = getThinCityFaqs(city)
   const nearby = getNearbyCityNames(city.slug).slice(0, 5)
   const hasWindowCleaningPage = WINDOW_CLEANING_CITY_SLUGS.includes(city.slug)
 
@@ -77,6 +79,7 @@ function CityPageBasic({ city }) {
       { name: 'Service Areas', url: absoluteUrl('/service-areas') },
       { name: `${city.name}, ${city.state}`, url: pageSeo.canonical },
     ]),
+    getFaqPageSchema(thinFaqs),
   ]
 
   return (
@@ -117,6 +120,15 @@ function CityPageBasic({ city }) {
           </p>
         </div>
       </section>
+
+      <section className="service-section bg-white" aria-labelledby={`${city.slug}-faq`}>
+        <div className="section-container max-w-3xl">
+          <h2 id={`${city.slug}-faq`} className="section-title text-center">FAQ — {city.name}</h2>
+          <div className="section-content">
+            <CityFaq faqs={thinFaqs} />
+          </div>
+        </div>
+      </section>
     </>
   )
 }
@@ -127,7 +139,7 @@ export default function CityPage() {
   const page = getLocationPage(citySlug)
 
   if (!city) {
-    return <Navigate to="/service-areas" replace />
+    return <NotFoundPage />
   }
 
   if (!page) {

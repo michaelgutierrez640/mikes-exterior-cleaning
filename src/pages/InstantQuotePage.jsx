@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { getInstantQuotePageSeo, getOrganizationSchema, getWebSiteSchema, getBreadcrumbSchema } from '../config/seo'
-import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
+import { getInstantQuotePageSeo, getInstantQuotePageSchemas } from '../config/seo'
+import { DEFAULT_OG_IMAGE } from '../config/site'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import InstantQuoteCalculator from '../components/quote/InstantQuoteCalculator'
@@ -10,14 +10,7 @@ import { BUSINESS } from '../config/business'
 const pageSeo = getInstantQuotePageSeo()
 
 export default function InstantQuotePage() {
-  const schemas = [
-    getOrganizationSchema(),
-    getWebSiteSchema(),
-    getBreadcrumbSchema([
-      { name: 'Home', url: absoluteUrl('/') },
-      { name: 'Instant Quote', url: pageSeo.canonical },
-    ]),
-  ]
+  const schemas = getInstantQuotePageSchemas()
 
   return (
     <>
