@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useParams, Navigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import NotFoundPage from './NotFoundPage'
 import { BUSINESS } from '../config/business'
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { getServicePageSchemas } from '../config/seo'
@@ -93,7 +94,7 @@ export default function ServicePage() {
   const page = getServicePageBySlug(slug)
 
   if (!page) {
-    return <Navigate to="/" replace />
+    return <NotFoundPage />
   }
 
   const { meta, hero, sections, faqs, cta, serviceName } = page

@@ -1,4 +1,5 @@
-import { Link, useParams, Navigate } from 'react-router-dom'
+import NotFoundPage from './NotFoundPage'
+import { useParams } from 'react-router-dom'
 import { BUSINESS } from '../config/business'
 import { getBlogArticleSchemas } from '../config/seo'
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
@@ -14,7 +15,7 @@ export default function ResourceArticlePage() {
   const article = getArticleBySlug(slug)
 
   if (!article) {
-    return <Navigate to="/resources" replace />
+    return <NotFoundPage />
   }
 
   const canonical = absoluteUrl(`/resources/${slug}`)

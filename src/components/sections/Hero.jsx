@@ -40,7 +40,7 @@ function HeroBackground() {
         src={heroImage.src}
         webp={heroImage.webp}
         srcSet={heroImage.srcSet}
-        alt=""
+        alt={heroImage.alt || "Professional exterior cleaning on a Modesto, California home"}
         className="absolute inset-0 h-full w-full object-cover"
         style={{ objectPosition: heroImage.objectPosition }}
         loading="eager"

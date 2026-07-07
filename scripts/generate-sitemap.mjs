@@ -3,7 +3,8 @@ import { writeFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
-const SITE = 'https://mikesexteriorcleaning.com'
+const SITE = 'https://www.mikesexteriorcleaning.com'
+const LASTMOD = new Date().toISOString().split('T')[0]
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = join(__dirname, '..')
 
@@ -38,7 +39,7 @@ const articles = [
 ]
 
 function url(loc, priority, changefreq = 'monthly') {
-  return `  <url>\n    <loc>${SITE}${loc}</loc>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
+  return `  <url>\n    <loc>${SITE}${loc}</loc>\n    <lastmod>${LASTMOD}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`
 }
 
 const urls = [
