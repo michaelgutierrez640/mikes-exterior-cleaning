@@ -90,6 +90,7 @@ export const NAV_LINKS = [
   { label: 'Service Areas', href: '/service-areas' },
   { label: 'Resources', href: '/resources' },
   { label: 'Instant Quote', href: '/instant-quote' },
+  { label: 'Book Online', href: '/book-online' },
   { label: 'FAQ', href: '/#faq' },
   { label: 'Contact', href: '/#contact' },
 ]

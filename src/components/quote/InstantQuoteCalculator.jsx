@@ -132,6 +132,7 @@ export default function InstantQuoteCalculator() {
               quote={quote}
               contact={contact}
               selectedServices={selectedServices}
+              answers={answers}
             />
           )}
         </div>

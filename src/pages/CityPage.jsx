@@ -11,7 +11,7 @@ import { getNearbyCityNames } from '../config/serviceAreas'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
-import { CallButton, QuoteButton } from '../components/ui/Button'
+import { CallButton, QuoteButton, BookOnlineButton } from '../components/ui/Button'
 import GoogleReviewsBadge from '../components/ui/GoogleReviewsBadge'
 import ServiceTrustBadges from '../components/service/ServiceTrustBadges'
 import ServiceCta from '../components/service/ServiceCta'
@@ -91,7 +91,8 @@ function CityPageBasic({ city }) {
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70">{city.description}</p>
           <div className="mt-8 flex flex-wrap gap-4">
-            <QuoteButton variant="primary" />
+            <BookOnlineButton variant="primary" />
+            <QuoteButton variant="secondary" />
             <CallButton variant="secondary" />
           </div>
         </div>
@@ -165,7 +166,8 @@ export default function CityPage() {
           </h1>
           <p className="mt-4 max-w-2xl text-[0.9375rem] leading-relaxed text-white/75 sm:text-lg">{page.hero.subtitle}</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <QuoteButton variant="primary" />
+            <BookOnlineButton variant="primary" />
+            <QuoteButton variant="secondary" />
             <CallButton variant="secondary" />
           </div>
           <div className="mt-6"><GoogleReviewsBadge variant="dark" size="sm" /></div>
@@ -293,7 +295,8 @@ export default function CityPage() {
             <h2 id={`${citySlug}-cta`} className="font-display text-2xl font-semibold text-white sm:text-3xl">{page.cta.headline}</h2>
             <p className="mt-4 text-[0.9375rem] text-white/65">{page.cta.text}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <QuoteButton variant="primary" />
+              <BookOnlineButton variant="primary" />
+              <QuoteButton variant="secondary" />
               <CallButton variant="secondary" />
             </div>
           </ScrollReveal>

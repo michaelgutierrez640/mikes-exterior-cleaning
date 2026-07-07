@@ -10,7 +10,7 @@ import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
 import ResponsiveImage from '../components/ui/ResponsiveImage'
-import { CallButton, QuoteButton } from '../components/ui/Button'
+import { CallButton, QuoteButton, BookOnlineButton } from '../components/ui/Button'
 import GoogleReviewsBadge from '../components/ui/GoogleReviewsBadge'
 import ServiceBreadcrumbs from '../components/service/ServiceBreadcrumbs'
 import ServiceCta from '../components/service/ServiceCta'
@@ -283,7 +283,8 @@ export default function ServicePage() {
             </h2>
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-white/65 sm:text-base">{cta.text}</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <QuoteButton variant="primary" />
+              <BookOnlineButton variant="primary" state={{ serviceSlug: slug }} />
+              <QuoteButton variant="secondary" />
               <CallButton variant="secondary" />
             </div>
             <p className="mt-6 text-sm text-white/45">
