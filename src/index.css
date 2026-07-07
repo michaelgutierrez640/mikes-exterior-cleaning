@@ -238,7 +238,7 @@ body {
 
 /* ─── Navigation ─── */
 .nav-link {
-  @apply relative rounded-full px-3.5 py-2 text-[0.8125rem] font-medium tracking-[-0.01em] text-white/70 transition-colors duration-300 hover:text-white xl:px-4;
+  @apply relative rounded-full px-2.5 py-2 text-[0.75rem] font-medium tracking-[-0.01em] text-white/70 transition-colors duration-300 hover:text-white lg:px-3 lg:text-[0.8125rem] xl:px-4;
 }
 
 .nav-link:hover {

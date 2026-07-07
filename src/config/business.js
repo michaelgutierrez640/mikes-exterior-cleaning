@@ -87,10 +87,21 @@ export const NAV_LINKS = [
   { label: 'Our Work', href: '/#gallery' },
   { label: 'Results', href: '/#results' },
   { label: 'Reviews', href: '/#reviews' },
-  { label: 'Service Areas', href: '/service-areas' },
+  { label: 'Service Areas', href: '/service-areas', shortLabel: 'Areas' },
   { label: 'Resources', href: '/resources' },
   { label: 'Instant Quote', href: '/instant-quote' },
   { label: 'Book Online', href: '/book-online' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Contact', href: '/#contact' },
+]
+
+/** Condensed header nav — CTAs (Instant Quote, Book Online) live as header buttons to avoid crowding the logo. */
+export const HEADER_NAV_LINKS = [
+  { label: 'Services', href: '/#services' },
+  { label: 'Our Work', href: '/#gallery' },
+  { label: 'Reviews', href: '/#reviews' },
+  { label: 'Service Areas', href: '/service-areas', shortLabel: 'Areas' },
+  { label: 'Resources', href: '/resources' },
   { label: 'FAQ', href: '/#faq' },
   { label: 'Contact', href: '/#contact' },
 ]
