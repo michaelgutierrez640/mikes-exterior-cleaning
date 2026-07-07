@@ -1,4 +1,4 @@
-import { CallButton, QuoteButton } from '../ui/Button'
+import { CallButton, InstantQuoteButton } from '../ui/Button'
 
 export default function MobileCTA() {
   return (
@@ -15,9 +15,9 @@ export default function MobileCTA() {
         <CallButton variant="primary" size="sm" className="flex-1 !rounded-xl !py-3.5" showIcon={false}>
           Call Now
         </CallButton>
-        <QuoteButton variant="royal" size="sm" className="flex-1 !rounded-xl !py-3.5" showIcon={false}>
-          Free Quote
-        </QuoteButton>
+        <InstantQuoteButton variant="royal" size="sm" className="flex-1 !rounded-xl !py-3.5" showIcon={false}>
+          Instant Quote
+        </InstantQuoteButton>
       </div>
     </div>
   )

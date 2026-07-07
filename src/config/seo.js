@@ -232,6 +232,17 @@ export function getLocationPageSchemas({ cityName, state, description, citySlug,
   ]
 }
 
+export function getInstantQuotePageSeo() {
+  return {
+    title: 'Instant Quote Calculator | Free Exterior Cleaning Estimate | Mike\'s Exterior',
+    description:
+      'Get an instant price estimate for window cleaning, pressure washing, gutter cleaning, and solar panel cleaning in Modesto and the Central Valley. Free, no obligation — results in under 2 minutes.',
+    keywords:
+      'instant quote window cleaning Modesto, exterior cleaning estimate, pressure washing quote Central Valley, gutter cleaning price, solar panel cleaning cost',
+    canonical: absoluteUrl('/instant-quote'),
+  }
+}
+
 export function getBlogIndexSeo() {
   return {
     title: 'Exterior Cleaning Resources | Tips for Modesto & Central Valley | Mike\'s Exterior',

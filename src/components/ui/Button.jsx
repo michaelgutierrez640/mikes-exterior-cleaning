@@ -21,6 +21,20 @@ export function CallButton({ className = '', variant = 'primary', size = 'md', c
   )
 }
 
+export function InstantQuoteButton({ className = '', variant = 'royal', size = 'md', children = 'Get Instant Quote', showIcon = true }) {
+  const v = { primary: 'btn-primary', secondary: 'btn-secondary', royal: 'btn-royal', nav: 'btn-nav' }[variant] || 'btn-royal'
+  return (
+    <Link to="/instant-quote" className={`group ${v} ${sizes[size]} ${className}`}>
+      {children}
+      {showIcon && (
+        <svg className="h-[1.125rem] w-[1.125rem] shrink-0 opacity-90 transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Z" />
+        </svg>
+      )}
+    </Link>
+  )
+}
+
 export function QuoteButton({ className = '', variant = 'secondary', size = 'md', children = 'Get Free Quote', showIcon = true }) {
   const v = { primary: 'btn-primary', secondary: 'btn-secondary', royal: 'btn-royal', nav: 'btn-nav' }[variant] || 'btn-secondary'
   const { pathname } = useLocation()
