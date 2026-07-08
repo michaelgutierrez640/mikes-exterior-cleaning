@@ -209,6 +209,13 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total page views" value={traffic?.pageViewsTotal ?? 0} />
+              <StatCard label="Page views today" value={traffic?.pageViewsToday ?? 0} />
+              <StatCard label="Page views this week" value={traffic?.pageViewsWeek ?? 0} />
+              <StatCard label="Page views this month" value={traffic?.pageViewsMonth ?? 0} />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Quote starts" value={leads?.instant_quote_started ?? 0} />
               <StatCard label="Quote completions" value={leads?.instant_quote_completed ?? 0} />
               <StatCard label="Booking requests" value={leads?.booking_requested ?? 0} />
