@@ -3,6 +3,7 @@ import { BUSINESS } from '../../config/business'
 import { submitLead } from '../../services/submitLead'
 import { buildQuoteSummaryText } from '../../utils/quotePricing'
 import { trackQuoteSubmitted } from '../../utils/analytics'
+import { trackInternalEvent } from '../../utils/analytics'
 
 function validateContact({ name, phone, email, address }) {
   const errors = {}
@@ -58,6 +59,13 @@ export default function QuoteContactForm({
         service: serviceNames || 'Instant Quote',
         message: summaryText,
         subject: `Instant Quote Request (${quote.formattedRange}) — ${BUSINESS.name}`,
+      })
+
+      trackInternalEvent('instant_quote_completed', {
+        quoteValueLow: quote.totalLow,
+        quoteValueHigh: quote.totalHigh,
+        service: serviceNames || 'Instant Quote',
+        sourceHint: 'quote_contact_form',
       })
 
       trackQuoteSubmitted({
