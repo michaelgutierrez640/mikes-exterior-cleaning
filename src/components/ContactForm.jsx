@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BUSINESS } from '../config/business'
+import { trackInternalEvent } from '../utils/analytics'
 
 const FORM_ENDPOINT = `https://formsubmit.co/ajax/${BUSINESS.email}`
 
@@ -42,6 +43,11 @@ export default function ContactForm() {
       })
 
       if (!res.ok) throw new Error('Submission failed')
+
+      trackInternalEvent('contact_form_submitted', {
+        service: data.service,
+        sourceHint: 'contact_form',
+      })
 
       setStatus('success')
       form.reset()

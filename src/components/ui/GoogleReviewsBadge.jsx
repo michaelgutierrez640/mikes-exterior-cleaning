@@ -1,5 +1,6 @@
 import { useGoogleReviewsBadgeLabel, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import GoogleStars from './GoogleStars'
+import { trackInternalEvent } from '../../utils/analytics'
 
 const VARIANTS = {
   light:
@@ -53,6 +54,7 @@ export default function GoogleReviewsBadge({
         rel="noopener noreferrer"
         className={sharedClassName}
         aria-label={`${badgeLabel} on Google`}
+        onClick={() => trackInternalEvent('google_review_clicked', { sourceHint: 'reviews_badge' })}
       >
         {content}
       </a>

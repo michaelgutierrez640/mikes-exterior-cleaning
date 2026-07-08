@@ -9,6 +9,7 @@ import { submitBookingRequest } from '../../services/submitBooking'
 import { getAvailableTimeWindows } from '../../services/calendarService'
 import TimeWindowPicker from './TimeWindowPicker'
 import BookingConfirmation from './BookingConfirmation'
+import { trackInternalEvent } from '../../utils/analytics'
 
 function validateBooking(form, selectedServiceIds, timeWindow, customTime) {
   const errors = {}
@@ -107,6 +108,10 @@ export default function BookingForm({ prefill = null, compact = false }) {
       .filter(Boolean)
 
     try {
+      trackInternalEvent('booking_requested', {
+        service: serviceNames.join(', ') || null,
+        sourceHint: 'booking_form',
+      })
       await submitBookingRequest({
         name: form.name.trim(),
         phone: form.phone.trim(),
