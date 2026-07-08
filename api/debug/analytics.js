@@ -39,9 +39,9 @@ export default async function handler(req, res) {
     return json(res, 503, {
       error: 'Analytics storage not configured',
       requiredEnv: [
-        'UPSTASH_REDIS_REST_URL',
-        'UPSTASH_REDIS_REST_TOKEN',
-        '(or KV_REST_API_URL + KV_REST_API_TOKEN from Vercel KV / Upstash integration)',
+        'KV_REST_API_URL',
+        'KV_REST_API_TOKEN',
+        '(auto-injected when Upstash Redis is connected in Vercel Storage)',
       ],
     })
   }

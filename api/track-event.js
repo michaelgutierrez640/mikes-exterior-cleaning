@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store')
     return json(res, 503, {
       error: 'Analytics storage not configured',
-      hint: 'Connect Upstash Redis (Vercel Storage) and set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN',
+      hint: 'Connect Upstash Redis in Vercel Storage (KV_REST_API_URL + KV_REST_API_TOKEN)',
     })
   }
 
