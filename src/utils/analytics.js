@@ -2,6 +2,17 @@ const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || ''
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID?.trim() || ''
 const INTERNAL_ENDPOINT = '/api/track-event'
 
+function isDebugEnabled() {
+  if (typeof window === 'undefined') return false
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('debug_analytics') === '1') return true
+    return window.localStorage.getItem('mikes_analytics_debug') === '1'
+  } catch {
+    return false
+  }
+}
+
 function getOrCreateId(key) {
   if (typeof window === 'undefined') return null
   try {
@@ -93,6 +104,7 @@ export function trackInternalEvent(type, props = {}) {
   const sessionId = getSessionId()
   const utm = getUtmParams()
   const firstTouch = getFirstTouch()
+  const debug = isDebugEnabled()
 
   const payload = {
     type,
@@ -103,11 +115,12 @@ export function trackInternalEvent(type, props = {}) {
     referrer: firstTouch.referrer,
     ...utm,
     ...props,
+    ...(debug ? { debug: true } : {}),
   }
 
   try {
     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' })
-    if (navigator.sendBeacon) {
+    if (!debug && navigator.sendBeacon) {
       navigator.sendBeacon(INTERNAL_ENDPOINT, blob)
       return
     }
@@ -120,7 +133,16 @@ export function trackInternalEvent(type, props = {}) {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
     keepalive: true,
-  }).catch(() => {})
+  })
+    .then(async (res) => {
+      if (!debug) return
+      const text = await res.text().catch(() => '')
+      console.info('[Analytics debug] event', type, 'status', res.status, text ? `body=${text}` : '')
+    })
+    .catch((err) => {
+      if (!debug) return
+      console.info('[Analytics debug] event', type, 'failed', String(err?.message || err))
+    })
 }
 
 export function trackPageView(path) {

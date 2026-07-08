@@ -65,6 +65,10 @@ export default async function handler(req, res) {
   }
 
   addEvent(event)
+  if (body?.debug === true) {
+    const tail = (event.visitorId || '').slice(-6)
+    console.info('[track-event debug]', { type: event.type, path: event.path, visitor: tail || null })
+  }
 
   res.setHeader('Cache-Control', 'no-store')
   return json(res, 200, { ok: true })

@@ -77,7 +77,6 @@ export default function Analytics() {
   }, [])
 
   useEffect(() => {
-    if (!ANALYTICS_ENABLED) return
     trackPageView(location.pathname + location.search)
   }, [location.pathname, location.search])
 
