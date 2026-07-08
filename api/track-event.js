@@ -24,6 +24,32 @@ function getClientIp(req) {
   return null
 }
 
+async function parseRequestBody(req) {
+  const raw = req.body
+  if (raw !== undefined && raw !== null && raw !== '') {
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw)
+      } catch {
+        return {}
+      }
+    }
+    if (typeof raw === 'object') return raw
+  }
+
+  if (typeof req.text === 'function') {
+    try {
+      const text = await req.text()
+      if (!text) return {}
+      return JSON.parse(text)
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
@@ -31,7 +57,7 @@ export default async function handler(req, res) {
   }
 
   /** @type {any} */
-  const body = req.body ?? {}
+  const body = await parseRequestBody(req)
   const type = String(body.type || '').trim()
 
   if (!ALLOWED_EVENTS.has(type)) {
@@ -70,8 +96,8 @@ export default async function handler(req, res) {
     console.error('[track-event] storage error:', err?.message || err)
     res.setHeader('Cache-Control', 'no-store')
     return json(res, 503, {
-      error: 'Analytics storage not configured',
-      hint: 'Connect Upstash Redis in Vercel Storage (KV_REST_API_URL + KV_REST_API_TOKEN)',
+      error: 'Analytics storage error',
+      message: err?.message || String(err),
     })
   }
 
