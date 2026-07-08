@@ -53,7 +53,17 @@ export default async function handler(req, res) {
     return json(res, 401, { error: 'Unauthorized' })
   }
 
-  res.setHeader('Cache-Control', 'no-store')
-  return json(res, 200, computeDashboardMetrics())
+  try {
+    const metrics = await computeDashboardMetrics()
+    res.setHeader('Cache-Control', 'no-store')
+    return json(res, 200, metrics)
+  } catch (err) {
+    console.error('[admin/metrics] storage error:', err?.message || err)
+    res.setHeader('Cache-Control', 'no-store')
+    return json(res, 503, {
+      error: 'Analytics storage not configured',
+      hint: 'Connect Upstash Redis (Vercel Storage) and set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN',
+    })
+  }
 }
 

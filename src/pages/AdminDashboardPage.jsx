@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
             Admin Dashboard
           </h1>
           <p className="mt-3 max-w-2xl text-[0.9375rem] leading-[1.7] text-white/60">
-            Track traffic, leads, conversion rates, and attribution. This is local-first mock storage (DB-ready).
+            Track traffic, leads, conversion rates, and attribution. Events are stored in Upstash Redis (Vercel Storage).
           </p>
         </div>
       </section>

@@ -64,13 +64,23 @@ export default async function handler(req, res) {
     quoteValueHigh: Number.isFinite(Number(body.quoteValueHigh)) ? Number(body.quoteValueHigh) : null,
   }
 
-  addEvent(event)
+  try {
+    await addEvent(event)
+  } catch (err) {
+    console.error('[track-event] storage error:', err?.message || err)
+    res.setHeader('Cache-Control', 'no-store')
+    return json(res, 503, {
+      error: 'Analytics storage not configured',
+      hint: 'Connect Upstash Redis (Vercel Storage) and set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN',
+    })
+  }
+
   if (body?.debug === true) {
     const tail = (event.visitorId || '').slice(-6)
     console.info('[track-event debug]', { type: event.type, path: event.path, visitor: tail || null })
   }
 
   res.setHeader('Cache-Control', 'no-store')
-  return json(res, 200, { ok: true })
+  return json(res, 200, { ok: true, persisted: true })
 }
 
