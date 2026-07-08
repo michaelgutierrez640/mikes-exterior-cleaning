@@ -14,7 +14,8 @@ function getManualSnapshot() {
     reviewsUrl: BUSINESS.googleReviewsUrl,
     reviews: getDisplayedGoogleReviews(),
     fetchedAt: null,
-    loading: false,
+    loading: true,
+    error: null,
     fromApi: false,
   }
 }
@@ -26,23 +27,44 @@ export function GoogleReviewsProvider({ children }) {
     let cancelled = false
 
     async function load() {
-      const data = await fetchGoogleReviewsFromApi()
-      if (cancelled || !data) return
+      try {
+        const data = await fetchGoogleReviewsFromApi()
+        if (cancelled || !data) {
+          if (!cancelled) setState((prev) => ({ ...prev, loading: false }))
+          return
+        }
 
-      setState({
-        source: data.source,
-        businessName: data.businessName || BUSINESS.name,
-        rating: data.rating ?? BUSINESS.googleReviewRating,
-        reviewCount: data.reviewCount ?? BUSINESS.googleReviews,
-        reviewsUrl: data.reviewsUrl ?? BUSINESS.googleReviewsUrl,
-        reviews:
-          data.reviews?.length > 0
-            ? data.reviews.filter((review) => review.source === 'Google')
-            : getDisplayedGoogleReviews(),
-        fetchedAt: data.fetchedAt ?? null,
-        loading: false,
-        fromApi: data.source === 'google-places-api',
-      })
+        const apiReviews =
+          Array.isArray(data.reviews) && data.reviews.length
+            ? data.reviews
+                .map((review) => ({
+                  reviewerName: review.reviewerName ?? 'Google User',
+                  rating: Number(review.rating) || 5,
+                  reviewText: String(review.reviewText ?? '').trim(),
+                  date: String(review.date ?? '').trim(),
+                  source: 'Google',
+                }))
+                .filter((review) => review.reviewText.length > 0)
+            : []
+
+        setState({
+          source: data.source,
+          businessName: data.businessName || BUSINESS.name,
+          rating: data.rating ?? BUSINESS.googleReviewRating,
+          reviewCount: data.reviewCount ?? BUSINESS.googleReviews,
+          reviewsUrl: data.reviewsUrl ?? BUSINESS.googleReviewsUrl,
+          reviews: apiReviews.length ? apiReviews : getDisplayedGoogleReviews(),
+          fetchedAt: data.fetchedAt ?? null,
+          loading: false,
+          error: null,
+          fromApi: data.source === 'google-places-api',
+        })
+      } catch (error) {
+        console.error('[GoogleReviewsProvider]', error)
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, loading: false, error: 'Unable to load live reviews.' }))
+        }
+      }
     }
 
     load()
@@ -59,7 +81,8 @@ export function GoogleReviewsProvider({ children }) {
 export function useGoogleReviews() {
   const context = useContext(GoogleReviewsContext)
   if (!context) {
-    return getManualSnapshot()
+    const snapshot = getManualSnapshot()
+    return { ...snapshot, loading: false }
   }
   return context
 }

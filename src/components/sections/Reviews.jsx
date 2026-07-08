@@ -13,7 +13,7 @@ function ReviewAvatar({ reviewerName }) {
 }
 
 export default function Reviews() {
-  const { reviews, reviewsUrl } = useGoogleReviews()
+  const { reviews, reviewsUrl, loading, error, fromApi } = useGoogleReviews()
   const reviewsLink = reviewsUrl
 
   return (
@@ -46,6 +46,24 @@ export default function Reviews() {
             </ScrollReveal>
           ))}
         </div>
+
+        {loading && (
+          <p className="mt-8 text-center text-sm text-gray-500" role="status" aria-live="polite">
+            Loading latest Google reviews…
+          </p>
+        )}
+
+        {!loading && error && (
+          <p className="mt-8 text-center text-sm text-gray-500" role="status" aria-live="polite">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && fromApi && !reviews.length && (
+          <p className="mt-8 text-center text-sm text-gray-500" role="status" aria-live="polite">
+            No reviews are available right now.
+          </p>
+        )}
 
         {reviewsLink && (
           <ScrollReveal className="mt-12 text-center sm:mt-14" delay="delay-200">
