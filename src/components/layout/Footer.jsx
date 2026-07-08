@@ -1,9 +1,6 @@
 import { Link } from 'react-router-dom'
-import {
-  BUSINESS,
-  NAV_LINKS,
-  getGoogleReviewsLink,
-} from '../../config/business'
+import { BUSINESS, NAV_LINKS } from '../../config/business'
+import { useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import { PRIORITY_LOCATION_SLUGS, getLocationPage } from '../../content/cities/location'
 import { LogoMark } from '../ui/Icons'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
@@ -42,6 +39,8 @@ function SocialIcon({ href, label, children }) {
 }
 
 export default function Footer() {
+  const reviewsLink = useGoogleReviewsLink()
+
   return (
     <footer className="relative border-t border-white/[0.05] bg-navy-950">
       <div className="section-container py-16 sm:py-20">
@@ -118,10 +117,10 @@ export default function Footer() {
           <p className="text-center text-[0.75rem] text-white/30 sm:text-left">
             &copy; {new Date().getFullYear()} {BUSINESS.name}. All rights reserved.
           </p>
-          {(getGoogleReviewsLink() || BUSINESS.social.facebook || BUSINESS.social.instagram) && (
+          {(reviewsLink || BUSINESS.social.facebook || BUSINESS.social.instagram) && (
             <div className="flex items-center gap-2.5">
-              {getGoogleReviewsLink() && (
-                <SocialIcon href={getGoogleReviewsLink()} label="Google Reviews">
+              {reviewsLink && (
+                <SocialIcon href={reviewsLink} label="Google Reviews">
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" /></svg>
                 </SocialIcon>
               )}

@@ -1,5 +1,5 @@
-import { getGoogleReviewsLink } from '../../config/business'
-import { getDisplayedGoogleReviews, getReviewerInitials } from '../../config/googleReviews'
+import { useGoogleReviews, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
+import { getReviewerInitials } from '../../config/googleReviews'
 import ScrollReveal from '../ScrollReveal'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 import GoogleStars from '../ui/GoogleStars'
@@ -13,8 +13,8 @@ function ReviewAvatar({ reviewerName }) {
 }
 
 export default function Reviews() {
-  const reviewsLink = getGoogleReviewsLink()
-  const reviews = getDisplayedGoogleReviews()
+  const { reviews, reviewsUrl } = useGoogleReviews()
+  const reviewsLink = reviewsUrl
 
   return (
     <section id="reviews" className="section-padding relative bg-section-reviews" aria-labelledby="reviews-heading">

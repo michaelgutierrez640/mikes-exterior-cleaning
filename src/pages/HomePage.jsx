@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import Hero from '../components/sections/Hero'
@@ -20,10 +20,29 @@ import JsonLd from '../components/seo/JsonLd'
 import { SEO, getHomePageSchemas } from '../config/seo'
 import { FAQS } from '../config/content'
 import { DEFAULT_OG_IMAGE } from '../config/site'
+import { useGoogleReviews } from '../context/GoogleReviewsContext'
 
 import { scrollToHash } from '../utils/scroll'
 
 export default function HomePage() {
+  const { rating, reviewCount, reviewsUrl, reviews, businessName, fromApi } = useGoogleReviews()
+
+  const reviewSummary = useMemo(
+    () => ({
+      rating,
+      reviewCount,
+      reviewsUrl,
+      reviews,
+      businessName,
+    }),
+    [rating, reviewCount, reviewsUrl, reviews, businessName],
+  )
+
+  const homeSchemas = useMemo(
+    () => getHomePageSchemas(FAQS, reviewSummary),
+    [reviewSummary],
+  )
+
   useEffect(() => {
     if (window.location.hash) {
       requestAnimationFrame(() => scrollToHash(window.location.hash))
@@ -39,7 +58,7 @@ export default function HomePage() {
         canonical={SEO.canonical}
         ogImage={DEFAULT_OG_IMAGE}
       />
-      <JsonLd data={getHomePageSchemas(FAQS)} id="home-schema" />
+      <JsonLd data={homeSchemas} id="home-schema" />
       <Particles />
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <Header />
@@ -67,6 +86,11 @@ export default function HomePage() {
       <Footer />
       <MobileCTA />
       <BackToTop />
+      {fromApi && (
+        <span className="sr-only" aria-live="polite">
+          Google reviews updated from live data.
+        </span>
+      )}
     </>
   )
 }

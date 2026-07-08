@@ -7,9 +7,10 @@ import { getServiceEnhancements } from '../config/servicePageEnhancements'
  *
  * @param {string} slug
  * @param {number} [limit=3]
+ * @param {import('../config/googleReviews').GoogleReview[]} [reviewPool]
  */
-export function getServiceReviews(slug, limit = 3) {
-  const reviews = getDisplayedGoogleReviews()
+export function getServiceReviews(slug, limit = 3, reviewPool = null) {
+  const reviews = reviewPool ?? getDisplayedGoogleReviews()
   const config = getServiceEnhancements(slug)
   const keywords = config?.reviewKeywords ?? []
 

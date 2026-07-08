@@ -1,4 +1,4 @@
-import { getGoogleReviewsBadgeLabel, getGoogleReviewsLink } from '../../config/business'
+import { useGoogleReviewsBadgeLabel, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import GoogleStars from './GoogleStars'
 
 const VARIANTS = {
@@ -20,14 +20,15 @@ export default function GoogleReviewsBadge({
   link = false,
 }) {
   const { stars, text, padding, gap } = SIZES[size]
-  const reviewsUrl = getGoogleReviewsLink()
+  const reviewsUrl = useGoogleReviewsLink()
+  const badgeLabel = useGoogleReviewsBadgeLabel()
   const isLink = link && reviewsUrl
 
   const content = (
     <>
       <GoogleStars className={stars} />
       <span className={`font-semibold tracking-[-0.01em] ${text}`}>
-        {getGoogleReviewsBadgeLabel()}
+        {badgeLabel}
       </span>
     </>
   )
@@ -51,7 +52,7 @@ export default function GoogleReviewsBadge({
         target="_blank"
         rel="noopener noreferrer"
         className={sharedClassName}
-        aria-label={`${getGoogleReviewsBadgeLabel()} on Google`}
+        aria-label={`${badgeLabel} on Google`}
       >
         {content}
       </a>
@@ -59,7 +60,7 @@ export default function GoogleReviewsBadge({
   }
 
   return (
-    <div className={sharedClassName} aria-label={getGoogleReviewsBadgeLabel()}>
+    <div className={sharedClassName} aria-label={badgeLabel}>
       {content}
     </div>
   )

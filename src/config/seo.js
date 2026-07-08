@@ -31,9 +31,16 @@ export function getWebSiteSchema() {
   }
 }
 
-export function getHomePageSchemas(faqs = []) {
-  const schemas = [getOrganizationSchema(), getWebSiteSchema(), getLocalBusinessSchema()]
+export function getHomePageSchemas(faqs = [], reviewSummary = null) {
+  const schemas = [
+    getOrganizationSchema(),
+    getWebSiteSchema(),
+    getLocalBusinessSchema({}, reviewSummary),
+  ]
   if (faqs.length) schemas.push(getFaqPageSchema(faqs))
+  if (reviewSummary?.reviews?.length) {
+    schemas.push(...getReviewSchemas(reviewSummary.reviews, reviewSummary.businessName))
+  }
   return schemas
 }
 
@@ -53,7 +60,7 @@ export const SEO = {
   canonical: SITE_URL,
 }
 
-export function getLocalBusinessSchema(overrides = {}) {
+export function getLocalBusinessSchema(overrides = {}, reviewSummary = null) {
   const openingHoursSpecification = BUSINESS.hours.flatMap((row) => {
     if (row.time.toLowerCase().includes('appointment')) return []
     const [openRaw, closeRaw] = row.time.split(' – ')
@@ -82,8 +89,12 @@ export function getLocalBusinessSchema(overrides = {}) {
     }))
   })
 
-  const sameAs = [BUSINESS.social.facebook, BUSINESS.social.instagram, BUSINESS.social.google, BUSINESS.googleReviewsUrl]
-    .filter(Boolean)
+  const sameAs = [
+    BUSINESS.social.facebook,
+    BUSINESS.social.instagram,
+    BUSINESS.social.google,
+    reviewSummary?.reviewsUrl ?? BUSINESS.googleReviewsUrl,
+  ].filter(Boolean)
 
   const schema = {
     '@context': 'https://schema.org',
@@ -126,16 +137,48 @@ export function getLocalBusinessSchema(overrides = {}) {
     ...overrides,
   }
 
-  if (BUSINESS.googleReviewRating != null && BUSINESS.googleReviews != null) {
+  const ratingValue = reviewSummary?.rating ?? BUSINESS.googleReviewRating
+  const reviewCount = reviewSummary?.reviewCount ?? BUSINESS.googleReviews
+
+  if (ratingValue != null && reviewCount != null) {
     schema.aggregateRating = {
       '@type': 'AggregateRating',
-      ratingValue: String(BUSINESS.googleReviewRating),
-      reviewCount: String(BUSINESS.googleReviews),
+      ratingValue: String(ratingValue),
+      reviewCount: String(reviewCount),
       bestRating: '5',
     }
   }
 
   return schema
+}
+
+/**
+ * Individual Review schema for homepage rich results support.
+ *
+ * @param {Array<{ reviewerName: string, rating: number, reviewText: string, date: string }>} reviews
+ * @param {string} businessName
+ */
+export function getReviewSchemas(reviews, businessName = BUSINESS.name) {
+  return reviews.slice(0, 6).map((review) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Review',
+    itemReviewed: {
+      '@type': 'LocalBusiness',
+      name: businessName,
+      '@id': `${SITE_URL}/#localbusiness`,
+    },
+    author: {
+      '@type': 'Person',
+      name: review.reviewerName,
+    },
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: String(review.rating),
+      bestRating: '5',
+    },
+    reviewBody: review.reviewText,
+    datePublished: review.date,
+  }))
 }
 
 export function getServiceSchema({ name, description, slug, areaServed, url }) {

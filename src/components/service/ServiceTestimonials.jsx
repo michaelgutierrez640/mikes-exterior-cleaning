@@ -1,4 +1,4 @@
-import { getGoogleReviewsLink } from '../../config/business'
+import { useGoogleReviews, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import { getReviewerInitials } from '../../config/googleReviews'
 import { getServiceReviews } from '../../utils/serviceReviews'
 import ScrollReveal from '../ScrollReveal'
@@ -14,8 +14,9 @@ function ReviewAvatar({ reviewerName }) {
 }
 
 export default function ServiceTestimonials({ slug, serviceName, id }) {
-  const reviews = getServiceReviews(slug, 3)
-  const reviewsLink = getGoogleReviewsLink()
+  const { reviews: allReviews } = useGoogleReviews()
+  const reviews = getServiceReviews(slug, 3, allReviews)
+  const reviewsLink = useGoogleReviewsLink()
 
   return (
     <section className="service-section bg-section-reviews" aria-labelledby={id}>

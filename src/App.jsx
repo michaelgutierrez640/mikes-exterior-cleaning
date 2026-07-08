@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { GoogleReviewsProvider } from './context/GoogleReviewsContext'
 import HomePage from './pages/HomePage'
 import Layout from './components/layout/Layout'
 import Analytics from './components/Analytics'
@@ -29,9 +30,10 @@ function LazyPage({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Analytics />
-      <Routes>
+    <GoogleReviewsProvider>
+      <BrowserRouter>
+        <Analytics />
+        <Routes>
         <Route path="/" element={<HomePage />} />
         <Route element={<Layout />}>
           <Route path="/services/:slug" element={<LazyPage><ServicePage /></LazyPage>} />
@@ -46,5 +48,6 @@ export default function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </GoogleReviewsProvider>
   )
 }
