@@ -46,7 +46,7 @@ export const SEO = {
     'Pressure Washing Modesto',
     'Solar Panel Cleaning Modesto',
     'Gutter Cleaning Modesto',
-    'Commercial Window Cleaning Modesto',
+    'Residential Window Cleaning Modesto',
     'exterior cleaning Central Valley',
     "Mike's Exterior Cleaning Services",
   ].join(', '),
@@ -117,7 +117,7 @@ export function getLocalBusinessSchema(overrides = {}) {
     priceRange: '$$',
     serviceType: [
       'Window Cleaning',
-      'Commercial Window Cleaning',
+      'Residential Window Cleaning',
       'Solar Panel Cleaning',
       'Gutter Cleaning',
       'Pressure Washing',

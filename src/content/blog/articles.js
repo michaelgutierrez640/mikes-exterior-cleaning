@@ -381,7 +381,7 @@ const BLOG_ARTICLES = [
         ],
       },
     ],
-    relatedServiceSlug: 'commercial-window-cleaning',
+    relatedServiceSlug: 'residential-window-cleaning',
     relatedCitySlug: 'modesto',
   },
   {

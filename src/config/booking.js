@@ -16,10 +16,10 @@ export const TIME_WINDOWS = [
 export const BOOKABLE_SERVICES = [
   ...QUOTE_SERVICES,
   {
-    id: 'commercial-window-cleaning',
-    name: 'Commercial Window Cleaning',
-    shortDescription: 'Storefronts, offices, and multi-story commercial glass',
-    icon: 'commercial',
+    id: 'residential-window-cleaning',
+    name: 'Residential Window Cleaning',
+    shortDescription: 'Interior & exterior glass for homes — tracks, screens, and sills',
+    icon: 'windows',
   },
 ]
 

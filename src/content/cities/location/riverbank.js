@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Concrete and paver restoration for driveways dulled by field dust and vehicle oil.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Leaf, needle, and sludge removal before winter rains flood Riverbank gutters.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Safe array washing to recover efficiency lost to Central Valley dust layers.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Santa Fe corridor retail and office glass with reliable scheduling.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Interior and exterior glass for Riverbank homes and family properties.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {

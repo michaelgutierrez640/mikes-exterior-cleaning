@@ -330,83 +330,83 @@ export const SERVICE_ENHANCEMENTS = {
     reviewKeywords: ['gutter', 'roof', 'professional', 'conscientious', 'courteous'],
   },
 
-  'commercial-window-cleaning': {
+  'residential-window-cleaning': {
     beforeAfterSetId: null,
     beforeAfterPlaceholder: {
-      label: 'Commercial Window Cleaning — Before & After',
-      beforeTitle: 'Storefront glass before cleaning',
-      afterTitle: 'Storefront glass after cleaning',
-      beforeFile: 'public/images/before-after/commercial-before.jpg',
-      afterFile: 'public/images/before-after/commercial-after.jpg',
-      sizeHint: 'Same storefront or office facade — landscape 1600×1000px',
+      label: 'Residential Window Cleaning — Before & After',
+      beforeTitle: 'Home windows before cleaning',
+      afterTitle: 'Home windows after cleaning',
+      beforeFile: 'public/images/before-after/img-0947-before.jpg',
+      afterFile: 'public/images/before-after/img-0947-after.jpg',
+      sizeHint: 'Same home exterior — landscape 1600×1000px',
       aspectClass: 'aspect-[16/10]',
     },
     diyComparison: {
-      title: 'Professional Commercial Cleaning vs. In-House Staff',
+      title: 'Professional Residential Cleaning vs. DIY',
       intro:
-        'Assigning window cleaning to untrained staff risks streaky storefronts, liability exposure, and lost productivity.',
-      diyTitle: 'In-House / DIY Approach',
-      proTitle: "Mike's Commercial Service",
+        'Home window cleaning on ladders with store-bought sprays risks streaks, injury, and hours of frustration.',
+      diyTitle: 'DIY / Homeowner Approach',
+      proTitle: "Mike's Residential Service",
       rows: [
         {
-          diy: 'Employees pulled from core duties — lost productivity',
-          pro: 'Dedicated crew on your schedule, often before or after hours',
+          diy: 'Paper towels and spray bottles leave lint and streaks',
+          pro: 'Professional squeegees and purified water for streak-free glass',
         },
         {
-          diy: 'Inconsistent results on large glass expanses',
-          pro: 'Commercial poles, lifts, and streak-free pro technique',
+          diy: 'Ladder falls on two-story homes',
+          pro: 'Insured crew with extension poles and proper height equipment',
         },
         {
-          diy: 'Liability when staff work at height without training',
-          pro: 'Fully insured professionals — your business stays protected',
+          diy: 'Tracks and sills skipped or half-cleaned',
+          pro: 'Complete service — glass, frames, sills, and tracks',
         },
         {
-          diy: 'Missed high windows and hard-to-reach facades',
-          pro: 'Equipment for multi-story and large-format commercial glass',
+          diy: 'Hard water stains baked in from sprinkler overspray',
+          pro: 'Targeted treatment for Central Valley mineral deposits',
         },
         {
-          diy: 'No documentation for property management compliance',
-          pro: 'Reliable recurring schedules with clear communication',
+          diy: 'Entire Saturday lost on mediocre results',
+          pro: 'Whole-home cleaning in a few hours with guaranteed quality',
         },
       ],
     },
     checklist: {
-      title: 'What Our Commercial Window Cleaning Includes',
+      title: 'What Our Residential Window Cleaning Includes',
       items: [
-        'Free site walkthrough and quote',
-        'Interior and exterior commercial glass',
-        'Storefronts, offices, and retail facades',
+        'Free home walkthrough and quote',
+        'Interior and exterior residential glass',
+        'Single-story and two-story homes',
         'Water-fed pole work for height',
-        'Scheduled before-hours or after-hours service',
-        'Streak-free detailing on large panes',
-        'Frame and sill wipe-down',
-        'Recurring maintenance plans available',
+        'Screen removal, cleaning, and reinstall',
+        'Streak-free detailing on every pane',
+        'Frame, sill, and track wipe-down',
+        'Recurring home maintenance plans available',
       ],
     },
     maintenanceTips: {
-      title: 'Keeping Commercial Glass Presentable',
+      title: 'Keeping Home Windows Clear Between Visits',
       tips: [
         {
-          title: 'Set a Recurring Schedule',
-          text: 'Retail and restaurant storefronts in Modesto and Stockton often need monthly or bi-monthly cleaning to stay customer-ready.',
+          title: 'Set a Seasonal Schedule',
+          text: 'Most Central Valley homes benefit from exterior cleaning in spring, summer, and fall when dust and pollen peak.',
         },
         {
-          title: 'Address Construction Debris Early',
-          text: 'New developments in Tracy and Manteca generate concrete dust and adhesive residue — schedule post-construction cleans promptly.',
+          title: 'Adjust Sprinkler Heads',
+          text: 'Irrigation overspray on glass creates hard water stains. Point heads away from windows between professional visits.',
         },
         {
-          title: 'Coordinate With Landscaping',
-          text: 'Sprinkler overspray on commercial glass creates hard water stains. Align irrigation schedules with cleaning visits.',
+          title: 'Clean After Construction',
+          text: 'New developments in Tracy and Manteca generate concrete dust — schedule a post-construction clean promptly.',
         },
         {
           title: 'Bundle With Pressure Washing',
-          text: 'Clean sidewalks and entryways alongside glass for a fully polished first impression.',
+          text: 'Pair window cleaning with driveway and patio washing for a fully refreshed home exterior.',
         },
       ],
     },
     whyChooseBlurb:
-      'From custom home builders to storefront managers, Frank and other commercial clients rely on us for punctual, professional window service that protects their brand image.',
-    reviewKeywords: ['professional', 'screen', 'custom', 'commercial', 'window', 'property', 'recommend'],
+      'Central Valley homeowners rely on us for punctual, professional residential window service that keeps their homes bright, safe, and spotless.',
+    reviewKeywords: ['professional', 'window', 'residential', 'home', 'recommend', 'property', 'courteous'],
   },
 }
 

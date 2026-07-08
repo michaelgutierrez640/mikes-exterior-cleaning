@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Long driveways, arena-adjacent concrete, and paver patios restored after dust season.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Oak leaf and debris clearing from Oakdale tile-roof gutter runs.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Country-property array washing with safe roof access equipment.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Downtown Oakdale retail and office exterior glass.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Interior and exterior glass for Oakdale homes and country properties.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {

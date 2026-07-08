@@ -16,7 +16,7 @@ export default {
     imageAlt:
       'Streak-free residential windows after professional cleaning by Mike\'s Exterior Cleaning Services in Modesto, California',
   },
-  relatedServices: ['pressure-washing', 'gutter-cleaning', 'commercial-window-cleaning'],
+  relatedServices: ['pressure-washing', 'gutter-cleaning', 'residential-window-cleaning'],
   sections: {
     intro: {
       title: 'Modesto Window Cleaning That Lets the Light In',

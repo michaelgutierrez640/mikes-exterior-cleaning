@@ -58,7 +58,7 @@ function CityFaq({ faqs }) {
   )
 }
 
-const RELATED_SLUGS = ['pressure-washing', 'gutter-cleaning', 'solar-panel-cleaning', 'commercial-window-cleaning']
+const RELATED_SLUGS = ['pressure-washing', 'gutter-cleaning', 'solar-panel-cleaning', 'residential-window-cleaning']
 
 export default function WindowCleaningCityPage() {
   const { citySlug } = useParams()

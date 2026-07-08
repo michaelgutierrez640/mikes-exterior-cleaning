@@ -5,7 +5,7 @@ const FORM_ENDPOINT = `https://formsubmit.co/ajax/${BUSINESS.email}`
 
 const SERVICE_OPTIONS = [
   'Window Cleaning',
-  'Commercial Window Cleaning',
+  'Residential Window Cleaning',
   'Solar Panel Cleaning',
   'Gutter Cleaning',
   'Pressure Washing',

@@ -28,10 +28,10 @@ export const SERVICES = [
     icon: 'gutter',
   },
   {
-    title: 'Commercial Window Cleaning',
-    slug: 'commercial-window-cleaning',
-    description: 'Storefronts, offices, and multi-story glass — reliable schedules and spotless results for your business.',
-    seo: 'Commercial Window Cleaning Modesto',
+    title: 'Residential Window Cleaning',
+    slug: 'residential-window-cleaning',
+    description: 'Interior and exterior glass for Central Valley homes — streak-free results and reliable scheduling.',
+    seo: 'Residential Window Cleaning Modesto',
     icon: 'window',
   },
 ]

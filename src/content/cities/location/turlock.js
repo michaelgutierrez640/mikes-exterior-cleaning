@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Driveway and patio restoration for Turlock homes with dust-dulled concrete.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Pre-winter gutter clearing preventing overflow damage on Turlock stucco homes.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Roof-safe panel washing for Turlock arrays losing output to valley dust.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Main Street and downtown Turlock retail glass with flexible hours.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Home window cleaning for Turlock neighborhoods and family residences.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {

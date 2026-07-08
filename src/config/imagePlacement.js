@@ -63,11 +63,11 @@ export const SERVICE_IMAGES = {
     alt: 'Clogged gutter before professional gutter cleaning in Modesto',
     objectPosition: 'center center',
   },
-  'commercial-window-cleaning': {
+  'residential-window-cleaning': {
     ...img('/images/gallery/window-cleaning/window-cleaning-01.jpg'),
     srcSet:
       '/images/gallery/window-cleaning/window-cleaning-01-480w.webp 480w, /images/gallery/window-cleaning/window-cleaning-01-800w.webp 800w, /images/gallery/window-cleaning/window-cleaning-01-1200w.webp 1200w',
-    alt: 'Commercial window cleaning at a luxury property in Modesto',
+    alt: 'Residential window cleaning at a home in Modesto',
     objectPosition: 'center center',
   },
   'solar-panel-cleaning': {

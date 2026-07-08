@@ -31,7 +31,7 @@ export default {
         { name: 'Pressure Washing', text: 'Driveways, patios, walkways, and soft-wash siding — restoring concrete dulled by valley dust and oil stains.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Hand debris removal, downspout flushing, and flow testing before Modesto\'s rainy season overwhelms clogged channels.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Safe roof access and purified water rinsing to restore energy output lost to Central Valley dust and pollen.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Storefronts, offices, and retail glass along McHenry and major corridors — reliable recurring schedules.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Interior and exterior home glass across Modesto neighborhoods — recurring schedules available.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {
@@ -59,13 +59,13 @@ export default {
     },
   },
   faqs: [
-    { q: 'What exterior cleaning services do you offer in Modesto?', a: 'We provide window cleaning, pressure washing, gutter cleaning, solar panel cleaning, and commercial window cleaning throughout Modesto and Stanislaus County. Every service includes a free on-site estimate.' },
+    { q: 'What exterior cleaning services do you offer in Modesto?', a: 'We provide window cleaning, pressure washing, gutter cleaning, solar panel cleaning, and residential window cleaning throughout Modesto and Stanislaus County. Every service includes a free on-site estimate.' },
     { q: 'How often should Modesto homeowners schedule exterior cleaning?', a: 'Most Modesto homes benefit from window cleaning two to three times yearly, annual gutter cleaning before rainy season, and driveway pressure washing one to two times per year. Properties near farmland may need more frequent service.' },
     { q: 'Are you licensed and insured in Modesto?', a: 'Yes. Mike\'s Exterior Cleaning Services is fully insured on every Modesto job. We are locally owned with a 5.0 Google rating and 44 verified reviews.' },
     { q: 'Do you serve all Modesto neighborhoods?', a: 'Yes — La Loma, College Area, downtown, Pelandale, Del Rio, Wood Colony, Vintage Fairs, and surrounding Modesto communities are all within our regular service area.' },
     { q: 'Can I bundle multiple services in one Modesto visit?', a: 'Absolutely. Bundling window cleaning with pressure washing or gutter cleaning is one of our most popular Modesto requests — one trip, one refreshed exterior.' },
     { q: 'How do I get a free estimate in Modesto?', a: 'Call (209) 496-5519 or use our online contact form. We walk your property, discuss scope, and provide a clear quote with no obligation.' },
-    { q: 'Do you offer commercial exterior cleaning in Modesto?', a: 'Yes. We clean commercial storefront glass, office buildings, and retail facades with flexible before-hours and after-hours scheduling.' },
+    { q: 'Do you offer residential window cleaning in Modesto?', a: 'Yes. We clean interior and exterior residential glass for single-family homes, two-story residences, and HOA communities with flexible scheduling.' },
     { q: 'What makes your Modesto service different from franchises?', a: 'Local ownership, Central Valley expertise, honest pricing, and a perfect Google rating built one Modesto property at a time — not a call-center dispatch model.' },
   ],
   cta: {

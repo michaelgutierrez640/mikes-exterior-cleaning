@@ -16,7 +16,7 @@ export default {
     imageAlt:
       'Driveway and concrete surface restored by professional pressure washing in Modesto by Mike\'s Exterior Cleaning Services',
   },
-  relatedServices: ['window-cleaning', 'gutter-cleaning', 'commercial-window-cleaning'],
+  relatedServices: ['window-cleaning', 'gutter-cleaning', 'residential-window-cleaning'],
   sections: {
     intro: {
       title: 'Central Valley Pressure Washing That Restores Surfaces',

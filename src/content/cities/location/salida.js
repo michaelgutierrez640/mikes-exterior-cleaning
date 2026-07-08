@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Driveway and walkway restoration for properties facing Highway 99 dust and new-construction debris.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Debris removal and downspout flushing before winter rains overwhelm Salida gutter systems.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Purified water panel washing for Salida homes maximizing solar output through dusty summers.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Retail and office glass along Kiernan and Broadway corridors with flexible scheduling.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Home window cleaning for Salida subdivisions and family residences.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {

@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Driveway and walkway restoration after harvest dust and oil staining.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Leaf and blossom debris clearing before Ripon winter rains.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Array washing for Ripon homes losing production to agricultural dust layers.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Main Street retail and office glass for Ripon businesses.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Home window cleaning for Ripon estates and neighborhood residences.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {

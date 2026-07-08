@@ -30,7 +30,7 @@ export default {
         { name: 'Pressure Washing', text: 'Driveway and walkway cleaning for Ceres stucco homes with standard two-car concrete pads.', slug: 'pressure-washing' },
         { name: 'Gutter Cleaning', text: 'Pre-rainy-season gutter service preventing fascia damage and foundation splash.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Panel array washing for Ceres homes losing efficiency to valley dust.', slug: 'solar-panel-cleaning' },
-        { name: 'Commercial Window Cleaning', text: 'Mitchell Road storefront and office glass maintenance.', slug: 'commercial-window-cleaning' },
+        { name: 'Residential Window Cleaning', text: 'Interior and exterior home glass for Ceres family residences.', slug: 'residential-window-cleaning' },
       ],
     },
     localConditions: {
