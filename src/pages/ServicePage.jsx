@@ -27,6 +27,7 @@ import AllServicesLinks from '../components/service/AllServicesLinks'
 import RelatedServicesGrid from '../components/service/RelatedServicesGrid'
 import WindowCleaningCitiesNav from '../components/service/WindowCleaningCitiesNav'
 import LocationLinks from '../components/service/LocationLinks'
+import ServiceRelatedArticles from '../components/service/ServiceRelatedArticles'
 
 function ServiceFaq({ faqs }) {
   const [open, setOpen] = useState(0)
@@ -253,6 +254,8 @@ export default function ServicePage() {
       {slug === 'window-cleaning' && <WindowCleaningCitiesNav />}
 
       <LocationLinks serviceName={serviceName} />
+
+      <ServiceRelatedArticles serviceSlug={slug} id={`${slug}-resources`} />
 
       <RelatedServicesGrid
         services={otherServices}

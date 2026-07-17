@@ -2,16 +2,16 @@ export default {
   slug: 'window-cleaning',
   serviceName: 'Window Cleaning',
   meta: {
-    title: 'Window Cleaning Modesto CA | Mike\'s Exterior',
+    title: 'Window Cleaning Modesto CA | Residential & Commercial | Mike\'s Exterior',
     description:
-      'Professional window cleaning in Modesto & the Central Valley. Streak-free interior & exterior glass. 5.0 Google rating. Free estimates — (209) 496-5519.',
+      'Professional window cleaning in Modesto & the Central Valley — homes, storefronts, and office glass. Interior & exterior. 5.0 Google rating. Free estimates — (209) 496-5519.',
     keywords:
-      'window cleaning Modesto, residential window cleaning, exterior window cleaning, interior window cleaning, streak-free windows, Central Valley window cleaning, Stanislaus County',
+      'window cleaning Modesto, commercial window cleaning Modesto, storefront glass cleaning, exterior window cleaning, interior window cleaning, streak-free windows, Central Valley window cleaning, Stanislaus County',
   },
   hero: {
     h1: 'Professional Window Cleaning in Modesto, CA',
     subtitle:
-      'Crystal-clear glass inside and out — meticulous hand cleaning for homes across the Central Valley, backed by a 5.0 Google rating and 44 verified reviews.',
+      'Residential homes, commercial storefronts, and office glass across the Central Valley — streak-free interior and exterior cleaning backed by a 5.0 Google rating and 44 verified reviews.',
     image: '/images/before-after/img-0947-after.jpg',
     imageAlt:
       'Streak-free residential windows after professional cleaning by Mike\'s Exterior Cleaning Services in Modesto, California',
@@ -19,11 +19,11 @@ export default {
   relatedServices: ['pressure-washing', 'gutter-cleaning', 'residential-window-cleaning'],
   sections: {
     intro: {
-      title: 'Modesto Window Cleaning That Lets the Light In',
+      title: 'Modesto Window Cleaning for Homes and Businesses',
       paragraphs: [
-        'Your windows are the eyes of your home — and in the Central Valley, they work harder than most. Between agricultural dust drifting in from the surrounding farmland, pollen that coats glass every spring, and the hard water spots left behind by our irrigation-heavy summers, Modesto windows rarely stay clear for long without professional help. Mike\'s Exterior Cleaning Services delivers the kind of streak-free, spotless results that make rooms feel brighter, views feel sharper, and curb appeal feel effortless.',
-        'We clean both interior and exterior glass for single-story homes, two-story residences, and custom properties throughout Stanislaus and San Joaquin counties. Every visit starts with a careful assessment of your window types — double-hung, casement, sliding, French doors, skylights, and specialty architectural glass all require different techniques. We use professional-grade squeegees, scrubbers, and purified water systems rather than garden hoses and paper towels, because the difference shows in every pane.',
-        'Homeowners in Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, and Stockton choose us because we treat every property like our own. We protect landscaping, respect your schedule, and leave window tracks, sills, and frames wiped down as part of a complete clean — not just a quick pass over the glass. With a perfect 5.0 Google rating across 44 reviews, our reputation is built one spotless window at a time.',
+        'Your windows are the eyes of your property — and in the Central Valley, they work harder than most. Between agricultural dust drifting in from surrounding farmland, pollen that coats glass every spring, and hard water spots left behind by irrigation-heavy summers, Modesto windows rarely stay clear for long without professional help. Mike\'s Exterior Cleaning Services delivers streak-free results for single-family homes, two-story residences, retail storefronts, medical offices, and small commercial buildings throughout Stanislaus and San Joaquin counties.',
+        'We clean interior and exterior glass for every window type — double-hung, casement, sliding doors, French doors, skylights, and architectural glass — using professional-grade squeegees, scrubbers, and purified water systems rather than garden hoses and paper towels. Storefront clients along McHenry Avenue and downtown Modesto rely on us for before-hours and recurring schedules. Homeowners in La Loma, Pelandale, and west Modesto book one-time deep cleans and quarterly maintenance. Every visit starts with a free assessment and a clear written estimate.',
+        'Homeowners who want a page focused solely on house window packages — move-in cleans, HOA communities, and interior room-by-room service — can explore our dedicated residential window cleaning service. For full-service residential and commercial window care from one local team, you are in the right place.',
       ],
     },
     benefits: {

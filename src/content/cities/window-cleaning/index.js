@@ -1,5 +1,5 @@
 /**
- * Window Cleaning city landing pages — slugs must match SERVICE_CITIES (excluding Manteca).
+ * Window Cleaning city landing pages — one per SERVICE_CITIES entry.
  */
 import modesto from './modesto'
 import salida from './salida'
@@ -10,6 +10,7 @@ import turlock from './turlock'
 import ceres from './ceres'
 import tracy from './tracy'
 import stockton from './stockton'
+import manteca from './manteca'
 
 export const WINDOW_CLEANING_CITY_PAGES = [
   modesto,
@@ -21,6 +22,7 @@ export const WINDOW_CLEANING_CITY_PAGES = [
   ceres,
   tracy,
   stockton,
+  manteca,
 ]
 
 export const WINDOW_CLEANING_CITY_SLUGS = WINDOW_CLEANING_CITY_PAGES.map((p) => p.citySlug)

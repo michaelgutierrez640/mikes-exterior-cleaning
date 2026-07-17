@@ -2,28 +2,28 @@ export default {
   slug: 'residential-window-cleaning',
   serviceName: 'Residential Window Cleaning',
   meta: {
-    title: 'Residential Window Cleaning Modesto CA | Mike\'s Exterior',
+    title: 'Home Window Cleaning Modesto CA | Interior & Exterior | Mike\'s Exterior',
     description:
-      'Residential window cleaning in Modesto & the Central Valley. Streak-free interior & exterior glass for homes. 5.0 Google rating. Free estimates — (209) 496-5519.',
+      'Home window cleaning in Modesto & the Central Valley — interior & exterior glass, HOAs, move-in/out, and recurring home plans. 5.0 Google rating. Free estimates — (209) 496-5519.',
     keywords:
-      'residential window cleaning Modesto, home window cleaning, house window washing, interior exterior window cleaning, streak-free residential windows, Central Valley home window cleaning',
+      'home window cleaning Modesto, residential window cleaning Modesto, house window washing, interior exterior home windows, HOA window cleaning, move-in window cleaning, Central Valley homeowners',
   },
   hero: {
-    h1: 'Residential Window Cleaning in Modesto, CA',
+    h1: 'Home Window Cleaning in Modesto, CA',
     subtitle:
-      'Crystal-clear glass for Central Valley homes — interior and exterior window cleaning with meticulous care, fair pricing, and a 5.0 Google rating.',
+      'Interior and exterior window cleaning built for Central Valley homeowners — families, HOAs, move-in preparation, and recurring home maintenance with a 5.0 Google rating.',
     image: '/images/before-after/img-0947-after.jpg',
     imageAlt:
       'Streak-free residential windows after professional cleaning by Mike\'s Exterior Cleaning Services in Modesto, California',
   },
-  relatedServices: ['pressure-washing', 'gutter-cleaning', 'window-cleaning'],
+  relatedServices: ['window-cleaning', 'pressure-washing', 'gutter-cleaning'],
   sections: {
     intro: {
-      title: 'Residential Window Cleaning for Central Valley Homeowners',
+      title: 'Window Cleaning Designed for Homeowners — Not Storefronts',
       paragraphs: [
-        'Your home\'s windows frame every view, flood your rooms with natural light, and shape the first impression guests and neighbors have of your property. In the Central Valley, residential glass battles agricultural dust, spring pollen, summer hard water spots, and tule fog residue that ordinary cleaning cannot keep up with. Mike\'s Exterior Cleaning Services delivers streak-free, spotless results for homeowners who want their glass looking its best without spending weekends on ladders.',
-        'We clean single-story homes, two-story residences, custom builds, and HOA communities throughout Stanislaus and San Joaquin counties. Every visit includes a walkthrough of your window types — double-hung, casement, sliding doors, skylights, and specialty architectural glass — so we match technique to each pane. Professional squeegees, scrubbers, and purified water systems replace drugstore sprays and paper towels that leave lint and streaks behind.',
-        'Homeowners in Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, and Stockton choose us for reliable scheduling, respectful crews, and complete service that includes tracks, sills, and frames — not just a quick pass over the glass. With a perfect 5.0 Google rating across 44 reviews, our residential reputation is built one spotless home at a time.',
+        'This page is for Central Valley homeowners who want their house glass handled with residential care — room-by-room interior work, drop cloths on your floors, respectful scheduling around kids and pets, and recurring maintenance plans that keep your home bright without weekend ladder work. If you need commercial storefront or office glass instead, see our full window cleaning service for business properties.',
+        'Your home\'s windows frame every view and shape how guests experience your property. In the Central Valley, residential glass battles agricultural dust, spring pollen, summer hard water spots, and tule fog residue that drugstore sprays cannot keep up with. Mike\'s Exterior Cleaning Services delivers streak-free results for single-story homes, two-story residences, custom builds, and HOA communities throughout Stanislaus and San Joaquin counties.',
+        'Every visit includes a walkthrough of your window types — double-hung, casement, sliding doors, skylights, and specialty architectural glass — with technique matched to each pane. We protect landscaping, wipe tracks and sills as part of complete service, and offer move-in, move-out, pre-listing, and semi-annual maintenance packages. With a perfect 5.0 Google rating across 44 reviews, our residential reputation is built one spotless home at a time.',
       ],
     },
     benefits: {

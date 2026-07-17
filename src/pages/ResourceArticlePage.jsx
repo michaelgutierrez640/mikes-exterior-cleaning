@@ -1,10 +1,10 @@
 import NotFoundPage from './NotFoundPage'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { BUSINESS } from '../config/business'
 import { getBlogArticleSchemas } from '../config/seo'
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { getArticleBySlug } from '../content/blog'
-import { PRIORITY_LOCATION_SLUGS } from '../content/cities/location'
+import { WINDOW_CLEANING_CITY_SLUGS } from '../content/cities/window-cleaning'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
@@ -83,10 +83,17 @@ export default function ResourceArticlePage() {
                     </Link>
                   </li>
                 )}
-                {article.relatedCitySlug && PRIORITY_LOCATION_SLUGS.includes(article.relatedCitySlug) && (
+                {article.relatedCitySlug && (
                   <li>
                     <Link to={`/service-areas/${article.relatedCitySlug}`} className="font-semibold text-royal-600 hover:text-royal-700">
                       {article.relatedCitySlug.charAt(0).toUpperCase() + article.relatedCitySlug.slice(1)} service area →
+                    </Link>
+                  </li>
+                )}
+                {article.relatedCitySlug && WINDOW_CLEANING_CITY_SLUGS.includes(article.relatedCitySlug) && (
+                  <li>
+                    <Link to={`/window-cleaning/${article.relatedCitySlug}`} className="font-semibold text-royal-600 hover:text-royal-700">
+                      Window cleaning in {article.relatedCitySlug.charAt(0).toUpperCase() + article.relatedCitySlug.slice(1)} →
                     </Link>
                   </li>
                 )}
