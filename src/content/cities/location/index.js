@@ -5,8 +5,22 @@ import ceres from './ceres'
 import turlock from './turlock'
 import ripon from './ripon'
 import oakdale from './oakdale'
+import manteca from './manteca'
+import tracy from './tracy'
+import stockton from './stockton'
 
-export const LOCATION_PAGES = [modesto, salida, riverbank, ceres, turlock, ripon, oakdale]
+export const LOCATION_PAGES = [
+  modesto,
+  salida,
+  riverbank,
+  ceres,
+  turlock,
+  ripon,
+  oakdale,
+  manteca,
+  tracy,
+  stockton,
+]
 
 export const PRIORITY_LOCATION_SLUGS = LOCATION_PAGES.map((p) => p.citySlug)
 

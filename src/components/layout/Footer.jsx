@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { BUSINESS, NAV_LINKS } from '../../config/business'
+import { BUSINESS, NAV_LINKS, getBusinessNapLine } from '../../config/business'
 import { useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
-import { PRIORITY_LOCATION_SLUGS, getLocationPage } from '../../content/cities/location'
+import { SERVICE_CITIES } from '../../config/serviceAreas'
 import { LogoMark } from '../ui/Icons'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 
@@ -81,6 +81,11 @@ export default function Footer() {
               <a href={BUSINESS.emailHref} className="block break-all text-[0.8125rem] text-white/45 transition-colors hover:text-white/75">
                 {BUSINESS.email}
               </a>
+              <p className="pt-2 text-[0.8125rem] leading-relaxed text-white/45">
+                {getBusinessNapLine()}
+                <br />
+                <span className="text-white/35">{BUSINESS.serviceAreaLabel}</span>
+              </p>
             </div>
           </div>
 
@@ -97,18 +102,15 @@ export default function Footer() {
             </ul>
             <p className="mt-7 text-[10px] font-semibold tracking-[0.2em] text-royal-400 uppercase">Service Areas</p>
             <nav className="mt-3 flex flex-wrap gap-x-3 gap-y-2" aria-label="Footer service areas">
-              {PRIORITY_LOCATION_SLUGS.map((slug) => {
-                const loc = getLocationPage(slug)
-                return (
-                  <Link
-                    key={slug}
-                    to={`/service-areas/${slug}`}
-                    className="text-[0.8125rem] text-white/45 transition-colors hover:text-white/75"
-                  >
-                    {loc?.cityName ?? slug}
-                  </Link>
-                )
-              })}
+              {SERVICE_CITIES.map((city) => (
+                <Link
+                  key={city.slug}
+                  to={`/service-areas/${city.slug}`}
+                  className="text-[0.8125rem] text-white/45 transition-colors hover:text-white/75"
+                >
+                  {city.name}
+                </Link>
+              ))}
             </nav>
           </div>
         </div>

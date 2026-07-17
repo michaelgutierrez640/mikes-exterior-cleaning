@@ -109,10 +109,11 @@ export function getLocalBusinessSchema(overrides = {}, reviewSummary = null) {
     image: DEFAULT_OG_IMAGE,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'Modesto',
-      addressRegion: 'CA',
-      postalCode: '95350',
-      addressCountry: 'US',
+      ...(BUSINESS.address?.streetAddress ? { streetAddress: BUSINESS.address.streetAddress } : {}),
+      addressLocality: BUSINESS.address?.city ?? 'Modesto',
+      addressRegion: BUSINESS.address?.state ?? 'CA',
+      postalCode: BUSINESS.address?.postalCode ?? '95350',
+      addressCountry: BUSINESS.address?.country ?? 'US',
     },
     geo: {
       '@type': 'GeoCoordinates',

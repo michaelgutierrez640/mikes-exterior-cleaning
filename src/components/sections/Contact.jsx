@@ -1,4 +1,4 @@
-import { BUSINESS } from '../../config/business'
+import { BUSINESS, getBusinessNapLine } from '../../config/business'
 import { getLogoImage } from '../../config/images'
 import ContactForm from '../ContactForm'
 import ScrollReveal from '../ScrollReveal'
@@ -68,6 +68,11 @@ export default function Contact() {
                   <p className="mt-0.5 text-[0.9375rem] font-semibold break-all text-white">{BUSINESS.email}</p>
                 </div>
               </a>
+              <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+                <p className="text-[0.75rem] font-medium text-white/40">Service Area</p>
+                <p className="mt-0.5 text-[0.9375rem] font-semibold text-white">{getBusinessNapLine()}</p>
+                <p className="mt-1 text-[0.8125rem] text-white/45">{BUSINESS.serviceAreaLabel}</p>
+              </div>
             </div>
           </ScrollReveal>
 

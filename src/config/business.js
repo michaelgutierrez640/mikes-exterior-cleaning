@@ -8,10 +8,21 @@ export const BUSINESS = {
   emailHref: 'mailto:mikesexteriorcleaning209@gmail.com',
   description:
     'Professional exterior cleaning company based in Modesto, CA. We deliver window cleaning, gutter cleaning, solar panel cleaning, and pressure washing for residential and commercial clients throughout the Central Valley — with meticulous care, competitive pricing, and a satisfaction guarantee.',
+  /** Postal address for NAP and LocalBusiness schema. Set streetAddress when available. */
+  address: {
+    streetAddress: import.meta.env.VITE_BUSINESS_STREET_ADDRESS?.trim() || null,
+    city: 'Modesto',
+    state: 'CA',
+    postalCode: '95350',
+    country: 'US',
+  },
+  /** Shown in footer and contact blocks when no street address is configured. */
+  serviceAreaLabel: 'Modesto, CA & the Central Valley',
   // Google Business Profile
   googleReviewRating: 5.0,
   googleReviews: 44,
-  googleReviewsUrl: null,
+  /** Public GBP / Google Maps listing URL for schema sameAs and footer link. Set in Vercel as VITE_GOOGLE_REVIEWS_URL. */
+  googleReviewsUrl: import.meta.env.VITE_GOOGLE_REVIEWS_URL?.trim() || null,
   googlePlaceId: null,
   serviceAreas: [
     'Modesto',
@@ -58,6 +69,15 @@ export function getGoogleReviewsBadgeLabel() {
 
 export function getGoogleReviewsLink() {
   return BUSINESS.googleReviewsUrl ?? null
+}
+
+/** Single-line NAP for visible footer/contact (street omitted when not configured). */
+export function getBusinessNapLine() {
+  const { streetAddress, city, state, postalCode } = BUSINESS.address
+  if (streetAddress) {
+    return `${streetAddress}, ${city}, ${state} ${postalCode}`
+  }
+  return `${city}, ${state} ${postalCode}`
 }
 
 export function getHeroTrustBadges() {

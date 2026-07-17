@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { PRIORITY_LOCATION_SLUGS, getLocationPage } from '../../content/cities/location'
+import { LOCATION_PAGES } from '../../content/cities/location'
 import ScrollReveal from '../ScrollReveal'
 
 export default function LocationLinks({ serviceName, variant = 'card' }) {
-  const locations = PRIORITY_LOCATION_SLUGS.map((slug) => getLocationPage(slug)).filter(Boolean)
+  const locations = LOCATION_PAGES
 
   if (variant === 'pills') {
     return (
