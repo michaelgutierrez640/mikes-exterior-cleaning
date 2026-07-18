@@ -96,7 +96,7 @@ async function loadModules() {
   }
 }
 
-async function collectRoutes(modules) {
+async function collectRoutes(modules, publishedProjects = []) {
   const { seo, site, content, services, articles, wcCities, locations, serviceAreas } = modules
   const { DEFAULT_OG_IMAGE, absoluteUrl } = site
 
@@ -113,6 +113,7 @@ async function collectRoutes(modules) {
     { path: '/service-areas', seo: seo.getServiceAreasPageSeo(), schemas: seo.getServiceAreasPageSchemas() },
     { path: '/instant-quote', seo: seo.getInstantQuotePageSeo(), schemas: seo.getInstantQuotePageSchemas() },
     { path: '/book-online', seo: seo.getBookOnlinePageSeo(), schemas: seo.getBookOnlinePageSchemas() },
+    { path: '/projects', seo: seo.getProjectsIndexSeo(), schemas: seo.getProjectsIndexSchemas() },
     { path: '/resources', seo: seo.getBlogIndexSeo(), schemas: [
       seo.getOrganizationSchema(),
       seo.getWebSiteSchema(),
@@ -221,13 +222,43 @@ async function collectRoutes(modules) {
     })
   }
 
+  for (const project of publishedProjects) {
+    if (!project?.slug) continue
+    // Minimal public shape for SEO helpers
+    const publicish = {
+      slug: project.slug,
+      service: project.service,
+      city: project.city,
+      propertyType: project.propertyType || 'residential',
+      completedAt: project.completedAt || '',
+      notes: '',
+      photos: project.coverImage ? [{ url: project.coverImage, label: 'general' }] : [],
+    }
+    const projectSeo = seo.getProjectDetailSeo(publicish)
+    routes.push({
+      path: `/projects/${project.slug}`,
+      seo: projectSeo,
+      schemas: seo.getProjectDetailSchemas(publicish),
+      ogImage: projectSeo.ogImage || DEFAULT_OG_IMAGE,
+    })
+  }
+
   return routes
 }
 
 async function main() {
   const baseHtml = readFileSync(join(dist, 'index.html'), 'utf8')
   const modules = await loadModules()
-  const routes = await collectRoutes(modules)
+
+  let publishedProjects = []
+  try {
+    const { listPublishedProjectSitemapEntries } = await import('../lib/projectsPublic.mjs')
+    publishedProjects = await listPublishedProjectSitemapEntries()
+  } catch (err) {
+    console.warn('Prerender: published projects skipped:', err?.message || err)
+  }
+
+  const routes = await collectRoutes(modules, publishedProjects)
 
   for (const route of routes) {
     const html = injectRouteHtml(baseHtml, {

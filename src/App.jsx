@@ -16,6 +16,8 @@ const BookOnlinePage = lazy(() => import('./pages/BookOnlinePage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 const AdminCompletedJobsPage = lazy(() => import('./pages/AdminCompletedJobsPage'))
 const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
+const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/resources/:slug" element={<LazyPage><ResourceArticlePage /></LazyPage>} />
           <Route path="/instant-quote" element={<LazyPage><InstantQuotePage /></LazyPage>} />
           <Route path="/book-online" element={<LazyPage><BookOnlinePage /></LazyPage>} />
+          <Route path="/projects" element={<LazyPage><ProjectsPage /></LazyPage>} />
+          <Route path="/projects/:slug" element={<LazyPage><ProjectDetailPage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
           <Route path="/admin/completed-jobs" element={<Navigate to="/admin/completed-jobs/new" replace />} />
           <Route path="/admin/completed-jobs/new" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
