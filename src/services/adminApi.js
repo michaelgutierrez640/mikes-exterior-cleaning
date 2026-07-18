@@ -64,12 +64,20 @@ export async function fetchAdminProjects(status = 'all') {
 }
 
 export async function fetchAdminProject(id) {
-  const res = await fetch(`/api/admin/projects/${encodeURIComponent(id)}`, {
+  const projectId = encodeURIComponent(String(id || '').trim())
+  // Prefer query-param lookup on the stable /api/admin/projects route (avoids dynamic [id] rewrite issues)
+  const res = await fetch(`/api/admin/projects?id=${projectId}`, {
     headers: { Accept: 'application/json' },
   })
   if (res.status === 401) return { unauthorized: true }
   const data = await parseJson(res)
-  if (!res.ok) throw new Error(data.error || 'Failed to load job')
+  if (!res.ok) {
+    const err = new Error(data.error || 'Failed to load job')
+    err.status = res.status
+    err.requestedId = data.requestedId
+    err.redisKey = data.redisKey
+    throw err
+  }
   return data
 }
 
@@ -90,7 +98,7 @@ export async function createAdminProject(payload) {
 }
 
 export async function updateAdminProject(id, payload) {
-  const res = await fetch(`/api/admin/projects/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
@@ -106,7 +114,7 @@ export async function updateAdminProject(id, payload) {
 }
 
 export async function deleteAdminProject(id) {
-  const res = await fetch(`/api/admin/projects/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: { Accept: 'application/json' },
   })

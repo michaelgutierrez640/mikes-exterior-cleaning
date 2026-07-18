@@ -28,6 +28,7 @@ function jobTitle(project) {
 }
 
 function DetailBody({
+  projectId,
   project,
   loading,
   error,
@@ -81,6 +82,7 @@ function DetailBody({
       {!loading && !project && error !== 'Unauthorized' && (
         <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center">
           <p className="text-[0.875rem] text-gray-600">Job not found for this ID in Redis.</p>
+          <p className="mt-2 font-mono text-[0.75rem] text-gray-500">id: {projectId}</p>
           <Link to="/admin/completed-jobs/published" className="btn-royal btn-sm mt-4 inline-flex !rounded-xl">
             Back to Published
           </Link>
@@ -310,6 +312,7 @@ export default function AdminJobDetailPage() {
         <AdminAuthGate>
           {({ signOut, setUnauthorized }) => (
             <DetailBody
+              projectId={id}
               project={project}
               loading={loading}
               error={error}

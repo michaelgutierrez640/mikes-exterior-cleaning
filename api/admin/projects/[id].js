@@ -4,11 +4,38 @@ import {
   deleteProject,
   getProject,
   isProjectsStorageConfigured,
+  normalizeProjectId,
   updateProject,
 } from '../../../lib/projectsStore.mjs'
 
+/**
+ * Resolve id from query, path, or framework params.
+ * Dynamic /api/admin/projects/[id] can fail to populate req.query behind SPA hosts.
+ */
 function getId(req) {
-  return String(req.query?.id || '').trim()
+  const candidates = [
+    req.query?.id,
+    req.params?.id,
+    // Some runtimes nest dynamic params differently
+    req.query?.['id'],
+  ]
+
+  for (const value of candidates) {
+    const normalized = normalizeProjectId(value)
+    if (normalized) return normalized
+  }
+
+  const path = String(req.url || '')
+  const match = path.match(/\/api\/admin\/projects\/([^/?#]+)/i)
+  if (match?.[1]) {
+    try {
+      return normalizeProjectId(decodeURIComponent(match[1]))
+    } catch {
+      return normalizeProjectId(match[1])
+    }
+  }
+
+  return ''
 }
 
 async function deleteBlobUrls(project) {
@@ -40,12 +67,25 @@ export default async function handler(req, res) {
   }
 
   const id = getId(req)
+  console.info('[admin/projects/id] request', {
+    method: req.method,
+    requestedId: id || null,
+    redisKey: id ? `project:${id}` : null,
+    queryKeys: Object.keys(req.query || {}),
+  })
+
   if (!id) return json(res, 400, { error: 'Missing job id' })
 
   try {
     if (req.method === 'GET') {
       const project = await getProject(id)
-      if (!project) return json(res, 404, { error: 'Job not found' })
+      if (!project) {
+        return json(res, 404, {
+          error: 'Job not found',
+          requestedId: id,
+          redisKey: `project:${id}`,
+        })
+      }
       return json(res, 200, { project })
     }
 

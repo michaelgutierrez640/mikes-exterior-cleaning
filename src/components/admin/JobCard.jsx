@@ -12,8 +12,17 @@ function cityLabel(slug) {
 
 export default function JobCard({ project }) {
   const cover = project.photos?.[0]
-  const href = `/admin/completed-jobs/${project.id}`
+  const projectId = String(project?.id || '').trim()
+  const href = `/admin/completed-jobs/${encodeURIComponent(projectId)}`
   const title = `${serviceLabel(project.service)} in ${cityLabel(project.city)}`
+
+  if (!projectId) {
+    return (
+      <article className="rounded-2xl border border-red-200 bg-red-50 p-5 text-[0.875rem] text-red-700">
+        Job is missing an id and cannot be opened.
+      </article>
+    )
+  }
 
   return (
     <Link
