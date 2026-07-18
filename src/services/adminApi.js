@@ -3,6 +3,10 @@
  * Uses HttpOnly cookie-based auth from /api/admin/login.
  */
 
+async function parseJson(res) {
+  return res.json().catch(() => ({}))
+}
+
 export async function adminLogin(password) {
   const res = await fetch('/api/admin/login', {
     method: 'POST',
@@ -10,7 +14,7 @@ export async function adminLogin(password) {
     body: JSON.stringify({ password }),
   })
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
+    const data = await parseJson(res)
     throw new Error(data.error || 'Login failed')
   }
   return true
@@ -23,15 +27,103 @@ export async function adminLogout() {
   })
 }
 
+export async function fetchAdminSession() {
+  const res = await fetch('/api/admin/session', {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to verify admin session')
+  }
+  return res.json()
+}
+
 export async function fetchDashboardMetrics() {
   const res = await fetch('/api/admin/metrics', {
     headers: { Accept: 'application/json' },
   })
   if (res.status === 401) return { unauthorized: true }
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}))
+    const data = await parseJson(res)
     throw new Error(data.error || 'Failed to load dashboard metrics')
   }
   return res.json()
 }
 
+export async function fetchAdminProjects(status = 'all') {
+  const res = await fetch(`/api/admin/projects?status=${encodeURIComponent(status)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to load jobs')
+  }
+  return res.json()
+}
+
+export async function fetchAdminProject(id) {
+  const projectId = encodeURIComponent(String(id || '').trim())
+  // Prefer query-param lookup on the stable /api/admin/projects route (avoids dynamic [id] rewrite issues)
+  const res = await fetch(`/api/admin/projects?id=${projectId}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  const data = await parseJson(res)
+  if (!res.ok) {
+    const err = new Error(data.error || 'Failed to load job')
+    err.status = res.status
+    err.requestedId = data.requestedId
+    err.redisKey = data.redisKey
+    throw err
+  }
+  return data
+}
+
+export async function createAdminProject(payload) {
+  const res = await fetch('/api/admin/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to save job')
+  return data.project
+}
+
+export async function updateAdminProject(id, payload) {
+  const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to update job')
+  return data.project
+}
+
+export async function deleteAdminProject(id) {
+  const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to delete job')
+  return data
+}

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { GoogleReviewsProvider } from './context/GoogleReviewsContext'
 import HomePage from './pages/HomePage'
 import Layout from './components/layout/Layout'
@@ -14,6 +14,8 @@ const ResourceArticlePage = lazy(() => import('./pages/ResourceArticlePage'))
 const InstantQuotePage = lazy(() => import('./pages/InstantQuotePage'))
 const BookOnlinePage = lazy(() => import('./pages/BookOnlinePage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
+const AdminCompletedJobsPage = lazy(() => import('./pages/AdminCompletedJobsPage'))
+const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -46,6 +48,12 @@ export default function App() {
           <Route path="/instant-quote" element={<LazyPage><InstantQuotePage /></LazyPage>} />
           <Route path="/book-online" element={<LazyPage><BookOnlinePage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
+          <Route path="/admin/completed-jobs" element={<Navigate to="/admin/completed-jobs/new" replace />} />
+          <Route path="/admin/completed-jobs/new" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
+          <Route path="/admin/completed-jobs/drafts" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
+          <Route path="/admin/completed-jobs/draft" element={<Navigate to="/admin/completed-jobs/drafts" replace />} />
+          <Route path="/admin/completed-jobs/published" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
+          <Route path="/admin/completed-jobs/:id" element={<LazyPage><AdminJobDetailPage /></LazyPage>} />
           <Route path="*" element={<LazyPage><NotFoundPage /></LazyPage>} />
         </Route>
       </Routes>

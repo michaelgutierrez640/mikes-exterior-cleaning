@@ -1,38 +1,5 @@
-import crypto from 'crypto'
 import { computeDashboardMetrics } from '../../lib/analyticsStore.mjs'
-
-function json(res, status, payload) {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.status(status).json(payload)
-}
-
-function getPassword() {
-  return process.env.ADMIN_DASHBOARD_PASSWORD?.trim() || ''
-}
-
-function parseCookies(header = '') {
-  const out = {}
-  header.split(';').forEach((part) => {
-    const [k, ...rest] = part.trim().split('=')
-    if (!k) return
-    out[k] = decodeURIComponent(rest.join('=') || '')
-  })
-  return out
-}
-
-function verify(token, secret) {
-  if (!token || !secret) return false
-  const [body, sig] = token.split('.')
-  if (!body || !sig) return false
-  const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url')
-  if (expected !== sig) return false
-  try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
-    return payload?.v === 1
-  } catch {
-    return false
-  }
-}
+import { json, requireAdmin } from '../../lib/adminAuth.mjs'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -40,30 +7,17 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed' })
   }
 
-  const secret = getPassword()
-  if (!secret) {
-    res.setHeader('Cache-Control', 'no-store')
-    return json(res, 503, { error: 'Admin password not configured' })
-  }
-
-  const cookies = parseCookies(req.headers.cookie || '')
-  const ok = verify(cookies.mikes_admin, secret)
-  if (!ok) {
-    res.setHeader('Cache-Control', 'no-store')
-    return json(res, 401, { error: 'Unauthorized' })
-  }
+  const auth = requireAdmin(req)
+  if (!auth.ok) return json(res, auth.status, { error: auth.error })
 
   try {
     const metrics = await computeDashboardMetrics()
-    res.setHeader('Cache-Control', 'no-store')
     return json(res, 200, metrics)
   } catch (err) {
     console.error('[admin/metrics] storage error:', err?.message || err)
-    res.setHeader('Cache-Control', 'no-store')
     return json(res, 503, {
       error: 'Analytics storage not configured',
       hint: 'Connect Upstash Redis in Vercel Storage (KV_REST_API_URL + KV_REST_API_TOKEN)',
     })
   }
 }
-
