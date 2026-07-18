@@ -16,7 +16,7 @@ import { CallButton, QuoteButton, BookOnlineButton } from '../components/ui/Butt
 import GoogleReviewsBadge from '../components/ui/GoogleReviewsBadge'
 import ServiceTrustBadges from '../components/service/ServiceTrustBadges'
 import ServiceCta from '../components/service/ServiceCta'
-import RelatedProjects from '../components/projects/RelatedProjects'
+import PublishedProjectsSection from '../components/projects/PublishedProjectsSection'
 
 function CityFaq({ faqs }) {
   const [open, setOpen] = useState(0)
@@ -122,9 +122,9 @@ function CityPageBasic({ city }) {
         </div>
       </section>
 
-      <RelatedProjects
+      <PublishedProjectsSection
         city={city.slug}
-        limit={3}
+        limit={6}
         heading={`Recent Projects in ${city.name}`}
         subheading={`Published jobs completed in and around ${city.name}.`}
         id={`${city.slug}-projects`}
@@ -238,9 +238,9 @@ export default function CityPage() {
         </div>
       </section>
 
-      <RelatedProjects
+      <PublishedProjectsSection
         city={citySlug}
-        limit={3}
+        limit={6}
         heading={`Recent Projects in ${page.cityName}`}
         subheading={`Published exterior cleaning jobs in ${page.cityName} and nearby areas.`}
         id={`${citySlug}-projects`}

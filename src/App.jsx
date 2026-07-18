@@ -18,6 +18,7 @@ const AdminCompletedJobsPage = lazy(() => import('./pages/AdminCompletedJobsPage
 const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
+const ServiceCityPage = lazy(() => import('./pages/ServiceCityPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -41,6 +42,7 @@ export default function App() {
         <Routes>
         <Route path="/" element={<HomePage />} />
         <Route element={<Layout />}>
+          <Route path="/services/:slug/:citySlug" element={<LazyPage><ServiceCityPage /></LazyPage>} />
           <Route path="/services/:slug" element={<LazyPage><ServicePage /></LazyPage>} />
           <Route path="/window-cleaning/:citySlug" element={<LazyPage><WindowCleaningCityPage /></LazyPage>} />
           <Route path="/service-areas" element={<LazyPage><ServiceAreasPage /></LazyPage>} />
