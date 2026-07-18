@@ -63,6 +63,16 @@ export async function fetchAdminProjects(status = 'all') {
   return res.json()
 }
 
+export async function fetchAdminProject(id) {
+  const res = await fetch(`/api/admin/projects/${encodeURIComponent(id)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  const data = await parseJson(res)
+  if (!res.ok) throw new Error(data.error || 'Failed to load job')
+  return data
+}
+
 export async function createAdminProject(payload) {
   const res = await fetch('/api/admin/projects', {
     method: 'POST',

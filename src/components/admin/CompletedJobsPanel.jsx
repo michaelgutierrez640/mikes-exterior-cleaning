@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   createAdminProject,
-  deleteAdminProject,
   fetchAdminProjects,
   updateAdminProject,
 } from '../../services/adminApi'
@@ -13,24 +12,20 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  const [editing, setEditing] = useState(null)
-  const [busyId, setBusyId] = useState(null)
   const [formKey, setFormKey] = useState(0)
 
   useEffect(() => {
-    setEditing(null)
     setMessage('')
     setError('')
     if (tab === 'new') setFormKey((k) => k + 1)
   }, [tab])
 
   const load = useCallback(async () => {
-    if (tab === 'new' && !editing) return
+    if (tab === 'new') return
     setLoading(true)
     setError('')
     try {
-      const status = editing ? 'all' : tab
-      const data = await fetchAdminProjects(status === 'new' ? 'all' : status)
+      const data = await fetchAdminProjects(tab)
       if (data?.unauthorized) {
         onUnauthorized?.()
         return
@@ -41,7 +36,7 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
     } finally {
       setLoading(false)
     }
-  }, [tab, editing, onUnauthorized])
+  }, [tab, onUnauthorized])
 
   useEffect(() => {
     load()
@@ -55,72 +50,10 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
     return updateAdminProject(id, payload)
   }
 
-  function go(nextTab) {
-    onTabChange?.(nextTab)
-  }
-
   function handleSaved(project) {
     setMessage(project.status === 'published' ? 'Job published (admin-only for now).' : 'Draft saved.')
-    setEditing(null)
     setFormKey((k) => k + 1)
-    go(project.status === 'published' ? 'published' : 'draft')
-  }
-
-  async function publish(project) {
-    if (!project.photos?.length) {
-      setError('Add at least one photo before publishing')
-      return
-    }
-    setBusyId(project.id)
-    setError('')
-    try {
-      await updateAdminProject(project.id, { status: 'published' })
-      setMessage('Job published.')
-      await load()
-    } catch (err) {
-      if (err.unauthorized) onUnauthorized?.()
-      else setError(err.message || 'Publish failed')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function unpublish(project) {
-    setBusyId(project.id)
-    setError('')
-    try {
-      await updateAdminProject(project.id, { status: 'draft' })
-      setMessage('Job moved back to drafts.')
-      await load()
-    } catch (err) {
-      if (err.unauthorized) onUnauthorized?.()
-      else setError(err.message || 'Unpublish failed')
-    } finally {
-      setBusyId(null)
-    }
-  }
-
-  async function remove(project) {
-    const ok = window.confirm(
-      `Delete this ${project.status} job in ${project.city}? Photos will be removed from Blob storage. This cannot be undone.`,
-    )
-    if (!ok) return
-    setBusyId(project.id)
-    setError('')
-    try {
-      await deleteAdminProject(project.id)
-      setMessage('Job deleted.')
-      if (editing?.id === project.id) {
-        setEditing(null)
-        go('draft')
-      }
-      await load()
-    } catch (err) {
-      if (err.unauthorized) onUnauthorized?.()
-      else setError(err.message || 'Delete failed')
-    } finally {
-      setBusyId(null)
-    }
+    onTabChange?.(project.status === 'published' ? 'published' : 'draft')
   }
 
   return (
@@ -136,26 +69,17 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
         </p>
       )}
 
-      {(tab === 'new' || editing) && (
+      {tab === 'new' && (
         <JobForm
-          key={editing ? `edit-${editing.id}` : `new-${formKey}`}
-          mode={editing ? 'edit' : 'create'}
-          initialProject={editing}
+          key={`new-${formKey}`}
+          mode="create"
           createProject={handleCreate}
           updateProject={handleUpdate}
-          onCancel={
-            editing
-              ? () => {
-                  setEditing(null)
-                  go('draft')
-                }
-              : undefined
-          }
           onSaved={handleSaved}
         />
       )}
 
-      {tab !== 'new' && !editing && (
+      {tab !== 'new' && (
         <div>
           {loading ? (
             <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
@@ -168,19 +92,7 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {projects.map((project) => (
-                <JobCard
-                  key={project.id}
-                  project={project}
-                  busyId={busyId}
-                  onEdit={(p) => {
-                    setMessage('')
-                    setError('')
-                    setEditing(p)
-                  }}
-                  onPublish={publish}
-                  onUnpublish={unpublish}
-                  onDelete={remove}
-                />
+                <JobCard key={project.id} project={project} />
               ))}
             </div>
           )}

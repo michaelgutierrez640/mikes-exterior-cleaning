@@ -1,15 +1,14 @@
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import AdminAuthGate from '../components/admin/AdminAuthGate'
 import AdminNav from '../components/admin/AdminNav'
 import CompletedJobsPanel from '../components/admin/CompletedJobsPanel'
 import SeoHead from '../components/seo/SeoHead'
 import { absoluteUrl } from '../config/site'
 
-const TAB_ALIASES = {
-  new: 'new',
-  drafts: 'draft',
-  draft: 'draft',
-  published: 'published',
+function tabFromPath(pathname) {
+  if (pathname.endsWith('/drafts') || pathname.endsWith('/draft')) return { tab: 'draft', pathSeg: 'drafts' }
+  if (pathname.endsWith('/published')) return { tab: 'published', pathSeg: 'published' }
+  return { tab: 'new', pathSeg: 'new' }
 }
 
 const TAB_LABELS = {
@@ -19,20 +18,16 @@ const TAB_LABELS = {
 }
 
 export default function AdminCompletedJobsPage() {
-  const { tab: tabParam } = useParams()
   const navigate = useNavigate()
-  const tab = TAB_ALIASES[tabParam]
-
-  if (!tab) {
-    return <Navigate to="/admin/completed-jobs/new" replace />
-  }
+  const { pathname } = useLocation()
+  const { tab, pathSeg } = tabFromPath(pathname)
 
   return (
     <>
       <SeoHead
         title={`Admin · ${TAB_LABELS[tab]} | Mike's Exterior`}
         description="Private completed-jobs manager for Mike's Exterior Cleaning Services."
-        canonical={absoluteUrl(`/admin/completed-jobs/${tabParam === 'draft' ? 'drafts' : tabParam}`)}
+        canonical={absoluteUrl(`/admin/completed-jobs/${pathSeg}`)}
         noindex
       />
 
@@ -41,9 +36,9 @@ export default function AdminCompletedJobsPage() {
           <p className="text-[10px] font-semibold tracking-[0.2em] text-royal-300/80 uppercase">Private</p>
           <h1 className="font-display mt-4 text-3xl font-semibold text-white sm:text-4xl">Admin · Completed Jobs</h1>
           <p className="mt-3 max-w-2xl text-[0.9375rem] leading-[1.7] text-white/60">
-            Upload job photos, save drafts, and publish. Phase 1 is admin-only (not on the public site yet).
+            Upload job photos, save drafts, and publish. Tap any job card to open full details and the photo gallery.
           </p>
-          <p className="mt-2 font-mono text-[0.75rem] text-royal-200/80">/admin/completed-jobs/{tabParam}</p>
+          <p className="mt-2 font-mono text-[0.75rem] text-royal-200/80">/admin/completed-jobs/{pathSeg}</p>
         </div>
       </section>
 
@@ -56,7 +51,11 @@ export default function AdminCompletedJobsPage() {
                 tab={tab}
                 onTabChange={(next) => {
                   const path =
-                    next === 'draft' ? '/admin/completed-jobs/drafts' : next === 'published' ? '/admin/completed-jobs/published' : '/admin/completed-jobs/new'
+                    next === 'draft'
+                      ? '/admin/completed-jobs/drafts'
+                      : next === 'published'
+                        ? '/admin/completed-jobs/published'
+                        : '/admin/completed-jobs/new'
                   navigate(path)
                 }}
                 onUnauthorized={setUnauthorized}
