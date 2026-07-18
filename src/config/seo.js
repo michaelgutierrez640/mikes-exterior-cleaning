@@ -1,6 +1,7 @@
 import { BUSINESS } from './business'
 import { SITE_URL, absoluteUrl, DEFAULT_OG_IMAGE } from './site'
 import { SERVICE_CITIES } from './serviceAreas'
+import { sanitizePublicText } from '../../lib/sanitizePublicText.mjs'
 
 export { DEFAULT_OG_IMAGE }
 
@@ -528,9 +529,9 @@ export function getProjectDetailSeo(project) {
   const city = projectCityLabel(project.city)
   const property = project.propertyType === 'commercial' ? 'Commercial' : 'Residential'
   const title = `${service} in ${city} | ${BUSINESS.name}`
-  const notes = String(project.notes || '').trim()
+  const notes = sanitizePublicText(project.notes || '', { maxLength: 155 })
   const description =
-    notes.slice(0, 155) ||
+    notes ||
     `See our ${property.toLowerCase()} ${service.toLowerCase()} project in ${city}, CA. Completed ${project.completedAt || 'recently'}.`
   const afterPhoto = (project.photos || []).find((p) => p.label === 'after')
   const ogImage = afterPhoto?.url || project.photos?.[0]?.url || DEFAULT_OG_IMAGE

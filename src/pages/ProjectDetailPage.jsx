@@ -22,12 +22,14 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       setLoading(true)
       setNotFound(false)
+      setLoadError('')
       setProject(null)
       try {
         const data = await fetchPublicProject(slug)
@@ -37,8 +39,8 @@ export default function ProjectDetailPage() {
           return
         }
         setProject(data)
-      } catch {
-        if (!cancelled) setNotFound(true)
+      } catch (err) {
+        if (!cancelled) setLoadError(err.message || 'Unable to load this project right now.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -82,6 +84,17 @@ export default function ProjectDetailPage() {
           <p className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
             Loading project…
           </p>
+        )}
+
+        {!loading && loadError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-[0.875rem] text-red-700" role="alert">
+              {loadError}
+            </p>
+            <Link to="/projects" className="btn-royal btn-sm mt-4 inline-flex !rounded-xl">
+              Back to Projects
+            </Link>
+          </div>
         )}
 
         {!loading && project && (

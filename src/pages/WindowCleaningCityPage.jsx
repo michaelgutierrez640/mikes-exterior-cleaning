@@ -17,6 +17,7 @@ import WindowCleaningCityBreadcrumbs from '../components/service/WindowCleaningC
 import ServiceCta from '../components/service/ServiceCta'
 import ServiceTrustBadges from '../components/service/ServiceTrustBadges'
 import WindowCleaningCitiesNav from '../components/service/WindowCleaningCitiesNav'
+import RelatedProjects from '../components/projects/RelatedProjects'
 
 function CityFaq({ faqs }) {
   const [open, setOpen] = useState(0)
@@ -259,6 +260,15 @@ export default function WindowCleaningCityPage() {
           </div>
         </div>
       </section>
+
+      <RelatedProjects
+        service="window-cleaning"
+        city={citySlug}
+        limit={3}
+        heading={`Recent Window Cleaning Projects in ${cityName}`}
+        subheading={`Published window cleaning jobs in ${cityName} and nearby areas.`}
+        id={`${citySlug}-wc-projects`}
+      />
 
       {/* FAQ */}
       <section className="service-section bg-section-faq" aria-labelledby={`${citySlug}-faq`}>
