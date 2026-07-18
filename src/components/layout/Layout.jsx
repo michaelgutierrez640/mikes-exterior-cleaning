@@ -29,7 +29,9 @@ export default function Layout() {
         <Outlet />
       </main>
       <Footer />
-      {pathname !== '/instant-quote' && pathname !== '/book-online' && <MobileCTA />}
+      {pathname !== '/instant-quote' &&
+        pathname !== '/book-online' &&
+        !pathname.startsWith('/admin') && <MobileCTA />}
       <BackToTop />
     </div>
   )

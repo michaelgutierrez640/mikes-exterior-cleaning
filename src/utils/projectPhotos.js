@@ -43,6 +43,7 @@ export async function prepareImageForUpload(file) {
 
   const type = (file.type || '').toLowerCase()
   const allowed =
+    type.startsWith('image/') ||
     ACCEPTED_IMAGE_TYPES.includes(type) ||
     /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name || '')
   if (!allowed) {

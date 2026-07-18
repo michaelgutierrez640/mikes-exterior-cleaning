@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { SERVICES } from '../../config/content'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
-import {
-  ACCEPTED_ACCEPT_ATTR,
-  MAX_PHOTOS,
-  prepareImageForUpload,
-  uploadPreparedFile,
-} from '../../utils/projectPhotos'
+import { MAX_PHOTOS, prepareImageForUpload, uploadPreparedFile } from '../../utils/projectPhotos'
 
 const LABEL_OPTIONS = [
   { value: 'before', label: 'Before' },
@@ -291,59 +286,97 @@ export default function JobForm({
       </label>
 
       <div className="mt-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[0.8125rem] font-medium text-gray-600">
-            Photos ({form.photos.length}/{MAX_PHOTOS})
-          </p>
-          <label className={`btn-secondary btn-sm !rounded-xl ${busy || form.photos.length >= MAX_PHOTOS ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}>
-            <input
-              type="file"
-              accept={ACCEPTED_ACCEPT_ATTR}
-              multiple
-              className="sr-only"
-              onChange={onPickFiles}
-              disabled={busy || form.photos.length >= MAX_PHOTOS}
-            />
-            Add photos
-          </label>
-        </div>
-        <p className="mt-2 text-[0.75rem] text-gray-500">
-          JPEG, PNG, WebP, or HEIC · max 10 MB each · EXIF/GPS stripped when the browser can re-encode the image
+        <p className="text-[0.875rem] font-semibold text-navy-900">
+          Photos ({form.photos.length}/{MAX_PHOTOS})
+        </p>
+        <p className="mt-1 text-[0.75rem] text-gray-500">
+          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos
         </p>
 
+        {/*
+          Visible upload control for mobile + desktop.
+          Do not use btn-secondary here — that style is white-on-glass for dark headers and is invisible on this light form.
+        */}
+        <div className="mt-3">
+          <input
+            id="job-photos-input"
+            type="file"
+            accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+            multiple
+            className="sr-only"
+            onChange={onPickFiles}
+            disabled={busy || form.photos.length >= MAX_PHOTOS}
+            aria-label="Choose photos from library or camera"
+          />
+          <label
+            htmlFor="job-photos-input"
+            className={[
+              'flex w-full min-h-[3.5rem] cursor-pointer items-center justify-center gap-3 rounded-2xl px-4 py-4 text-base font-semibold shadow-sm transition active:scale-[0.99]',
+              busy || form.photos.length >= MAX_PHOTOS
+                ? 'pointer-events-none bg-gray-200 text-gray-500'
+                : 'bg-royal-600 text-white hover:bg-royal-700',
+            ].join(' ')}
+          >
+            <svg
+              className="h-6 w-6 shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            Choose Photos
+          </label>
+          <p className="mt-2 text-center text-[0.75rem] text-gray-500 sm:text-left">
+            Opens your photo library and camera options on your phone.
+          </p>
+        </div>
+
         {form.photos.length > 0 && (
-          <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {form.photos.map((photo) => (
-              <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.06] bg-gray-50">
+              <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-sm">
                 <div className="relative aspect-[4/3] bg-navy-950/5">
                   {photo.heic && !photo.uploaded ? (
                     <div className="flex h-full items-center justify-center p-4 text-center text-[0.8125rem] text-gray-500">
                       HEIC selected — preview may be limited on this device. It will still upload.
                     </div>
                   ) : (
-                    <img src={photo.previewUrl || photo.url} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={photo.previewUrl || photo.url}
+                      alt={photo.alt || 'Selected job photo'}
+                      className="h-full w-full object-cover"
+                    />
                   )}
                   {!photo.uploaded && photo.progress > 0 && photo.progress < 100 && (
-                    <div className="absolute inset-x-0 bottom-0 bg-navy-950/70 px-2 py-1 text-center text-[0.7rem] text-white">
+                    <div className="absolute inset-x-0 bottom-0 bg-navy-950/80 px-2 py-2 text-center text-[0.75rem] font-medium text-white">
                       Uploading {photo.progress}%
                     </div>
                   )}
                 </div>
                 <div className="space-y-2 p-3">
-                  <select
-                    className="input-light !py-2 text-[0.8125rem]"
-                    value={photo.label}
-                    onChange={(e) => updatePhoto(photo.key, { label: e.target.value })}
-                    disabled={busy}
-                  >
-                    {LABEL_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-[0.75rem] font-medium text-gray-600">
+                    Label
+                    <select
+                      className="input-light mt-1 !py-2.5 text-[0.875rem]"
+                      value={photo.label}
+                      onChange={(e) => updatePhoto(photo.key, { label: e.target.value })}
+                      disabled={busy}
+                    >
+                      {LABEL_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <input
-                    className="input-light !py-2 text-[0.8125rem]"
+                    className="input-light !py-2.5 text-[0.875rem]"
                     placeholder="Alt text (optional)"
                     value={photo.alt}
                     onChange={(e) => updatePhoto(photo.key, { alt: e.target.value })}
@@ -352,11 +385,11 @@ export default function JobForm({
                   />
                   <button
                     type="button"
-                    className="text-[0.8125rem] font-medium text-red-600"
+                    className="min-h-11 w-full rounded-xl border border-red-200 bg-red-50 text-[0.875rem] font-semibold text-red-700"
                     onClick={() => removePhoto(photo.key)}
                     disabled={busy}
                   >
-                    Remove
+                    Remove photo
                   </button>
                 </div>
               </li>
@@ -371,11 +404,21 @@ export default function JobForm({
         </p>
       )}
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <button type="button" className="btn-secondary btn-md !rounded-xl" disabled={busy} onClick={() => save('draft')}>
+      <div className="mt-8 mb-4 flex flex-col gap-3 sm:mb-0 sm:flex-row sm:flex-wrap">
+        <button
+          type="button"
+          className="btn-ghost btn-md !min-h-12 w-full !rounded-xl sm:w-auto"
+          disabled={busy}
+          onClick={() => save('draft')}
+        >
           Save as draft
         </button>
-        <button type="button" className="btn-royal btn-md !rounded-xl" disabled={busy} onClick={() => save('published')}>
+        <button
+          type="button"
+          className="btn-royal btn-md !min-h-12 w-full !rounded-xl sm:w-auto"
+          disabled={busy}
+          onClick={() => save('published')}
+        >
           Publish
         </button>
         {busy && (
