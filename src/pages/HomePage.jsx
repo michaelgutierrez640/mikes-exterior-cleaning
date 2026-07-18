@@ -5,6 +5,7 @@ import Hero from '../components/sections/Hero'
 import Services from '../components/sections/Services'
 import Gallery from '../components/sections/Gallery'
 import BeforeAfter from '../components/sections/BeforeAfter'
+import RelatedProjects from '../components/projects/RelatedProjects'
 import Reviews from '../components/sections/Reviews'
 import WhyChooseUs from '../components/sections/WhyChooseUs'
 import ServiceAreas from '../components/sections/ServiceAreas'
@@ -70,7 +71,14 @@ export default function HomePage() {
         <Gallery />
         <SectionDivider from="white" to="navy" />
         <BeforeAfter />
-        <SectionDivider from="navy" to="reviews" />
+        <SectionDivider from="navy" to="white" />
+        <RelatedProjects
+          limit={3}
+          heading="Recent Projects"
+          subheading="A few of our newest published jobs across the Central Valley."
+          id="home-recent-projects"
+        />
+        <SectionDivider from="white" to="reviews" />
         <Reviews />
         <SectionDivider from="reviews" to="navy" />
         <WhyChooseUs />

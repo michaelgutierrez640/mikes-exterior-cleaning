@@ -105,6 +105,7 @@ export const HERO_STATS = [
 export const NAV_LINKS = [
   { label: 'Services', href: '/#services' },
   { label: 'Our Work', href: '/#gallery' },
+  { label: 'Projects', href: '/projects' },
   { label: 'Results', href: '/#results' },
   { label: 'Reviews', href: '/#reviews' },
   { label: 'Service Areas', href: '/service-areas', shortLabel: 'Areas' },
@@ -119,6 +120,7 @@ export const NAV_LINKS = [
 export const HEADER_NAV_LINKS = [
   { label: 'Services', href: '/#services' },
   { label: 'Our Work', href: '/#gallery' },
+  { label: 'Projects', href: '/projects' },
   { label: 'Reviews', href: '/#reviews' },
   { label: 'Service Areas', href: '/service-areas', shortLabel: 'Areas' },
   { label: 'Resources', href: '/resources' },

@@ -1,6 +1,7 @@
 import { BUSINESS } from './business'
 import { SITE_URL, absoluteUrl, DEFAULT_OG_IMAGE } from './site'
 import { SERVICE_CITIES } from './serviceAreas'
+import { sanitizePublicText } from '../../lib/sanitizePublicText.mjs'
 
 export { DEFAULT_OG_IMAGE }
 
@@ -472,6 +473,104 @@ export function getBlogArticleSchemas(article) {
       { name: 'Home', url: absoluteUrl('/') },
       { name: 'Resources', url: absoluteUrl('/resources') },
       { name: article.title, url },
+    ]),
+  ]
+}
+
+function humanizeSlug(slug) {
+  return String(slug || '')
+    .split('-')
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+function projectServiceLabel(service) {
+  const map = {
+    'window-cleaning': 'Window Cleaning',
+    'pressure-washing': 'Pressure Washing',
+    'solar-panel-cleaning': 'Solar Panel Cleaning',
+    'gutter-cleaning': 'Gutter Cleaning',
+    'residential-window-cleaning': 'Residential Window Cleaning',
+  }
+  return map[service] || humanizeSlug(service)
+}
+
+function projectCityLabel(city) {
+  const found = SERVICE_CITIES.find((c) => c.slug === city)
+  return found?.name || humanizeSlug(city)
+}
+
+export function getProjectsIndexSeo() {
+  return {
+    title: `Completed Projects | ${BUSINESS.name}`,
+    description:
+      'Browse recent exterior cleaning projects across Modesto, Manteca, and the Central Valley — window cleaning, solar panel cleaning, pressure washing, and more.',
+    keywords: 'completed projects, exterior cleaning portfolio, Modesto, Manteca, Central Valley',
+    canonical: absoluteUrl('/projects'),
+  }
+}
+
+export function getProjectsIndexSchemas() {
+  return [
+    getOrganizationSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Projects', url: absoluteUrl('/projects') },
+    ]),
+  ]
+}
+
+/**
+ * @param {{ slug: string, service: string, city: string, propertyType: string, completedAt: string, notes?: string, photos?: Array<{url:string,alt?:string,label?:string}> }} project
+ */
+export function getProjectDetailSeo(project) {
+  const service = projectServiceLabel(project.service)
+  const city = projectCityLabel(project.city)
+  const property = project.propertyType === 'commercial' ? 'Commercial' : 'Residential'
+  const title = `${service} in ${city} | ${BUSINESS.name}`
+  const notes = sanitizePublicText(project.notes || '', { maxLength: 155 })
+  const description =
+    notes ||
+    `See our ${property.toLowerCase()} ${service.toLowerCase()} project in ${city}, CA. Completed ${project.completedAt || 'recently'}.`
+  const afterPhoto = (project.photos || []).find((p) => p.label === 'after')
+  const ogImage = afterPhoto?.url || project.photos?.[0]?.url || DEFAULT_OG_IMAGE
+
+  return {
+    title,
+    description,
+    keywords: `${service}, ${city}, ${property}, completed project, exterior cleaning`,
+    canonical: absoluteUrl(`/projects/${project.slug}`),
+    ogImage,
+  }
+}
+
+export function getProjectDetailSchemas(project) {
+  const seo = getProjectDetailSeo(project)
+  const service = projectServiceLabel(project.service)
+  const city = projectCityLabel(project.city)
+  const images = (project.photos || []).map((p) => p.url).filter(Boolean)
+
+  return [
+    getOrganizationSchema(),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ImageGallery',
+      name: `${service} in ${city}`,
+      description: seo.description,
+      url: seo.canonical,
+      image: images,
+      about: {
+        '@type': 'Service',
+        name: service,
+        areaServed: { '@type': 'City', name: `${city}, CA` },
+        provider: { '@id': `${SITE_URL}/#organization` },
+      },
+    },
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Projects', url: absoluteUrl('/projects') },
+      { name: `${service} in ${city}`, url: seo.canonical },
     ]),
   ]
 }
