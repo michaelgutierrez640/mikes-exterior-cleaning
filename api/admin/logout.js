@@ -1,7 +1,4 @@
-function json(res, status, payload) {
-  res.setHeader('Content-Type', 'application/json; charset=utf-8')
-  res.status(status).json(payload)
-}
+import { ADMIN_COOKIE, json } from '../../lib/adminAuth.mjs'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,11 +6,15 @@ export default async function handler(req, res) {
     return json(res, 405, { error: 'Method not allowed' })
   }
 
+  const secure =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'preview'
   res.setHeader(
     'Set-Cookie',
-    ['mikes_admin=', 'Max-Age=0', 'Path=/', 'HttpOnly', 'SameSite=Lax', 'Secure'].join('; '),
+    [`${ADMIN_COOKIE}=`, 'Max-Age=0', 'Path=/', 'HttpOnly', 'SameSite=Lax', secure ? 'Secure' : null]
+      .filter(Boolean)
+      .join('; '),
   )
-  res.setHeader('Cache-Control', 'no-store')
   return json(res, 200, { ok: true })
 }
-
