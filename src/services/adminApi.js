@@ -27,6 +27,18 @@ export async function adminLogout() {
   })
 }
 
+export async function fetchAdminSession() {
+  const res = await fetch('/api/admin/session', {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to verify admin session')
+  }
+  return res.json()
+}
+
 export async function fetchDashboardMetrics() {
   const res = await fetch('/api/admin/metrics', {
     headers: { Accept: 'application/json' },

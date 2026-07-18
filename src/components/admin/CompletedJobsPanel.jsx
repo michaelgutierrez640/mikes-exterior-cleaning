@@ -8,14 +8,7 @@ import {
 import JobCard from './JobCard'
 import JobForm from './JobForm'
 
-const TABS = [
-  { id: 'new', label: 'Add New Job' },
-  { id: 'draft', label: 'Drafts' },
-  { id: 'published', label: 'Published' },
-]
-
-export default function CompletedJobsPanel({ onUnauthorized }) {
-  const [tab, setTab] = useState('new')
+export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnauthorized }) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,6 +16,13 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
   const [editing, setEditing] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [formKey, setFormKey] = useState(0)
+
+  useEffect(() => {
+    setEditing(null)
+    setMessage('')
+    setError('')
+    if (tab === 'new') setFormKey((k) => k + 1)
+  }, [tab])
 
   const load = useCallback(async () => {
     if (tab === 'new' && !editing) return
@@ -55,11 +55,15 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
     return updateAdminProject(id, payload)
   }
 
+  function go(nextTab) {
+    onTabChange?.(nextTab)
+  }
+
   function handleSaved(project) {
     setMessage(project.status === 'published' ? 'Job published (admin-only for now).' : 'Draft saved.')
     setEditing(null)
     setFormKey((k) => k + 1)
-    setTab(project.status === 'published' ? 'published' : 'draft')
+    go(project.status === 'published' ? 'published' : 'draft')
   }
 
   async function publish(project) {
@@ -108,7 +112,7 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
       setMessage('Job deleted.')
       if (editing?.id === project.id) {
         setEditing(null)
-        setTab('draft')
+        go('draft')
       }
       await load()
     } catch (err) {
@@ -119,33 +123,8 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
     }
   }
 
-  const list = projects
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`rounded-xl px-4 py-2 text-[0.875rem] font-semibold transition ${
-              tab === t.id && !editing
-                ? 'bg-navy-900 text-white'
-                : 'bg-white text-navy-900 ring-1 ring-black/[0.06] hover:bg-gray-50'
-            }`}
-            onClick={() => {
-              setEditing(null)
-              setMessage('')
-              setError('')
-              setTab(t.id)
-              if (t.id === 'new') setFormKey((k) => k + 1)
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       {message && (
         <p className="rounded-xl bg-emerald-50 px-4 py-3 text-[0.875rem] text-emerald-800" role="status">
           {message}
@@ -168,7 +147,7 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
             editing
               ? () => {
                   setEditing(null)
-                  setTab('draft')
+                  go('draft')
                 }
               : undefined
           }
@@ -182,13 +161,13 @@ export default function CompletedJobsPanel({ onUnauthorized }) {
             <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
               Loading jobs…
             </div>
-          ) : list.length === 0 ? (
+          ) : projects.length === 0 ? (
             <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
               No {tab === 'draft' ? 'drafts' : 'published jobs'} yet.
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {list.map((project) => (
+              {projects.map((project) => (
                 <JobCard
                   key={project.id}
                   project={project}
