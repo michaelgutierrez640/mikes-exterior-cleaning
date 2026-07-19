@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-07-19T00:15:12.709Z",
+  "projects": [
+    {
+      "slug": "solar-panel-cleaning-manteca-2026-07-18-c3bc096a",
+      "service": "solar-panel-cleaning",
+      "city": "manteca",
+      "propertyType": "residential",
+      "completedAt": "2026-07-18",
+      "description": "Residential solar panel cleaning in Manteca, CA. We removed dust and surface buildup from these rooftop panels using a solar-safe cleaning process, leaving the…",
+      "coverImage": {
+        "url": "https://bohnjwturatk6fjz.public.blob.vercel-storage.com/completed-jobs/1784414787616-IMG_3275-0tIpiK5VSE7hL9Yfih90J5nBBaIxT5.jpg",
+        "label": "before",
+        "alt": "before photo — solar panel cleaning in manteca",
+        "sortOrder": 0
+      },
+      "photoCount": 2,
+      "publishedAt": "2026-07-18T22:46:36.556Z"
+    }
+  ]
+}

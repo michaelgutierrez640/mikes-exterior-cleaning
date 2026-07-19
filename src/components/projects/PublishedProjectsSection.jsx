@@ -6,8 +6,8 @@ import PlacementProjectCard from './PlacementProjectCard'
 
 /**
  * Reusable published-projects placement for service, city, and service×city pages.
- * Fetches published-only jobs with normalized service/city matching.
- * Renders nothing when there are no matching published projects.
+ * Always keeps the section visible (heading + cards or empty message) so placements
+ * cannot silently disappear when API/static loading fails.
  */
 export default function PublishedProjectsSection({
   service,
@@ -53,42 +53,58 @@ export default function PublishedProjectsSection({
       : service
         ? `Recent ${serviceLabel(service)} Projects`
         : city
-          ? `Recent Projects in ${cityLabel(city)}`
+          ? `Recent Projects Completed in ${cityLabel(city)}`
           : 'Recent Projects')
 
-  if (!loaded) {
-    return (
-      <section className={className} aria-labelledby={id || 'published-projects'} aria-busy="true">
-        <div className="section-container">
-          <div className="section-header max-w-2xl">
-            <p className="section-label">Our Work</p>
-            <h2 id={id || 'published-projects'} className="section-title">
-              {resolvedHeading}
-            </h2>
-          </div>
-          <p className="section-content text-[0.875rem] text-gray-500">Loading recent projects…</p>
-        </div>
-      </section>
-    )
-  }
-
-  if (error || projects.length === 0) return null
-
   return (
-    <section className={className} aria-labelledby={id || 'published-projects'}>
+    <section
+      className={className}
+      aria-labelledby={id || 'published-projects'}
+      data-published-projects="true"
+      data-service={service || ''}
+      data-city={city || ''}
+      data-count={projects.length}
+      data-loaded={loaded ? 'true' : 'false'}
+    >
       <div className="section-container">
-        <div className="section-header max-w-2xl">
+        <div className="mx-auto max-w-2xl text-center">
           <p className="section-label">Our Work</p>
           <h2 id={id || 'published-projects'} className="section-title">
             {resolvedHeading}
           </h2>
           {subheading ? <p className="section-subtitle mt-3">{subheading}</p> : null}
         </div>
-        <div className="section-content grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <PlacementProjectCard key={project.slug} project={project} />
-          ))}
-        </div>
+
+        {!loaded && (
+          <p className="mt-10 text-center text-[0.875rem] text-gray-500" role="status">
+            Loading recent projects…
+          </p>
+        )}
+
+        {loaded && error && projects.length === 0 && (
+          <p className="mt-10 text-center text-[0.875rem] text-amber-800" role="status">
+            Projects are temporarily unavailable. Please check back shortly or visit{' '}
+            <Link to="/projects" className="font-semibold underline">
+              all projects
+            </Link>
+            .
+          </p>
+        )}
+
+        {loaded && !error && projects.length === 0 && (
+          <p className="mt-10 text-center text-[0.875rem] text-gray-500" role="status">
+            Published projects for this page will appear here soon.
+          </p>
+        )}
+
+        {projects.length > 0 && (
+          <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <PlacementProjectCard key={project.slug} project={project} />
+            ))}
+          </div>
+        )}
+
         {showViewAll && (
           <div className="mt-8 text-center">
             <Link to="/projects" className="btn-ghost btn-md inline-flex !rounded-xl">

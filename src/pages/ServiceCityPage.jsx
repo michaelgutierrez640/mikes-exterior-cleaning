@@ -10,7 +10,7 @@ import JsonLd from '../components/seo/JsonLd'
 import PublishedProjectsSection from '../components/projects/PublishedProjectsSection'
 import { BookOnlineButton, InstantQuoteButton, CallButton } from '../components/ui/Button'
 import { cityLabel, serviceLabel, servicePath, cityPath } from '../utils/projectLabels'
-import { normalizeCitySlug, normalizeServiceSlug } from '../../lib/projectMatch.mjs'
+import { normalizeCitySlug, normalizeServiceSlug } from '../utils/projectMatch'
 
 /**
  * Thin service × city landing page, e.g. /services/solar-panel-cleaning/manteca

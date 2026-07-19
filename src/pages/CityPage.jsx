@@ -125,7 +125,7 @@ function CityPageBasic({ city }) {
       <PublishedProjectsSection
         city={city.slug}
         limit={6}
-        heading={`Recent Projects in ${city.name}`}
+        heading={`Recent Projects Completed in ${city.name}`}
         subheading={`Published jobs completed in and around ${city.name}.`}
         id={`${city.slug}-projects`}
       />
@@ -241,7 +241,7 @@ export default function CityPage() {
       <PublishedProjectsSection
         city={citySlug}
         limit={6}
-        heading={`Recent Projects in ${page.cityName}`}
+        heading={`Recent Projects Completed in ${page.cityName}`}
         subheading={`Published exterior cleaning jobs in ${page.cityName} and nearby areas.`}
         id={`${citySlug}-projects`}
       />

@@ -141,6 +141,12 @@ export default function ProjectDetailPage() {
                 >
                   Exterior cleaning in {cityLabel(project.city)} →
                 </Link>
+                <Link
+                  to={`/services/${project.service}/${project.city}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-royal-600 px-4 text-[0.875rem] font-semibold text-white"
+                >
+                  {serviceLabel(project.service)} in {cityLabel(project.city)} →
+                </Link>
               </div>
             </div>
 
