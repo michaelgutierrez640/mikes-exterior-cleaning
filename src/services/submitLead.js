@@ -3,7 +3,7 @@ import { getLeadAttribution } from '../utils/analytics'
 import { inferCityFromText } from '../utils/inferCity'
 
 const FORM_ENDPOINT = `https://formsubmit.co/ajax/${BUSINESS.email}`
-const INGEST_ENDPOINT = '/api/leads/ingest'
+const INGEST_ENDPOINT = '/api/leads'
 
 /**
  * Persist lead to private Redis CRM. Never logs or returns customer fields.

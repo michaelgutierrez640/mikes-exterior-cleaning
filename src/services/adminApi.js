@@ -140,7 +140,7 @@ function buildLeadsQuery(filters = {}) {
 }
 
 export async function fetchAdminLeads(filters = {}) {
-  const res = await fetch(`/api/admin/leads${buildLeadsQuery(filters)}`, {
+  const res = await fetch(`/api/leads${buildLeadsQuery(filters)}`, {
     headers: { Accept: 'application/json' },
   })
   if (res.status === 401) return { unauthorized: true }
@@ -153,7 +153,7 @@ export async function fetchAdminLeads(filters = {}) {
 
 export async function fetchAdminLead(id) {
   const leadId = encodeURIComponent(String(id || '').trim())
-  const res = await fetch(`/api/admin/leads?id=${leadId}`, {
+  const res = await fetch(`/api/leads?id=${leadId}`, {
     headers: { Accept: 'application/json' },
   })
   if (res.status === 401) return { unauthorized: true }
@@ -167,7 +167,7 @@ export async function fetchAdminLead(id) {
 }
 
 export async function updateAdminLead(id, payload) {
-  const res = await fetch(`/api/admin/leads?id=${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/leads?id=${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
