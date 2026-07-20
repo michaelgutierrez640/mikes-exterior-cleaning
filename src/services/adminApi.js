@@ -127,3 +127,57 @@ export async function deleteAdminProject(id) {
   if (!res.ok) throw new Error(data.error || 'Failed to delete job')
   return data
 }
+
+function buildLeadsQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.source) params.set('source', filters.source)
+  if (filters.service) params.set('service', filters.service)
+  if (filters.city) params.set('city', filters.city)
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+export async function fetchAdminLeads(filters = {}) {
+  const res = await fetch(`/api/leads${buildLeadsQuery(filters)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to load leads')
+  }
+  return res.json()
+}
+
+export async function fetchAdminLead(id) {
+  const leadId = encodeURIComponent(String(id || '').trim())
+  const res = await fetch(`/api/leads?id=${leadId}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  const data = await parseJson(res)
+  if (!res.ok) {
+    const err = new Error(data.error || 'Failed to load lead')
+    err.status = res.status
+    throw err
+  }
+  return data
+}
+
+export async function updateAdminLead(id, payload) {
+  const res = await fetch(`/api/leads?id=${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to update lead')
+  return data.lead
+}

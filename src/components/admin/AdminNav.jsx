@@ -1,8 +1,15 @@
 import { Link, NavLink } from 'react-router-dom'
 
 const PRIMARY = [
-  { to: '/admin/dashboard', label: 'Analytics', end: true },
-  { to: '/admin/completed-jobs/new', label: 'Completed Jobs', end: false, matchPrefix: '/admin/completed-jobs' },
+  { to: '/admin/dashboard', label: 'Analytics', end: true, area: 'analytics' },
+  { to: '/admin/leads', label: 'Leads', end: false, matchPrefix: '/admin/leads', area: 'leads' },
+  {
+    to: '/admin/completed-jobs/new',
+    label: 'Completed Jobs',
+    end: false,
+    matchPrefix: '/admin/completed-jobs',
+    area: 'jobs',
+  },
 ]
 
 const JOB_TABS = [
@@ -47,13 +54,14 @@ export default function AdminNav({ activeArea = 'analytics', onSignOut }) {
         <nav className="flex flex-col gap-2 sm:flex-row sm:flex-wrap" aria-label="Admin primary">
           {PRIMARY.map((item) => {
             if (item.matchPrefix) {
+              const isActive = activeArea === item.area
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className={[
                     'inline-flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 py-2.5 text-center text-[0.8125rem] font-semibold sm:flex-none sm:px-4 sm:text-[0.875rem]',
-                    jobsActive ? 'bg-royal-600 text-white shadow-sm' : 'bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15',
+                    isActive ? 'bg-royal-600 text-white shadow-sm' : 'bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/15',
                   ].join(' ')}
                 >
                   {item.label}
