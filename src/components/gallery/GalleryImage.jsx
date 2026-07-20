@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import ResponsiveImage from '../ui/ResponsiveImage'
-import { ImagePlaceholder } from '../ui/MediaAsset'
 
 function GalleryImage({ item, onOpen }) {
   const [loaded, setLoaded] = useState(false)
@@ -25,18 +24,7 @@ function GalleryImage({ item, onOpen }) {
 
   if (item.type === 'video') {
     if (!loaded || failed) {
-      return (
-        <figure className="mb-5 break-inside-avoid overflow-hidden rounded-[1rem]">
-          <ImagePlaceholder
-            title={item.title}
-            file={item.file || item.src}
-            sizeHint={item.sizeHint}
-            type="video"
-            aspectRatio="4/3"
-            className="w-full"
-          />
-        </figure>
-      )
+      return null
     }
 
     return (
@@ -46,19 +34,12 @@ function GalleryImage({ item, onOpen }) {
     )
   }
 
+  if (failed) return null
+
   return (
     <figure className="group relative mb-5 break-inside-avoid overflow-hidden rounded-[1rem] bg-gray-100 transition-[box-shadow] duration-500 hover:shadow-[0_12px_40px_rgba(10,22,40,0.1)]">
-      {!loaded && !failed && (
+      {!loaded && (
         <div className="aspect-[4/3] img-shimmer" aria-hidden="true" role="presentation" />
-      )}
-      {failed && (
-        <ImagePlaceholder
-          title={item.title}
-          file={item.file || item.src}
-          sizeHint={item.sizeHint}
-          aspectRatio="4/3"
-          className="w-full"
-        />
       )}
       {loaded && (
         <>

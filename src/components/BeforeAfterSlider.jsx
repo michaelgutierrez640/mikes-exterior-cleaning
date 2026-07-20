@@ -1,32 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ResponsiveImage from './ui/ResponsiveImage'
-import { ImagePlaceholder } from './ui/MediaAsset'
 
-function useImageReady(src, webp) {
-  const [ready, setReady] = useState(false)
+function useImageStatus(src, webp) {
+  const [status, setStatus] = useState(() => (src || webp ? 'loading' : 'error'))
+
   useEffect(() => {
-    setReady(false)
+    const target = webp || src
+    if (!target) {
+      setStatus('error')
+      return
+    }
+
+    let cancelled = false
+    setStatus('loading')
     const img = new Image()
-    img.onload = () => setReady(true)
-    img.onerror = () => setReady(false)
-    img.src = webp || src
+    img.onload = () => {
+      if (!cancelled) setStatus('ready')
+    }
+    img.onerror = () => {
+      if (!cancelled) setStatus('error')
+    }
+    img.src = target
+
+    return () => {
+      cancelled = true
+    }
   }, [src, webp])
-  return ready
+
+  return status
 }
 
-function SlideImage({ src, webp, srcSet, file, label, sizeHint, alt, clipStyle }) {
-  const ready = useImageReady(src, webp)
-
-  const content = !ready ? (
-    <ImagePlaceholder
-      title={label}
-      file={file}
-      sizeHint={sizeHint}
-      variant="dark"
-      className="h-full w-full rounded-none"
-      aspectRatio="auto"
-    />
-  ) : (
+function SlideImage({ src, webp, srcSet, alt, clipStyle }) {
+  const content = (
     <ResponsiveImage
       src={src}
       webp={webp}
@@ -57,20 +62,27 @@ export default function BeforeAfterSlider({
   afterWebp,
   beforeSrcSet,
   afterSrcSet,
-  beforeFile,
-  afterFile,
-  beforeLabel,
-  afterLabel,
-  beforeSizeHint,
-  afterSizeHint,
   label,
   aspectClass = 'aspect-[16/10]',
+  onValidityChange,
 }) {
   const containerRef = useRef(null)
   const [position, setPosition] = useState(50)
   const targetPosition = useRef(50)
   const dragging = useRef(false)
   const rafId = useRef(null)
+
+  const beforeStatus = useImageStatus(before, beforeWebp)
+  const afterStatus = useImageStatus(after, afterWebp)
+  const bothReady = beforeStatus === 'ready' && afterStatus === 'ready'
+  const failed = beforeStatus === 'error' || afterStatus === 'error'
+  const onValidityChangeRef = useRef(onValidityChange)
+  onValidityChangeRef.current = onValidityChange
+
+  useEffect(() => {
+    if (failed) onValidityChangeRef.current?.(false)
+    else if (bothReady) onValidityChangeRef.current?.(true)
+  }, [failed, bothReady])
 
   const animate = useCallback(() => {
     setPosition((prev) => {
@@ -94,13 +106,16 @@ export default function BeforeAfterSlider({
 
   useEffect(() => () => stopAnimate(), [stopAnimate])
 
-  const updateTarget = useCallback((clientX) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const x = Math.min(Math.max(clientX - rect.left, 0), rect.width)
-    targetPosition.current = (x / rect.width) * 100
-    startAnimate()
-  }, [startAnimate])
+  const updateTarget = useCallback(
+    (clientX) => {
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const x = Math.min(Math.max(clientX - rect.left, 0), rect.width)
+      targetPosition.current = (x / rect.width) * 100
+      startAnimate()
+    },
+    [startAnimate],
+  )
 
   const onPointerDown = (e) => {
     dragging.current = true
@@ -117,10 +132,29 @@ export default function BeforeAfterSlider({
     setTimeout(stopAnimate, 300)
   }
 
+  if (failed) return null
+
+  if (!bothReady) {
+    return (
+      <div className="group" aria-hidden="true">
+        {label && (
+          <p className="mb-4 text-center text-[11px] font-semibold tracking-[0.2em] text-white/45 uppercase">
+            {label}
+          </p>
+        )}
+        <div
+          className={`relative ${aspectClass} animate-pulse overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-navy-800 to-navy-700 ring-1 ring-white/[0.08]`}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="group">
       {label && (
-        <p className="mb-4 text-center text-[11px] font-semibold tracking-[0.2em] text-white/45 uppercase">{label}</p>
+        <p className="mb-4 text-center text-[11px] font-semibold tracking-[0.2em] text-white/45 uppercase">
+          {label}
+        </p>
       )}
       <div
         ref={containerRef}
@@ -132,22 +166,11 @@ export default function BeforeAfterSlider({
         role="img"
         aria-label={`${label || 'Before and after'} comparison slider`}
       >
-        <SlideImage
-          src={after}
-          webp={afterWebp}
-          srcSet={afterSrcSet}
-          file={afterFile}
-          label={afterLabel || 'After photo needed'}
-          sizeHint={afterSizeHint}
-          alt="After cleaning"
-        />
+        <SlideImage src={after} webp={afterWebp} srcSet={afterSrcSet} alt="After cleaning" />
         <SlideImage
           src={before}
           webp={beforeWebp}
           srcSet={beforeSrcSet}
-          file={beforeFile}
-          label={beforeLabel || 'Before photo needed'}
-          sizeHint={beforeSizeHint}
           alt="Before cleaning"
           clipStyle={{ clipPath: `inset(0 ${100 - position}% 0 0)`, position: 'absolute', inset: 0 }}
         />

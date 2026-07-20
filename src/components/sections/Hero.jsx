@@ -5,7 +5,6 @@ import ScrollReveal from '../ScrollReveal'
 import TrustBar from '../ui/TrustBar'
 import { CallButton, InstantQuoteButton, BookOnlineButton, QuoteButton } from '../ui/Button'
 import ResponsiveImage from '../ui/ResponsiveImage'
-import { ImagePlaceholder } from '../ui/MediaAsset'
 import { useEffect, useState } from 'react'
 
 const heroImage = getHeroImage()
@@ -51,17 +50,8 @@ function HeroBackground() {
     )
   }
 
-  return (
-    <>
-      <div className="absolute inset-0 bg-[#060d1a]" aria-hidden="true" />
-      <ImagePlaceholder
-        layout="hero"
-        title="Hero photo"
-        file={heroImage.src}
-        variant="dark"
-      />
-    </>
-  )
+  // Never expose developer image-slot instructions or file paths on the public hero.
+  return <div className="absolute inset-0 bg-[#060d1a]" aria-hidden="true" />
 }
 
 export default function Hero() {

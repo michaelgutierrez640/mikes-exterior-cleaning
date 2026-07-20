@@ -16,7 +16,7 @@ export default function MediaAsset({
   type = 'image',
   poster,
   onClick,
-  showPlaceholder = true,
+  showPlaceholder = false,
   compact = false,
 }) {
   const [loaded, setLoaded] = useState(false)
