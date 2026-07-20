@@ -1,44 +1,91 @@
-import { useState, useMemo, useCallback } from 'react'
-import { IMAGES, getCuratedGalleryItems, getCuratedGalleryByCategory } from '../../config/images'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { IMAGES, getCuratedGalleryItems } from '../../config/images'
+import { fetchPublicGalleryItems } from '../../services/projectsApi'
+import {
+  OUR_WORK_FILTERS,
+  filterOurWorkItems,
+  mergeOurWorkGallery,
+} from '../../utils/ourWorkGallery'
 import Lightbox from '../ui/Lightbox'
 import ScrollReveal from '../ScrollReveal'
-import GalleryImage from '../gallery/GalleryImage'
+import OurWorkGalleryImage from '../gallery/OurWorkGalleryImage'
 
-const curatedByCategory = getCuratedGalleryByCategory(IMAGES.gallery)
-const categoryEntries = Object.entries(curatedByCategory).filter(([, items]) => items.length > 0)
+/** First row on lg (3-col) / sm (2-col) / mobile (1-col). */
+const PRIORITY_COUNT = 3
 
 export default function Gallery() {
   const [active, setActive] = useState('all')
+  const [projectItems, setProjectItems] = useState([])
+  const [loadState, setLoadState] = useState('loading')
   const [lightboxIndex, setLightboxIndex] = useState(null)
 
-  const allItems = useMemo(() => getCuratedGalleryItems(IMAGES.gallery), [])
+  const legacyItems = useMemo(() => getCuratedGalleryItems(IMAGES.gallery), [])
 
-  const currentItems = active === 'all' ? allItems : curatedByCategory[active] || []
+  useEffect(() => {
+    let cancelled = false
+    setLoadState('loading')
+    ;(async () => {
+      try {
+        const items = await fetchPublicGalleryItems()
+        if (cancelled) return
+        setProjectItems(Array.isArray(items) ? items : [])
+        setLoadState('ready')
+      } catch {
+        if (cancelled) return
+        // Fail open to legacy-only so the section still works if API is down.
+        setProjectItems([])
+        setLoadState('ready')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const imageItems = useMemo(
-    () => currentItems.filter((i) => i.type === 'image'),
+  const allItems = useMemo(
+    () => mergeOurWorkGallery(projectItems, legacyItems),
+    [projectItems, legacyItems],
+  )
+
+  const currentItems = useMemo(
+    () => filterOurWorkItems(allItems, active),
+    [allItems, active],
+  )
+
+  const legacyLightboxItems = useMemo(
+    () =>
+      currentItems
+        .filter((i) => i.kind === 'legacy')
+        .map((i) => ({
+          type: 'image',
+          src: i.src || i.url,
+          webp: i.webp,
+          srcSet: i.srcSet,
+          alt: i.alt,
+        })),
     [currentItems],
   )
 
-  const openLightbox = useCallback(
+  const openLegacyLightbox = useCallback(
     (item) => {
-      const idx = imageItems.findIndex((i) => i.src === item.src)
+      const src = item.src || item.url
+      const idx = legacyLightboxItems.findIndex((i) => i.src === src)
       if (idx >= 0) setLightboxIndex(idx)
     },
-    [imageItems],
+    [legacyLightboxItems],
   )
 
   const navigateLightbox = useCallback(
     (dir) => {
       setLightboxIndex((prev) => {
         if (prev === null) return null
-        return (prev + dir + imageItems.length) % imageItems.length
+        return (prev + dir + legacyLightboxItems.length) % legacyLightboxItems.length
       })
     },
-    [imageItems.length],
+    [legacyLightboxItems.length],
   )
 
-  const hasPhotos = allItems.length > 0
+  const hasPhotos = currentItems.length > 0 || loadState === 'loading'
 
   return (
     <section id="gallery" className="section-padding relative bg-section-gallery" aria-labelledby="gallery-heading">
@@ -49,71 +96,70 @@ export default function Gallery() {
             Project Gallery
           </h2>
           <p className="section-subtitle">
-            Real results from window cleaning, solar panel cleaning, pressure washing, roof cleaning,
-            and more across the Central Valley.
+            Real completed jobs from across the Central Valley — click any photo to see the full project.
           </p>
         </ScrollReveal>
 
-        {hasPhotos && (
-          <ScrollReveal className="section-content" delay="delay-100">
-            <div
-              className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
-              role="tablist"
-              aria-label="Gallery categories"
-            >
+        <ScrollReveal className="section-content" delay="delay-100">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
+            role="tablist"
+            aria-label="Gallery categories"
+          >
+            {OUR_WORK_FILTERS.map((filter) => (
               <button
+                key={filter.id}
                 type="button"
                 role="tab"
-                aria-selected={active === 'all'}
-                onClick={() => setActive('all')}
+                aria-selected={active === filter.id}
+                onClick={() => setActive(filter.id)}
                 className={`shrink-0 rounded-full px-5 py-2.5 text-[0.8125rem] font-semibold tracking-[-0.01em] transition-all duration-300 sm:min-h-[44px] ${
-                  active === 'all'
+                  active === filter.id
                     ? 'bg-navy-900 text-white shadow-[0_2px_12px_rgba(10,22,40,0.2)]'
                     : 'border border-gray-200/80 bg-white text-gray-600 hover:border-gray-300 hover:text-navy-900'
                 }`}
               >
-                All
+                {filter.label}
               </button>
-              {categoryEntries.map(([key, items]) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active === key}
-                  onClick={() => setActive(key)}
-                  className={`shrink-0 rounded-full px-5 py-2.5 text-[0.8125rem] font-semibold tracking-[-0.01em] transition-all duration-300 sm:min-h-[44px] ${
-                    active === key
-                      ? 'bg-navy-900 text-white shadow-[0_2px_12px_rgba(10,22,40,0.2)]'
-                      : 'border border-gray-200/80 bg-white text-gray-600 hover:border-gray-300 hover:text-navy-900'
-                  }`}
-                >
-                  {key === 'transformations' ? 'Transformations' : IMAGES.gallery[key]?.title || key}
-                </button>
-              ))}
-            </div>
-          </ScrollReveal>
-        )}
+            ))}
+          </div>
+        </ScrollReveal>
 
-        {hasPhotos ? (
+        {loadState === 'loading' && allItems.length === 0 ? (
+          <div className="mt-10 columns-1 gap-5 sm:mt-12 sm:columns-2 lg:columns-3" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="mb-5 break-inside-avoid animate-pulse rounded-[1rem] bg-gradient-to-br from-navy-100 via-gray-100 to-navy-50 aspect-[4/3]"
+              />
+            ))}
+          </div>
+        ) : hasPhotos && currentItems.length > 0 ? (
           <div key={active} className="gallery-fade-in mt-10 columns-1 gap-5 sm:mt-12 sm:columns-2 lg:columns-3">
             {currentItems.map((item, i) => (
-              <ScrollReveal key={`${item.src}-${i}`} stagger={i + 1}>
-                <GalleryImage item={item} onOpen={openLightbox} />
+              <ScrollReveal key={item.id} stagger={Math.min(i + 1, 8)}>
+                <OurWorkGalleryImage
+                  item={item}
+                  priority={i < PRIORITY_COUNT}
+                  onOpenLegacy={openLegacyLightbox}
+                />
               </ScrollReveal>
             ))}
           </div>
         ) : (
           <ScrollReveal className="mt-10 sm:mt-12">
             <p className="mx-auto max-w-lg rounded-2xl border border-royal-100 bg-white px-6 py-8 text-center text-[0.9375rem] leading-relaxed text-gray-600">
-              Project photos will appear here once organized.
+              {active === 'all'
+                ? 'Published project photos will appear here automatically.'
+                : `No published ${OUR_WORK_FILTERS.find((f) => f.id === active)?.label || ''} photos yet.`}
             </p>
           </ScrollReveal>
         )}
       </div>
 
-      {lightboxIndex !== null && (
+      {lightboxIndex !== null && legacyLightboxItems.length > 0 && (
         <Lightbox
-          items={imageItems}
+          items={legacyLightboxItems}
           index={lightboxIndex}
           onClose={() => setLightboxIndex(null)}
           onNavigate={navigateLightbox}

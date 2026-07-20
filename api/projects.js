@@ -1,6 +1,7 @@
 import {
   getPublicProjectBySlug,
   isPublicProjectsConfigured,
+  listPublicGalleryItems,
   listPublicProjects,
 } from '../lib/projectsPublic.mjs'
 
@@ -17,6 +18,7 @@ function jsonPublic(res, status, payload, { cacheable = false } = {}) {
  * Public read-only projects API (published jobs only).
  * - GET /api/projects?limit=&service=&city=
  * - GET /api/projects?slug=
+ * - GET /api/projects?view=gallery
  *
  * Never returns drafts, admin IDs, Blob paths, or Redis credentials.
  */
@@ -36,6 +38,12 @@ export default async function handler(req, res) {
       const project = await getPublicProjectBySlug(slug)
       if (!project) return jsonPublic(res, 404, { error: 'Project not found' })
       return jsonPublic(res, 200, { project }, { cacheable: true })
+    }
+
+    const view = String(req.query?.view || '').trim().toLowerCase()
+    if (view === 'gallery') {
+      const items = await listPublicGalleryItems()
+      return jsonPublic(res, 200, { items }, { cacheable: true })
     }
 
     const service = String(req.query?.service || '').trim() || undefined

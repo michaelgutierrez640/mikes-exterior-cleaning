@@ -38,6 +38,16 @@ export async function fetchPublicProject(slug) {
   return data.project || null
 }
 
+/** Live Our Work gallery items from published Completed Jobs only. */
+export async function fetchPublicGalleryItems() {
+  const res = await fetch('/api/projects?view=gallery', {
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (!res.ok) throw new Error(data.error || 'Failed to load gallery')
+  return Array.isArray(data.items) ? data.items : []
+}
+
 /**
  * Published Completed Jobs with both Before and After photo labels.
  * Only returns real public HTTPS image URLs from published projects.
