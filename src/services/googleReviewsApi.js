@@ -5,7 +5,7 @@
 
 /**
  * @typedef {Object} GoogleReviewsApiResponse
- * @property {'google-places-api' | 'fallback'} source
+ * @property {'google-business-profile' | 'redis' | 'google-places-api' | 'fallback'} source
  * @property {string} [reason]
  * @property {string} businessName
  * @property {number | null} rating

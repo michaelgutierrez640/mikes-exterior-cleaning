@@ -57,7 +57,10 @@ export function GoogleReviewsProvider({ children }) {
           fetchedAt: data.fetchedAt ?? null,
           loading: false,
           error: null,
-          fromApi: data.source === 'google-places-api',
+          fromApi:
+            data.source === 'google-business-profile' ||
+            data.source === 'redis' ||
+            data.source === 'google-places-api',
         })
       } catch (error) {
         console.error('[GoogleReviewsProvider]', error)

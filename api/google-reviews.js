@@ -1,103 +1,134 @@
+import { requireAdmin, json as adminJson } from '../lib/adminAuth.mjs'
+import { buildGbpReviewsSnapshot, isGbpConfigured } from '../lib/googleGbpClient.mjs'
 import {
-  buildFallbackGoogleReviewsResponse,
-  mapGooglePlacesReview,
-} from '../lib/googleReviewsData.mjs'
+  getPublicReviewsResponse,
+  isReviewsStorageConfigured,
+  saveReviewsSnapshot,
+} from '../lib/reviewsStore.mjs'
 
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000 // 6 hours
-const DISPLAY_REVIEW_LIMIT = 6
-
-/** @type {{ data: object | null, expiresAt: number }} */
-const cache = { data: null, expiresAt: 0 }
-
-const CACHE_HEADERS = {
-  'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+const PUBLIC_CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=86400',
   'Content-Type': 'application/json; charset=utf-8',
 }
 
-function sendJson(res, status, payload) {
-  res.setHeader('Cache-Control', CACHE_HEADERS['Cache-Control'])
-  res.setHeader('Content-Type', CACHE_HEADERS['Content-Type'])
+function sendPublicJson(res, status, payload) {
+  res.setHeader('Cache-Control', PUBLIC_CACHE_HEADERS['Cache-Control'])
+  res.setHeader('Content-Type', PUBLIC_CACHE_HEADERS['Content-Type'])
   res.status(status).json(payload)
 }
 
-function getConfig() {
+function getSyncSecret() {
+  return process.env.REVIEWS_SYNC_SECRET?.trim() || ''
+}
+
+/**
+ * Authorize cron / automated sync via shared secret.
+ * Vercel Cron sends Authorization: Bearer <CRON_SECRET> when CRON_SECRET is set —
+ * document setting CRON_SECRET === REVIEWS_SYNC_SECRET on Hobby.
+ */
+function isSyncSecretAuthorized(req) {
+  const secret = getSyncSecret()
+  if (!secret) return false
+
+  const auth = String(req.headers?.authorization || '')
+  if (auth === `Bearer ${secret}`) return true
+
+  const header = req.headers?.['x-reviews-sync-secret']
+  if (typeof header === 'string' && header === secret) return true
+
+  return false
+}
+
+function canTriggerSync(req) {
+  if (isSyncSecretAuthorized(req)) return { ok: true, via: 'secret' }
+  const admin = requireAdmin(req)
+  if (admin.ok) return { ok: true, via: 'admin' }
+  return { ok: false, status: admin.status === 503 ? 503 : 401, error: admin.error || 'Unauthorized' }
+}
+
+async function runSync() {
+  if (!isGbpConfigured()) {
+    const err = new Error('Google Business Profile credentials are not configured')
+    err.status = 503
+    throw err
+  }
+  if (!isReviewsStorageConfigured()) {
+    const err = new Error('Reviews storage not configured')
+    err.status = 503
+    throw err
+  }
+
+  const snapshot = await buildGbpReviewsSnapshot()
+  await saveReviewsSnapshot(snapshot)
+
   return {
-    apiKey: process.env.GOOGLE_PLACES_API_KEY?.trim(),
-    placeId: process.env.GOOGLE_PLACE_ID?.trim(),
+    ok: true,
+    source: 'google-business-profile',
+    reviewCount: snapshot.reviewCount,
+    storedReviews: snapshot.reviews.length,
+    rating: snapshot.rating,
+    syncedAt: snapshot.syncedAt,
   }
 }
 
-async function fetchPlaceDetails(apiKey, placeId) {
-  const fields = ['name', 'rating', 'user_ratings_total', 'reviews', 'url'].join(',')
-  const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
-  url.searchParams.set('place_id', placeId)
-  url.searchParams.set('fields', fields)
-  url.searchParams.set('key', apiKey)
-  url.searchParams.set('reviews_no_translations', 'true')
-
-  const response = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Google Places HTTP ${response.status}`)
-  }
-
-  const payload = await response.json()
-  if (payload.status !== 'OK') {
-    throw new Error(`Google Places status: ${payload.status}`)
-  }
-
-  return payload.result
-}
-
-function buildLiveResponse(place) {
-  const reviews = (place.reviews || [])
-    .map(mapGooglePlacesReview)
-    .filter((review) => review.reviewText.trim().length > 0)
-    .slice(0, DISPLAY_REVIEW_LIMIT)
-
-  return {
-    source: 'google-places-api',
-    businessName: place.name || buildFallbackGoogleReviewsResponse().businessName,
-    rating: place.rating ?? null,
-    reviewCount: place.user_ratings_total ?? null,
-    reviewsUrl: place.url || null,
-    reviews,
-    fetchedAt: new Date().toISOString(),
-  }
-}
-
+/**
+ * GET  /api/google-reviews
+ *   - Public: Redis snapshot (newest first) or hard-coded fallback
+ *   - With sync secret (Vercel Cron): sync first, then return public payload
+ *
+ * POST /api/google-reviews
+ *   - Sync: requires REVIEWS_SYNC_SECRET Bearer/header OR admin cookie
+ *   - Returns sync summary only (no credentials, no raw Google payload)
+ */
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET')
-    return sendJson(res, 405, { error: 'Method not allowed' })
+  // ——— Sync triggers ———
+  if (req.method === 'POST') {
+    const auth = canTriggerSync(req)
+    if (!auth.ok) return adminJson(res, auth.status, { error: auth.error })
+
+    try {
+      const result = await runSync()
+      console.info('[google-reviews] sync ok', {
+        via: auth.via,
+        storedReviews: result.storedReviews,
+        reviewCount: result.reviewCount,
+      })
+      return adminJson(res, 200, result)
+    } catch (err) {
+      console.error('[google-reviews] sync failed:', err?.message || err)
+      const status = err?.status || 500
+      return adminJson(res, status, { error: err?.message || 'Sync failed' })
+    }
   }
 
-  if (cache.data && Date.now() < cache.expiresAt) {
-    return sendJson(res, 200, { ...cache.data, cached: true })
+  if (req.method === 'GET') {
+    // Vercel Cron invokes GET — optional authorized sync-then-serve
+    if (isSyncSecretAuthorized(req)) {
+      try {
+        const result = await runSync()
+        console.info('[google-reviews] cron sync ok', {
+          storedReviews: result.storedReviews,
+          reviewCount: result.reviewCount,
+        })
+      } catch (err) {
+        console.error('[google-reviews] cron sync failed:', err?.message || err)
+        // Fall through to serve last good Redis / fallback
+      }
+    }
+
+    try {
+      const payload = await getPublicReviewsResponse()
+      return sendPublicJson(res, 200, payload)
+    } catch (err) {
+      console.error('[google-reviews] public read failed:', err?.message || err)
+      const { buildFallbackGoogleReviewsResponse } = await import('../lib/googleReviewsData.mjs')
+      return sendPublicJson(res, 200, {
+        ...buildFallbackGoogleReviewsResponse('api-error'),
+        cached: false,
+      })
+    }
   }
 
-  const { apiKey, placeId } = getConfig()
-
-  if (!apiKey || !placeId) {
-    const fallback = buildFallbackGoogleReviewsResponse('missing-env')
-    cache.data = fallback
-    cache.expiresAt = Date.now() + CACHE_TTL_MS
-    return sendJson(res, 200, { ...fallback, cached: false })
-  }
-
-  try {
-    const place = await fetchPlaceDetails(apiKey, placeId)
-    const live = buildLiveResponse(place)
-    cache.data = live
-    cache.expiresAt = Date.now() + CACHE_TTL_MS
-    return sendJson(res, 200, { ...live, cached: false })
-  } catch (error) {
-    console.error('[google-reviews]', error)
-    const fallback = buildFallbackGoogleReviewsResponse('api-error')
-    cache.data = fallback
-    cache.expiresAt = Date.now() + 5 * 60 * 1000
-    return sendJson(res, 200, { ...fallback, cached: false })
-  }
+  res.setHeader('Allow', 'GET, POST')
+  return sendPublicJson(res, 405, { error: 'Method not allowed' })
 }

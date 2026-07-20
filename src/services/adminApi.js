@@ -181,3 +181,23 @@ export async function updateAdminLead(id, payload) {
   if (!res.ok) throw new Error(data.error || 'Failed to update lead')
   return data.lead
 }
+
+/**
+ * Trigger Google Business Profile → Redis reviews sync (admin cookie auth).
+ * Never sends OAuth secrets from the browser.
+ */
+export async function syncGoogleReviews() {
+  const res = await fetch('/api/google-reviews', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Reviews sync failed')
+  return data
+}

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import AdminAuthGate from '../components/admin/AdminAuthGate'
 import AdminNav from '../components/admin/AdminNav'
+import GoogleReviewsSyncPanel from '../components/admin/GoogleReviewsSyncPanel'
 import SeoHead from '../components/seo/SeoHead'
 import { absoluteUrl } from '../config/site'
 
@@ -255,9 +256,10 @@ export default function AdminDashboardPage() {
 
       <section className="section-container -mt-6 pb-20">
         <AdminAuthGate>
-          {({ metrics, metricsError, refreshMetrics, signOut }) => (
+          {({ metrics, metricsError, refreshMetrics, signOut, setUnauthorized }) => (
             <div className="space-y-6">
               <AdminNav activeArea="analytics" onSignOut={signOut} />
+              <GoogleReviewsSyncPanel onUnauthorized={setUnauthorized} />
               <AnalyticsBody metrics={metrics} metricsError={metricsError} onRefresh={refreshMetrics} />
             </div>
           )}

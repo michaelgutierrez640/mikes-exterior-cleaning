@@ -19,5 +19,11 @@
       "source": "/((?!api/|sitemap\\.xml$|robots\\.txt$|assets/).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/google-reviews",
+      "schedule": "0 15 * * *"
+    }
   ]
 }
