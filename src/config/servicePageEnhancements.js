@@ -31,7 +31,6 @@ export const SERVICE_TRUST_BADGES = [
 export const SERVICE_ENHANCEMENTS = {
   'window-cleaning': {
     beforeAfterSetId: 'img-0947',
-    beforeAfterPlaceholder: null,
     diyComparison: {
       title: 'Professional Window Cleaning vs. DIY',
       intro:
@@ -102,7 +101,6 @@ export const SERVICE_ENHANCEMENTS = {
 
   'pressure-washing': {
     beforeAfterSetId: 'walkway-pressure',
-    beforeAfterPlaceholder: null,
     secondaryBeforeAfterId: 'driveway-pressure',
     diyComparison: {
       title: 'Professional Pressure Washing vs. DIY',
@@ -173,16 +171,8 @@ export const SERVICE_ENHANCEMENTS = {
   },
 
   'solar-panel-cleaning': {
+    // No approved static pair yet — section uses published Completed Jobs before/after only.
     beforeAfterSetId: null,
-    beforeAfterPlaceholder: {
-      label: 'Solar Panel Cleaning — Before & After',
-      beforeTitle: 'Solar panels before cleaning',
-      afterTitle: 'Solar panels after cleaning',
-      beforeFile: 'public/images/before-after/solar-before.jpg',
-      afterFile: 'public/images/before-after/solar-after.jpg',
-      sizeHint: 'Same roof angle, same panel array — landscape 1600×1000px',
-      aspectClass: 'aspect-[16/10]',
-    },
     diyComparison: {
       title: 'Professional Solar Cleaning vs. DIY',
       intro:
@@ -252,16 +242,8 @@ export const SERVICE_ENHANCEMENTS = {
   },
 
   'gutter-cleaning': {
+    // No approved static pair yet — section uses published Completed Jobs before/after only.
     beforeAfterSetId: null,
-    beforeAfterPlaceholder: {
-      label: 'Gutter Cleaning — Before & After',
-      beforeTitle: 'Clogged gutters before cleaning',
-      afterTitle: 'Clean gutters after service',
-      beforeFile: 'public/images/before-after/gutter-before.jpg',
-      afterFile: 'public/images/before-after/gutter-after.jpg',
-      sizeHint: 'Same gutter run, same angle — landscape 1600×1000px',
-      aspectClass: 'aspect-[16/10]',
-    },
     diyComparison: {
       title: 'Professional Gutter Cleaning vs. DIY',
       intro:
@@ -331,16 +313,7 @@ export const SERVICE_ENHANCEMENTS = {
   },
 
   'residential-window-cleaning': {
-    beforeAfterSetId: null,
-    beforeAfterPlaceholder: {
-      label: 'Residential Window Cleaning — Before & After',
-      beforeTitle: 'Home windows before cleaning',
-      afterTitle: 'Home windows after cleaning',
-      beforeFile: 'public/images/before-after/img-0947-before.jpg',
-      afterFile: 'public/images/before-after/img-0947-after.jpg',
-      sizeHint: 'Same home exterior — landscape 1600×1000px',
-      aspectClass: 'aspect-[16/10]',
-    },
+    beforeAfterSetId: 'img-0947',
     diyComparison: {
       title: 'Professional Residential Cleaning vs. DIY',
       intro:
@@ -414,20 +387,17 @@ export function getServiceEnhancements(slug) {
   return SERVICE_ENHANCEMENTS[slug] ?? null
 }
 
+/**
+ * Approved public before/after only. Never returns developer placeholders.
+ * @returns {{ type: 'slider', set: object } | null}
+ */
 export function getBeforeAfterForService(slug) {
   const config = SERVICE_ENHANCEMENTS[slug]
-  if (!config) return null
+  if (!config?.beforeAfterSetId) return null
 
-  if (config.beforeAfterSetId) {
-    const set = BEFORE_AFTER_SETS.find((s) => s.id === config.beforeAfterSetId)
-    if (set) return { type: 'slider', set }
-  }
-
-  if (config.beforeAfterPlaceholder) {
-    return { type: 'placeholder', ...config.beforeAfterPlaceholder }
-  }
-
-  return null
+  const set = BEFORE_AFTER_SETS.find((s) => s.id === config.beforeAfterSetId)
+  if (!set?.before || !set?.after) return null
+  return { type: 'slider', set }
 }
 
 export function getSecondaryBeforeAfter(slug) {
