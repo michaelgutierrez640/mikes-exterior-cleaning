@@ -14,7 +14,7 @@ export default function ServiceAreas() {
           </h2>
           <p className="section-subtitle">
             Window cleaning, pressure washing, solar panel cleaning, and gutter cleaning
-            for Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, and Stockton.
+            for Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, Stockton, and Patterson.
           </p>
         </ScrollReveal>
 

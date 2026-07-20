@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchPublicProjects } from '../../services/projectsApi'
 import ProjectCard from './ProjectCard'
+import PublishedProjectsSection from './PublishedProjectsSection'
 
 /**
- * Matching published projects embed for home / service / city pages.
- * Renders nothing when empty.
+ * @deprecated Prefer PublishedProjectsSection for service/city placements.
+ * Kept for homepage grid cards.
  */
 export default function RelatedProjects({
   service,
@@ -15,7 +16,22 @@ export default function RelatedProjects({
   subheading,
   showViewAll = true,
   id,
+  variant = 'cards',
 }) {
+  if (variant === 'placement') {
+    return (
+      <PublishedProjectsSection
+        service={service}
+        city={city}
+        limit={limit}
+        heading={heading}
+        subheading={subheading}
+        showViewAll={showViewAll}
+        id={id}
+      />
+    )
+  }
+
   const [projects, setProjects] = useState([])
   const [loaded, setLoaded] = useState(false)
 

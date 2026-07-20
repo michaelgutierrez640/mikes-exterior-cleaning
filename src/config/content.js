@@ -34,6 +34,13 @@ export const SERVICES = [
     seo: 'Residential Window Cleaning Modesto',
     icon: 'window',
   },
+  {
+    title: 'Pigeon Guard',
+    slug: 'pigeon-guard',
+    description: 'Bird deterrent installation for solar arrays and rooflines to stop nesting and protect your panels.',
+    seo: 'Pigeon Guard Modesto',
+    icon: 'solar',
+  },
 ]
 
 export const WHY_CHOOSE = [
