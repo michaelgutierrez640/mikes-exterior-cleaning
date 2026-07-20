@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import ProjectOptimizedImage from './ProjectOptimizedImage'
+import { getProjectImageSources } from '../../utils/projectImageSrc'
 
 const LABEL_TEXT = {
   before: 'Before',
@@ -8,6 +10,7 @@ const LABEL_TEXT = {
 
 /**
  * Public mobile-first project gallery with swipe, thumbnails, and lightbox.
+ * Uses optimized display sizes; archival originals stay available for fullscreen.
  */
 export default function ProjectPhotoGallery({ photos = [] }) {
   const ordered = [...photos].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -58,6 +61,8 @@ export default function ProjectPhotoGallery({ photos = [] }) {
     else go(index - 1)
   }
 
+  const lightboxSources = current ? getProjectImageSources(current, 'fullscreen') : null
+
   return (
     <>
       <div className="space-y-4">
@@ -72,13 +77,16 @@ export default function ProjectPhotoGallery({ photos = [] }) {
             onClick={() => setLightbox(true)}
             aria-label="Enlarge photo"
           />
-          <img
-            src={current.url}
+          <ProjectOptimizedImage
+            key={`main-${current.url}-${index}`}
+            photo={current}
+            role="gallery"
             alt={current.alt || ''}
-            className="h-full w-full object-cover"
-            loading={index === 0 ? 'eager' : 'lazy'}
-            decoding="async"
-            fetchPriority={index === 0 ? 'high' : 'auto'}
+            className="absolute inset-0 h-full w-full"
+            imgClassName="h-full w-full object-cover"
+            sizes="(max-width: 768px) 100vw, min(960px, 70vw)"
+            priority={index === 0}
+            aspectRatio={undefined}
           />
           <span className="absolute top-3 left-3 z-[2] rounded-full bg-navy-950/75 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-white uppercase">
             {LABEL_TEXT[current.label] || 'Photo'}
@@ -121,14 +129,23 @@ export default function ProjectPhotoGallery({ photos = [] }) {
                 aria-label={`Show photo ${i + 1}`}
                 aria-current={i === index}
               >
-                <img src={photo.url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                <ProjectOptimizedImage
+                  photo={photo}
+                  role="thumb"
+                  alt=""
+                  className="h-full w-full"
+                  imgClassName="h-full w-full object-cover"
+                  sizes="80px"
+                  priority={false}
+                  aspectRatio="5 / 4"
+                />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {lightbox && (
+      {lightbox && lightboxSources && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-navy-950/90 p-4"
           role="dialog"
@@ -143,12 +160,20 @@ export default function ProjectPhotoGallery({ photos = [] }) {
           >
             Close
           </button>
-          <img
-            src={current.url}
-            alt={current.alt || ''}
-            className="max-h-[85vh] max-w-full object-contain"
+          <div
+            className="max-h-[85vh] max-w-full"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            <ProjectOptimizedImage
+              photo={current}
+              role="fullscreen"
+              alt={current.alt || ''}
+              className="max-h-[85vh] max-w-full bg-transparent"
+              imgClassName="max-h-[85vh] max-w-full object-contain"
+              sizes="100vw"
+              priority
+            />
+          </div>
         </div>
       )}
     </>

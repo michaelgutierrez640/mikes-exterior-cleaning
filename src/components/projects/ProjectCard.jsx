@@ -7,6 +7,7 @@ import {
   propertyTypeLabel,
   serviceLabel,
 } from '../../utils/projectLabels'
+import ProjectOptimizedImage from './ProjectOptimizedImage'
 
 export default function ProjectCard({ project }) {
   if (!project?.slug) return null
@@ -20,19 +21,15 @@ export default function ProjectCard({ project }) {
       className="group block overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_1px_3px_rgba(10,22,40,0.06)] transition hover:border-royal-300 hover:shadow-[0_8px_24px_rgba(10,22,40,0.1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-royal-500"
       aria-label={`View project: ${title}`}
     >
-      <div className="relative aspect-[16/10] bg-navy-950/5">
-        {cover?.url ? (
-          <img
-            src={cover.url}
-            alt={cover.alt || ''}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[0.875rem] text-gray-400">No photo</div>
-        )}
-      </div>
+      <ProjectOptimizedImage
+        photo={cover}
+        role="card"
+        alt={cover?.alt || ''}
+        className="aspect-[16/10]"
+        imgClassName="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+        aspectRatio="16 / 10"
+      />
       <div className="space-y-2 p-5">
         <p className="text-[0.75rem] font-semibold tracking-wide text-royal-600 uppercase">
           {serviceLabel(project.service)} · {cityLabel(project.city)}

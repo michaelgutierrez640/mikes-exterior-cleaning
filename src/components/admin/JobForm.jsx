@@ -35,7 +35,11 @@ function formFromProject(project) {
       alt: p.alt || '',
       contentType: p.contentType,
       size: p.size,
-      previewUrl: p.url,
+      width: p.width ?? null,
+      height: p.height ?? null,
+      blurDataUrl: p.blurDataUrl || null,
+      variants: p.variants || null,
+      previewUrl: p.variants?.card || p.variants?.thumb || p.url,
       uploaded: true,
       progress: 100,
     })),
@@ -108,6 +112,10 @@ export default function JobForm({
           contentType: prepared.contentType,
           stripped: prepared.stripped,
           heic: prepared.heic,
+          width: prepared.width,
+          height: prepared.height,
+          blurDataUrl: prepared.blurDataUrl,
+          variantFiles: prepared.variants,
           uploaded: false,
           progress: 0,
         })
@@ -132,6 +140,10 @@ export default function JobForm({
           alt: photo.alt,
           contentType: photo.contentType || null,
           size: photo.size ?? null,
+          width: photo.width ?? null,
+          height: photo.height ?? null,
+          blurDataUrl: photo.blurDataUrl || null,
+          variants: photo.variants || null,
         })
         continue
       }
@@ -139,7 +151,14 @@ export default function JobForm({
       setBusyLabel(`Uploading ${i + 1} of ${working.length}…`)
       updatePhoto(photo.key, { progress: 1 })
       const blobMeta = await uploadPreparedFile(
-        { file: photo.file, contentType: photo.contentType },
+        {
+          file: photo.file,
+          contentType: photo.contentType,
+          width: photo.width,
+          height: photo.height,
+          blurDataUrl: photo.blurDataUrl,
+          variants: photo.variantFiles || null,
+        },
         {
           onProgress: (pct) => updatePhoto(photo.key, { progress: pct }),
         },
@@ -151,6 +170,10 @@ export default function JobForm({
         pathname: blobMeta.pathname,
         contentType: blobMeta.contentType,
         size: blobMeta.size,
+        width: blobMeta.width,
+        height: blobMeta.height,
+        blurDataUrl: blobMeta.blurDataUrl,
+        variants: blobMeta.variants,
       })
       working[i] = { ...photo, uploaded: true, url: blobMeta.url, pathname: blobMeta.pathname }
       uploaded.push({
@@ -160,6 +183,10 @@ export default function JobForm({
         alt: photo.alt,
         contentType: blobMeta.contentType,
         size: blobMeta.size,
+        width: blobMeta.width,
+        height: blobMeta.height,
+        blurDataUrl: blobMeta.blurDataUrl,
+        variants: blobMeta.variants,
       })
     }
     return uploaded
@@ -290,7 +317,8 @@ export default function JobForm({
           Photos ({form.photos.length}/{MAX_PHOTOS})
         </p>
         <p className="mt-1 text-[0.75rem] text-gray-500">
-          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos
+          JPEG, PNG, WebP, or HEIC · max 10 MB each · compressed for web (original kept) · up to{' '}
+          {MAX_PHOTOS} photos
         </p>
 
         {/*

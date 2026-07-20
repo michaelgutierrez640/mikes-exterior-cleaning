@@ -39,12 +39,20 @@ function getId(req) {
 }
 
 async function deleteBlobUrls(project) {
-  const urls = (project?.photos || []).map((p) => p.url).filter(Boolean)
-  if (!urls.length || !process.env.BLOB_READ_WRITE_TOKEN) return { deleted: 0, errors: [] }
+  const urls = []
+  for (const photo of project?.photos || []) {
+    if (photo?.url) urls.push(photo.url)
+    const variants = photo?.variants || {}
+    for (const value of Object.values(variants)) {
+      if (typeof value === 'string' && /^https:\/\//i.test(value)) urls.push(value)
+    }
+  }
+  const unique = [...new Set(urls)]
+  if (!unique.length || !process.env.BLOB_READ_WRITE_TOKEN) return { deleted: 0, errors: [] }
 
   const errors = []
   let deleted = 0
-  for (const url of urls) {
+  for (const url of unique) {
     try {
       await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
       deleted += 1

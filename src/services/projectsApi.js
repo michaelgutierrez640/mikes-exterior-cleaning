@@ -2,6 +2,7 @@
  * Public projects API client (read-only).
  */
 import { cityLabel, serviceLabel } from '../utils/projectLabels'
+import { getProjectImageSources } from '../utils/projectImageSrc'
 
 async function parseJson(res) {
   return res.json().catch(() => ({}))
@@ -74,8 +75,8 @@ export async function fetchPublishedBeforeAfterPairs(serviceSlug, { limit = 12 }
     pairs.push({
       id: `job-${project.slug}`,
       label: `${serviceLabel(project.service)} — ${cityLabel(project.city)}`,
-      before: before.url,
-      after: after.url,
+      before: getProjectImageSources(before, 'gallery')?.src || before.url,
+      after: getProjectImageSources(after, 'gallery')?.src || after.url,
       aspectClass: 'aspect-[16/10]',
       source: 'completed-job',
     })
