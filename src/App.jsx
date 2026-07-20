@@ -14,6 +14,8 @@ const ResourceArticlePage = lazy(() => import('./pages/ResourceArticlePage'))
 const InstantQuotePage = lazy(() => import('./pages/InstantQuotePage'))
 const BookOnlinePage = lazy(() => import('./pages/BookOnlinePage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
+const AdminLeadsPage = lazy(() => import('./pages/AdminLeadsPage'))
+const AdminLeadDetailPage = lazy(() => import('./pages/AdminLeadDetailPage'))
 const AdminCompletedJobsPage = lazy(() => import('./pages/AdminCompletedJobsPage'))
 const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
@@ -52,6 +54,8 @@ export default function App() {
           <Route path="/projects" element={<LazyPage><ProjectsPage /></LazyPage>} />
           <Route path="/projects/:slug" element={<LazyPage><ProjectDetailPage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
+          <Route path="/admin/leads" element={<LazyPage><AdminLeadsPage /></LazyPage>} />
+          <Route path="/admin/leads/:id" element={<LazyPage><AdminLeadDetailPage /></LazyPage>} />
           <Route path="/admin/completed-jobs" element={<Navigate to="/admin/completed-jobs/new" replace />} />
           <Route path="/admin/completed-jobs/new" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
           <Route path="/admin/completed-jobs/drafts" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />

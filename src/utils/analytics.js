@@ -63,19 +63,79 @@ function getUtmParams() {
 }
 
 function getFirstTouch() {
-  if (typeof window === 'undefined') return { referrer: null, landingPath: null }
+  if (typeof window === 'undefined') {
+    return {
+      referrer: null,
+      landingPath: null,
+      utmSource: null,
+      utmMedium: null,
+      utmCampaign: null,
+      utmTerm: null,
+      utmContent: null,
+    }
+  }
   const key = 'mikes_first_touch'
   try {
     const existing = window.localStorage.getItem(key)
-    if (existing) return JSON.parse(existing)
+    if (existing) {
+      const parsed = JSON.parse(existing)
+      return {
+        referrer: parsed.referrer || null,
+        landingPath: parsed.landingPath || null,
+        utmSource: parsed.utmSource || null,
+        utmMedium: parsed.utmMedium || null,
+        utmCampaign: parsed.utmCampaign || null,
+        utmTerm: parsed.utmTerm || null,
+        utmContent: parsed.utmContent || null,
+      }
+    }
+    const utm = getUtmParams()
     const first = {
       referrer: document.referrer || null,
       landingPath: window.location.pathname + window.location.search,
+      ...utm,
     }
     window.localStorage.setItem(key, JSON.stringify(first))
     return first
   } catch {
-    return { referrer: document.referrer || null, landingPath: window.location.pathname + window.location.search }
+    return {
+      referrer: document.referrer || null,
+      landingPath: window.location.pathname + window.location.search,
+      ...getUtmParams(),
+    }
+  }
+}
+
+/**
+ * Attribution snapshot for CRM lead ingest (first-touch UTMs when present).
+ * Safe to call from form submit handlers — contains no customer PII.
+ */
+export function getLeadAttribution() {
+  if (typeof window === 'undefined') {
+    return {
+      originalLandingPage: null,
+      conversionPage: null,
+      referrer: null,
+      utmSource: null,
+      utmMedium: null,
+      utmCampaign: null,
+      utmTerm: null,
+      utmContent: null,
+    }
+  }
+
+  const first = getFirstTouch()
+  const lastUtm = getUtmParams()
+
+  return {
+    originalLandingPage: first.landingPath || window.location.pathname + window.location.search,
+    conversionPage: window.location.pathname + window.location.search,
+    referrer: first.referrer || document.referrer || null,
+    utmSource: first.utmSource || lastUtm.utmSource,
+    utmMedium: first.utmMedium || lastUtm.utmMedium,
+    utmCampaign: first.utmCampaign || lastUtm.utmCampaign,
+    utmTerm: first.utmTerm || lastUtm.utmTerm,
+    utmContent: first.utmContent || lastUtm.utmContent,
   }
 }
 

@@ -22,7 +22,7 @@ export default function QuoteContactForm({
   quote,
   onSuccess,
 }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', companyWebsite: '' })
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
@@ -59,6 +59,8 @@ export default function QuoteContactForm({
         service: serviceNames || 'Instant Quote',
         message: summaryText,
         subject: `Instant Quote Request (${quote.formattedRange}) — ${BUSINESS.name}`,
+        source: 'instant_quote',
+        companyWebsite: form.companyWebsite || '',
       })
 
       trackInternalEvent('instant_quote_completed', {
@@ -89,6 +91,18 @@ export default function QuoteContactForm({
       </p>
 
       <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate aria-label="Instant quote contact form">
+        <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label htmlFor="quote-company-website">Company website</label>
+          <input
+            id="quote-company-website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={form.companyWebsite}
+            onChange={(e) => updateField('companyWebsite', e.target.value)}
+          />
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="quote-name" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">

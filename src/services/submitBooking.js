@@ -24,5 +24,7 @@ export async function submitBookingRequest(booking) {
     service: serviceField,
     message,
     subject: BOOKING_SUBJECT,
+    source: 'booking',
+    companyWebsite: booking.companyWebsite || '',
   })
 }

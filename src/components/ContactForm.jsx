@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { BUSINESS } from '../config/business'
+import { submitLead } from '../services/submitLead'
 import { trackInternalEvent } from '../utils/analytics'
-
-const FORM_ENDPOINT = `https://formsubmit.co/ajax/${BUSINESS.email}`
 
 const SERVICE_OPTIONS = [
   'Window Cleaning',
@@ -23,29 +22,35 @@ export default function ContactForm() {
     setErrorMsg('')
 
     const form = e.target
-    const data = {
-      name: form.name.value,
-      phone: form.phone.value,
-      email: form.email.value,
-      address: form.address.value,
-      service: form.service.value,
-      message: form.message.value,
-      _subject: `Free Quote Request — ${BUSINESS.name}`,
-      _template: 'table',
-      _captcha: 'false',
+    const name = form.name.value.trim()
+    const phone = form.phone.value.trim()
+    const email = form.email.value.trim()
+    const address = form.address.value.trim()
+    const service = form.service.value
+    const message = form.message.value.trim()
+    const companyWebsite = form.companyWebsite?.value || ''
+
+    if (!name || !phone || !email || !address || !service) {
+      setStatus('error')
+      setErrorMsg('Please fill in all required fields.')
+      return
     }
 
     try {
-      const res = await fetch(FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(data),
+      await submitLead({
+        name,
+        phone,
+        email,
+        address,
+        service,
+        message,
+        subject: `Free Quote Request — ${BUSINESS.name}`,
+        source: 'contact',
+        companyWebsite,
       })
 
-      if (!res.ok) throw new Error('Submission failed')
-
       trackInternalEvent('contact_form_submitted', {
-        service: data.service,
+        service,
         sourceHint: 'contact_form',
       })
 
@@ -86,6 +91,19 @@ export default function ContactForm() {
       aria-label="Request a free quote"
     >
       <div className="space-y-5">
+        {/* Honeypot — leave empty */}
+        <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label htmlFor="companyWebsite">Company website</label>
+          <input
+            id="companyWebsite"
+            name="companyWebsite"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            defaultValue=""
+          />
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="name" className="mb-2 block text-[0.8125rem] font-medium text-white/60">

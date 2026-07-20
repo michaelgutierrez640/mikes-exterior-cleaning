@@ -33,6 +33,7 @@ const emptyForm = {
   address: '',
   preferredDate: '',
   notes: '',
+  companyWebsite: '',
 }
 
 export default function BookingForm({ prefill = null, compact = false }) {
@@ -124,6 +125,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
         estimateRange,
         notes: form.notes.trim(),
         quoteDetails,
+        companyWebsite: form.companyWebsite || '',
       })
       setSubmitted(true)
     } catch {
@@ -162,6 +164,18 @@ export default function BookingForm({ prefill = null, compact = false }) {
       )}
 
       <form className="mt-6 space-y-6" onSubmit={handleSubmit} noValidate aria-label="Book appointment form">
+        <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
+          <label htmlFor="booking-company-website">Company website</label>
+          <input
+            id="booking-company-website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={form.companyWebsite}
+            onChange={(e) => updateField('companyWebsite', e.target.value)}
+          />
+        </div>
+
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="booking-name" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
