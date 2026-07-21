@@ -4,9 +4,9 @@ export default {
   county: 'Stanislaus County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Riverbank CA | Mike\'s Exterior Cleaning',
+    title: 'Window Cleaning in Riverbank, CA | Claribel & Crossroads',
     description:
-      'Window cleaning in Riverbank, CA — Claribel, Crossroads & river-adjacent homes. Pollen, fog residue & hard water pros. 5.0 Google rating. Free estimates — (209) 496-5519.',
+      'Window cleaning in Riverbank, CA — Claribel, Crossroads & river-adjacent homes. Interior/exterior, screens, tracks & hard water. Free estimates — (209) 496-5519.',
     keywords:
       'window cleaning Riverbank, window washer Riverbank CA, residential window cleaning Riverbank, exterior glass cleaning Stanislaus County',
   },
@@ -24,6 +24,14 @@ export default {
         'Riverbank occupies a sweet spot in Stanislaus County — close enough to Modesto for quick service, distinct enough in climate and housing character to deserve its own approach. Homes near the Stanislaus River corridor deal with extra humidity that leaves morning condensation in window tracks, while properties in Claribel and the Crossroads area face open-field dust and orchard pollen that coats glass within days of a DIY wipe-down.',
         'Mike\'s Exterior Cleaning Services has cleaned Riverbank windows on single-story ranch homes, two-story builds with upstairs bonus rooms, and older properties with original aluminum-frame sliders that need gentle handling. We use purified water on exteriors to combat hard water spotting from Riverbank irrigation, and we detail tracks where mold and pollen sludge accumulate in the valley\'s wet winters.',
         'Riverbank clients choose us for the same reasons Modesto neighbors do: insured crews, free estimates, a 5.0 Google rating, and results you can see from the curb. We treat your property like our own — protecting rose beds, wiping sills, and fixing any missed streak before we leave.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Riverbank Window Cleaning Includes',
+      paragraphs: [
+        'Interior and exterior glass on Riverbank ranch homes, Crossroads two-stories, and Claribel properties — including patio sliders and hard-to-reach upstairs panes.',
+        'Screens and tracks — river-corridor humidity and pollen leave sludge in channels; we clean accessible screens and detail tracks so sliders move freely again.',
+        'Hard-water treatment for irrigation spotting common across Riverbank lawns — severity is checked on the free estimate before we start.',
       ],
     },
     localChallenges: {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import NotFoundPage from './NotFoundPage'
 import { BUSINESS } from '../config/business'
 import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
@@ -252,6 +252,30 @@ export default function ServicePage() {
         paragraphs={sections.localAreas.paragraphs}
       />
 
+      {slug === 'window-cleaning' && (
+        <section className="service-section bg-white border-t border-black/[0.04]" aria-labelledby="wc-modesto-hub">
+          <div className="section-container max-w-3xl text-center">
+            <ScrollReveal>
+              <h2 id="wc-modesto-hub" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
+                Window Cleaning in Modesto
+              </h2>
+              <p className="mt-4 text-[0.9375rem] leading-relaxed text-gray-600 sm:text-base">
+                Modesto is our home market. For neighborhoods, local FAQs, and Modesto-specific window cleaning details,
+                visit our dedicated Modesto page — then explore other Central Valley cities below.
+              </p>
+              <p className="mt-6">
+                <Link
+                  to="/window-cleaning/modesto"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-royal-600 px-5 text-[0.875rem] font-semibold text-white transition-colors hover:bg-royal-700"
+                >
+                  Modesto window cleaning →
+                </Link>
+              </p>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       {slug === 'window-cleaning' && <WindowCleaningCitiesNav />}
 
       <LocationLinks serviceName={serviceName} />
@@ -260,7 +284,7 @@ export default function ServicePage() {
         service={slug}
         limit={3}
         heading={`Recent ${serviceName} Projects`}
-        subheading={`Published ${serviceName.toLowerCase()} jobs from around the Central Valley.`}
+        subheading={`Published ${serviceName.toLowerCase()} jobs across our service area.`}
         id={`${slug}-projects`}
       />
 

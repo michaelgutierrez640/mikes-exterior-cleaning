@@ -23,7 +23,11 @@ function escapeHtml(value = '') {
 function upsertMetaTag(html, attr, key, content) {
   if (!content) return html
   const escaped = escapeHtml(content)
-  const pattern = new RegExp(`<meta ${attr}="${key}" content="[^"]*"\\s*/?>`, 'i')
+  // Match single-line or multi-line <meta ...> (index.html uses wrapped attributes).
+  const pattern = new RegExp(
+    `<meta\\s[^>]*?${attr}\\s*=\\s*["']${key}["'][^>]*?/?>`,
+    'is',
+  )
   const tag = `<meta ${attr}="${key}" content="${escaped}" />`
   if (pattern.test(html)) return html.replace(pattern, tag)
   return html.replace('</head>', `    ${tag}\n  </head>`)
@@ -38,7 +42,7 @@ function upsertLink(html, rel, href) {
   return html.replace('</head>', `    ${tag}\n  </head>`)
 }
 
-function injectRouteHtml(baseHtml, { title, description, keywords, canonical, ogImage, schemas = [], noindex = false }) {
+function injectRouteHtml(baseHtml, { title, description, keywords, canonical, ogImage, schemas = [], noindex = false, h1 = '', crawlLinks = [] }) {
   let html = baseHtml
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`)
   html = upsertMetaTag(html, 'name', 'description', description)
@@ -59,6 +63,23 @@ function injectRouteHtml(baseHtml, { title, description, keywords, canonical, og
       .map((schema) => `    <script type="application/ld+json" data-prerender="true">${JSON.stringify(schema)}</script>`)
       .join('\n')
     html = html.replace('</head>', `${blocks}\n  </head>`)
+  }
+
+  // Crawlable shell inside #root (replaced by React on hydrate). Helps non-JS / first-pass crawlers.
+  if (h1 || crawlLinks.length) {
+    const linksHtml = crawlLinks
+      .map((link) => `<a href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`)
+      .join(' · ')
+    const shell = [
+      '<main data-prerender-shell>',
+      h1 ? `<h1>${escapeHtml(h1)}</h1>` : '',
+      description ? `<p>${escapeHtml(description)}</p>` : '',
+      linksHtml ? `<nav aria-label="Related pages">${linksHtml}</nav>` : '',
+      '</main>',
+    ]
+      .filter(Boolean)
+      .join('')
+    html = html.replace(/<div id="root"><\/div>/i, `<div id="root">${shell}</div>`)
   }
 
   return html
@@ -107,6 +128,13 @@ async function collectRoutes(modules, publishedProjects = []) {
     seo: seo.SEO,
     schemas: seo.getHomePageSchemas(content.FAQS),
     ogImage: DEFAULT_OG_IMAGE,
+    h1: "Mike's Exterior Cleaning Services",
+    crawlLinks: [
+      { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
+      { href: '/window-cleaning/modesto', label: 'Window cleaning in Modesto' },
+      { href: '/services/window-cleaning', label: 'Window Cleaning' },
+      { href: '/projects', label: 'Completed projects' },
+    ],
   })
 
   const utilityPages = [
@@ -129,6 +157,7 @@ async function collectRoutes(modules, publishedProjects = []) {
   }
 
   for (const service of services.SERVICE_PAGES) {
+    const isWindowCleaning = service.slug === 'window-cleaning'
     routes.push({
       path: `/services/${service.slug}`,
       seo: {
@@ -144,6 +173,17 @@ async function collectRoutes(modules, publishedProjects = []) {
         faqs: service.faqs,
       }),
       ogImage: service.hero?.image ? absoluteUrl(service.hero.image) : DEFAULT_OG_IMAGE,
+      h1: service.hero?.h1 || service.serviceName,
+      crawlLinks: isWindowCleaning
+        ? [
+            { href: '/window-cleaning/modesto', label: 'Window cleaning in Modesto' },
+            { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
+            { href: '/projects', label: 'Completed projects' },
+          ]
+        : [
+            { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
+            { href: '/projects', label: 'Completed projects' },
+          ],
     })
   }
 
@@ -164,10 +204,18 @@ async function collectRoutes(modules, publishedProjects = []) {
         faqs: city.faqs,
       }),
       ogImage: DEFAULT_OG_IMAGE,
+      h1: city.hero?.h1 || `Window Cleaning in ${city.cityName}, CA`,
+      crawlLinks: [
+        { href: '/services/window-cleaning', label: 'Window Cleaning service' },
+        { href: `/service-areas/${city.citySlug}`, label: `Exterior cleaning in ${city.cityName}` },
+        { href: '/projects', label: 'Completed projects' },
+        { href: '/instant-quote', label: 'Instant Quote' },
+      ],
     })
   }
 
   for (const page of locations.LOCATION_PAGES) {
+    const hasWc = wcCities.WINDOW_CLEANING_CITY_SLUGS.includes(page.citySlug)
     routes.push({
       path: `/service-areas/${page.citySlug}`,
       seo: {
@@ -184,6 +232,15 @@ async function collectRoutes(modules, publishedProjects = []) {
         faqs: page.faqs,
       }),
       ogImage: DEFAULT_OG_IMAGE,
+      h1: page.hero?.h1 || `Exterior Cleaning in ${page.cityName}, CA`,
+      crawlLinks: [
+        ...(hasWc
+          ? [{ href: `/window-cleaning/${page.citySlug}`, label: `Window cleaning in ${page.cityName}` }]
+          : []),
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+        { href: '/service-areas', label: 'All service areas' },
+        { href: '/projects', label: 'Completed projects' },
+      ],
     })
   }
 
@@ -269,6 +326,8 @@ async function main() {
       ogImage: route.ogImage,
       schemas: route.schemas,
       noindex: route.noindex,
+      h1: route.h1,
+      crawlLinks: route.crawlLinks || [],
     })
     writeRouteFile(route.path, html)
   }

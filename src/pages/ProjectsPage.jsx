@@ -73,11 +73,40 @@ export default function ProjectsPage() {
             ))}
           </div>
         )}
-        <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
-          <InstantQuoteButton variant="royal" size="md" className="!rounded-xl" />
-          <Link to="/service-areas" className="btn-ghost btn-md !rounded-xl">
-            Service Areas
-          </Link>
+        <div className="mt-12 flex flex-col items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <InstantQuoteButton variant="royal" size="md" className="!rounded-xl" />
+            <Link to="/service-areas" className="btn-ghost btn-md !rounded-xl">
+              Service Areas
+            </Link>
+          </div>
+          <p className="max-w-xl text-center text-[0.875rem] leading-relaxed text-gray-500">
+            Looking for window cleaning in a specific city?{' '}
+            <Link to="/window-cleaning/modesto" className="font-semibold text-royal-600 hover:text-royal-700">
+              Modesto
+            </Link>
+            {', '}
+            <Link to="/window-cleaning/ripon" className="font-semibold text-royal-600 hover:text-royal-700">
+              Ripon
+            </Link>
+            {', '}
+            <Link to="/window-cleaning/riverbank" className="font-semibold text-royal-600 hover:text-royal-700">
+              Riverbank
+            </Link>
+            {', '}
+            <Link to="/window-cleaning/salida" className="font-semibold text-royal-600 hover:text-royal-700">
+              Salida
+            </Link>
+            {', '}
+            <Link to="/window-cleaning/turlock" className="font-semibold text-royal-600 hover:text-royal-700">
+              Turlock
+            </Link>
+            {', or '}
+            <Link to="/window-cleaning/tracy" className="font-semibold text-royal-600 hover:text-royal-700">
+              Tracy
+            </Link>
+            .
+          </p>
         </div>
       </section>
     </>

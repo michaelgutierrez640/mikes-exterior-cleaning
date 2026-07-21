@@ -30,6 +30,23 @@ export function cityPath(citySlug) {
   return `/service-areas/${citySlug}`
 }
 
+/** City + window-cleaning landing page when a dedicated WC city route exists. */
+export function windowCleaningCityPath(citySlug) {
+  if (!citySlug) return null
+  // All SERVICE_CITIES currently have dedicated WC pages; path is canonical when used.
+  return `/window-cleaning/${citySlug}`
+}
+
+/** Best public landing page for a published project’s city + service. */
+export function projectCityServicePath(project) {
+  if (!project?.city) return null
+  const service = String(project.service || '')
+  if (service === 'window-cleaning' || service === 'residential-window-cleaning') {
+    return windowCleaningCityPath(project.city)
+  }
+  return cityPath(project.city)
+}
+
 export function formatCompletedDate(isoDate) {
   const raw = String(isoDate || '').slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw || ''

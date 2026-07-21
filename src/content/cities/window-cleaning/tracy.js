@@ -4,9 +4,9 @@ export default {
   county: 'San Joaquin County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Tracy CA | Mike\'s Exterior Cleaning',
+    title: 'Window Cleaning in Tracy, CA | Tracy Hills & West Tracy',
     description:
-      'Window cleaning in Tracy, CA — Tracy Hills, west Tracy & Altamont commuters. Delta breeze dust, new construction & hard water. Free estimates — (209) 496-5519.',
+      'Window cleaning in Tracy, CA — Tracy Hills, west Tracy & I-205 communities. Interior/exterior, screens, tracks & construction dust. Free estimates — (209) 496-5519.',
     keywords:
       'window cleaning Tracy, window washer Tracy CA, residential window cleaning Tracy, Tracy Hills window cleaning San Joaquin County',
   },
@@ -24,6 +24,14 @@ export default {
         'Tracy has transformed over the past two decades — Tracy Hills estates, west-side subdivisions, and commuter-friendly neighborhoods along the I-205 corridor bring thousands of new windows facing open delta farmland and ongoing construction dust. Established Tracy areas near Central Avenue and Tracy Boulevard deal with mature-tree pollen and decades of irrigation mineral buildup on original aluminum sliders.',
         'Mike\'s Exterior Cleaning Services travels from Modesto to Tracy regularly for homeowners who want professional results without paying Silicon Valley prices. We clean energy-efficient low-E glass in new builds — using methods that protect coatings — and we restore clarity on older Tracy homes where hard water has whitened patio doors for years.',
         'Every Tracy estimate is free and performed on-site. We count windows, note construction dust on new landscaping, assess second-story access, and quote transparently. Insured crews, 5.0 Google rating, satisfaction guaranteed.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Tracy Window Cleaning Includes',
+      paragraphs: [
+        'Interior and exterior glass for Tracy Hills, west Tracy builds, and established neighborhoods — including large great-room windows and patio sliders.',
+        'Screens and tracks — delta breeze dust packs into mesh; we rinse accessible screens and clear channels after construction or landscaping seasons.',
+        'Hard-water and new-lawn overspray — light spotting is treated in a standard clean; heavier mineral film is reviewed during your free estimate.',
       ],
     },
     localChallenges: {

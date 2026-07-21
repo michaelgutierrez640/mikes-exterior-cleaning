@@ -25,13 +25,23 @@ export default function ServiceAreas() {
                 <Link
                   key={area.slug}
                   to={`/service-areas/${area.slug}`}
-                  className="rounded-full border border-gray-200/80 bg-white px-5 py-2.5 text-[0.8125rem] font-semibold text-navy-900 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-royal-200 hover:bg-royal-50/60 hover:text-royal-700"
+                  className={
+                    area.slug === 'modesto'
+                      ? 'rounded-full border border-royal-300 bg-royal-50 px-5 py-2.5 text-[0.8125rem] font-semibold text-royal-800 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-royal-400 hover:bg-royal-100'
+                      : 'rounded-full border border-gray-200/80 bg-white px-5 py-2.5 text-[0.8125rem] font-semibold text-navy-900 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-royal-200 hover:bg-royal-50/60 hover:text-royal-700'
+                  }
                 >
-                  {area.name}
+                  {area.slug === 'modesto' ? 'Modesto (home base)' : area.name}
                 </Link>
               ))}
             </div>
             <p className="mt-8 text-center text-[0.9375rem] text-gray-500">
+              <Link to="/service-areas/modesto" className="font-semibold text-royal-600 transition-colors hover:text-royal-700">
+                Exterior cleaning in Modesto →
+              </Link>
+              <span className="mx-2 text-gray-300" aria-hidden="true">
+                ·
+              </span>
               <Link to="/service-areas" className="font-semibold text-royal-600 transition-colors hover:text-royal-700">
                 View all service areas →
               </Link>

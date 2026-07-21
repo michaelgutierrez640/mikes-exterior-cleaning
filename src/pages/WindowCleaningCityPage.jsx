@@ -11,7 +11,7 @@ import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
 import ResponsiveImage from '../components/ui/ResponsiveImage'
-import { CallButton, QuoteButton, BookOnlineButton } from '../components/ui/Button'
+import { CallButton, InstantQuoteButton, BookOnlineButton } from '../components/ui/Button'
 import GoogleReviewsBadge from '../components/ui/GoogleReviewsBadge'
 import WindowCleaningCityBreadcrumbs from '../components/service/WindowCleaningCityBreadcrumbs'
 import ServiceCta from '../components/service/ServiceCta'
@@ -119,7 +119,7 @@ export default function WindowCleaningCityPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3 sm:gap-4">
             <BookOnlineButton variant="primary" />
-            <QuoteButton variant="secondary" />
+            <InstantQuoteButton variant="secondary">Instant Quote</InstantQuoteButton>
             <CallButton variant="secondary" />
           </div>
           <div className="mt-6">
@@ -146,17 +146,37 @@ export default function WindowCleaningCityPage() {
                 <p key={p.slice(0, 48)}>{p}</p>
               ))}
             </div>
-            <p className="mt-6 text-[0.9375rem]">
+            <p className="mt-6 flex flex-col gap-2 text-[0.9375rem] sm:flex-row sm:flex-wrap sm:gap-x-6">
               <Link to="/services/window-cleaning" className="font-semibold text-royal-600 hover:text-royal-700">
-                Learn more about our full Window Cleaning service →
+                Full Window Cleaning service overview →
+              </Link>
+              <Link to={`/service-areas/${citySlug}`} className="font-semibold text-royal-600 hover:text-royal-700">
+                All exterior cleaning in {cityName} →
               </Link>
             </p>
           </ScrollReveal>
         </div>
       </section>
 
+      {sections.serviceDetails && (
+        <section className="service-section bg-section-services" aria-labelledby={`${citySlug}-service-details`}>
+          <div className="section-container max-w-3xl">
+            <ScrollReveal>
+              <h2 id={`${citySlug}-service-details`} className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
+                {sections.serviceDetails.title}
+              </h2>
+              <div className="service-prose mt-6">
+                {sections.serviceDetails.paragraphs.map((p) => (
+                  <p key={p.slice(0, 48)}>{p}</p>
+                ))}
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+      )}
+
       {/* Local challenges */}
-      <section className="service-section bg-section-services" aria-labelledby={`${citySlug}-challenges`}>
+      <section className={`service-section ${sections.serviceDetails ? 'bg-white' : 'bg-section-services'}`} aria-labelledby={`${citySlug}-challenges`}>
         <div className="section-container max-w-3xl">
           <ScrollReveal>
             <h2 id={`${citySlug}-challenges`} className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
@@ -172,7 +192,7 @@ export default function WindowCleaningCityPage() {
       </section>
 
       {/* Neighborhoods */}
-      <section className="service-section bg-white" aria-labelledby={`${citySlug}-neighborhoods`}>
+      <section className={`service-section ${sections.serviceDetails ? 'bg-section-services' : 'bg-white'}`} aria-labelledby={`${citySlug}-neighborhoods`}>
         <div className="section-container">
           <ScrollReveal className="section-header max-w-2xl">
             <h2 id={`${citySlug}-neighborhoods`} className="section-title">
@@ -192,7 +212,7 @@ export default function WindowCleaningCityPage() {
         </div>
       </section>
 
-      <section className="service-section bg-section-services">
+      <section className={`service-section ${sections.serviceDetails ? 'bg-white' : 'bg-section-services'}`}>
         <div className="section-container max-w-3xl">
           <ScrollReveal>
             <ServiceCta
@@ -204,7 +224,7 @@ export default function WindowCleaningCityPage() {
       </section>
 
       {/* Property types */}
-      <section className="service-section bg-white" aria-labelledby={`${citySlug}-properties`}>
+      <section className={`service-section ${sections.serviceDetails ? 'bg-section-services' : 'bg-white'}`} aria-labelledby={`${citySlug}-properties`}>
         <div className="section-container max-w-3xl">
           <ScrollReveal>
             <h2 id={`${citySlug}-properties`} className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
@@ -266,7 +286,7 @@ export default function WindowCleaningCityPage() {
         city={citySlug}
         limit={3}
         heading={`Recent Window Cleaning Projects in ${cityName}`}
-        subheading={`Published window cleaning jobs in ${cityName} and nearby areas.`}
+        subheading={`Published window cleaning jobs completed in ${cityName} — exact city and service match only.`}
         id={`${citySlug}-wc-projects`}
       />
 
@@ -297,7 +317,7 @@ export default function WindowCleaningCityPage() {
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-white/65 sm:text-base">{cta.text}</p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <BookOnlineButton variant="primary" />
-              <QuoteButton variant="secondary" />
+              <InstantQuoteButton variant="secondary">Instant Quote</InstantQuoteButton>
               <CallButton variant="secondary" />
             </div>
             <p className="mt-6 text-sm text-white/45">
