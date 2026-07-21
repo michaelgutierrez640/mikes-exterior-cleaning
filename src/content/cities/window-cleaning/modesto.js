@@ -4,14 +4,14 @@ export default {
   county: 'Stanislaus County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Modesto CA | Mike\'s Exterior Cleaning',
+    title: 'Professional Window Cleaning in Modesto, CA | Mike\'s Exterior',
     description:
-      'Professional window cleaning in Modesto, CA — La Loma, College Area, downtown & west side. Streak-free glass, hard water treatment. 5.0 Google rating. Free estimates — (209) 496-5519.',
+      'Professional window cleaning in Modesto, CA — interior & exterior glass, screens, tracks, and hard-water removal. Local Modesto crew, free estimates. Call (209) 496-5519.',
     keywords:
-      'window cleaning Modesto, residential window cleaning Modesto, exterior window cleaning Modesto CA, streak-free windows Modesto, window washer Modesto',
+      'professional window cleaning Modesto CA, residential window cleaning Modesto, hard water window cleaning Modesto, window washer Modesto',
   },
   hero: {
-    h1: 'Window Cleaning in Modesto, CA',
+    h1: 'Professional Window Cleaning in Modesto, CA',
     subtitle:
       'Modesto is our home base — meticulous interior and exterior window cleaning for every neighborhood, from vintage downtown homes to new west-side builds, backed by a 5.0 Google rating.',
     imageAlt:
@@ -24,6 +24,14 @@ export default {
         'Modesto windows face a relentless cycle: spring pollen that coats every pane overnight, summer dust kicked up from surrounding farmland, and hard water spots from sprinklers that bake onto glass in 100-degree heat. Mike\'s Exterior Cleaning Services was built right here in Modesto, which means we understand exactly how Central Valley conditions affect your glass — and we show up with the purified water systems, professional squeegees, and track-detailing process that drugstore sprays simply cannot match.',
         'We clean single-story bungalows near Graceada Park, two-story homes in La Loma and College Area, stucco tract houses along Pelandale, and custom properties in Del Rio and Wood Colony. Every visit starts with a free walkthrough where we count windows, note hard water severity, and discuss interior versus exterior packages. You get a clear written estimate with no pressure and no surprise fees on service day.',
         'With a perfect 5.0 Google rating across 44 reviews, Modesto homeowners trust us because we protect landscaping, respect arrival windows, and leave sills and tracks wiped down — not just a quick pass over the center of the glass. Whether you are preparing for guests, listing your home, or tired of fighting streaks every Saturday, we deliver spotless results while you stay safely on the ground.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Our Modesto Window Cleaning Includes',
+      paragraphs: [
+        'Interior and exterior glass — we clean both sides when you choose a full package, including picture windows, sliders, French doors, and hard-to-reach second-story panes. Exterior-only and interior-only options are available if you prefer a lighter visit.',
+        'Screens and tracks — Modesto pollen and farm dust collect in channels and mesh. We remove screens for proper cleaning when accessible, rinse debris from tracks and sills, and reinstall carefully so windows open and close smoothly again.',
+        'Hard-water and mineral spotting — irrigation overspray is common across Modesto neighborhoods. Light spotting is treated during a standard clean; heavier etching is assessed on-site so expectations stay honest before we begin.',
       ],
     },
     localChallenges: {

@@ -216,19 +216,30 @@ export default function CityPage() {
             <h2 id={`${citySlug}-services`} className="section-title">{page.sections.services.title}</h2>
           </ScrollReveal>
           <div className="section-content grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {page.sections.services.items.map((item, i) => (
-              <ScrollReveal key={item.slug} stagger={i + 1}>
-                <Link to={`/services/${item.slug}`} className="card group block h-full p-6 hover:shadow-lg">
-                  <h3 className="text-[1rem] font-semibold text-navy-900 group-hover:text-royal-700">{item.name}</h3>
-                  <p className="mt-2.5 text-[0.9375rem] leading-[1.65] text-gray-600">{item.text}</p>
-                  <span className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-600">Learn more →</span>
-                </Link>
-              </ScrollReveal>
-            ))}
-            {hasWindowCleaningPage && (
+            {page.sections.services.items.map((item, i) => {
+              const href =
+                item.slug === 'window-cleaning' && hasWindowCleaningPage
+                  ? `/window-cleaning/${city.slug}`
+                  : `/services/${item.slug}`
+              return (
+                <ScrollReveal key={item.slug} stagger={i + 1}>
+                  <Link to={href} className="card group block h-full p-6 hover:shadow-lg">
+                    <h3 className="text-[1rem] font-semibold text-navy-900 group-hover:text-royal-700">{item.name}</h3>
+                    <p className="mt-2.5 text-[0.9375rem] leading-[1.65] text-gray-600">{item.text}</p>
+                    <span className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-600">
+                      {item.slug === 'window-cleaning' && hasWindowCleaningPage
+                        ? `${page.cityName} window cleaning →`
+                        : 'Learn more →'}
+                    </span>
+                  </Link>
+                </ScrollReveal>
+              )
+            })}
+            {hasWindowCleaningPage &&
+              !page.sections.services.items.some((item) => item.slug === 'window-cleaning') && (
               <ScrollReveal>
                 <Link to={`/window-cleaning/${city.slug}`} className="card group block h-full border-royal-200/60 bg-royal-50/30 p-6 hover:shadow-lg">
-                  <h3 className="text-[1rem] font-semibold text-navy-900 group-hover:text-royal-700">Window Cleaning — {page.cityName} Detail Page</h3>
+                  <h3 className="text-[1rem] font-semibold text-navy-900 group-hover:text-royal-700">Window Cleaning in {page.cityName}</h3>
                   <p className="mt-2.5 text-[0.9375rem] leading-[1.65] text-gray-600">Neighborhoods, FAQs, and local window cleaning expertise.</p>
                   <span className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-600">View page →</span>
                 </Link>
@@ -242,7 +253,7 @@ export default function CityPage() {
         city={citySlug}
         limit={3}
         heading={`Recent Projects in ${page.cityName}`}
-        subheading={`Published exterior cleaning jobs in ${page.cityName} and nearby areas.`}
+        subheading={`Published exterior cleaning jobs completed in ${page.cityName}.`}
         id={`${citySlug}-projects`}
       />
 

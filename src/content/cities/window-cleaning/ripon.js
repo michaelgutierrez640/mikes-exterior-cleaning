@@ -4,9 +4,9 @@ export default {
   county: 'San Joaquin County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Ripon CA | Mike\'s Exterior Cleaning',
+    title: 'Window Cleaning in Ripon, CA | Almond Country Glass Pros',
     description:
-      'Window cleaning in Ripon, CA — historic downtown, almond-country estates & new builds. Agricultural dust & pollen specialists. Free estimates — (209) 496-5519.',
+      'Window cleaning in Ripon, CA for historic downtown, orchard estates, and new builds — pollen, agricultural dust, screens & hard-water care. Free estimates — (209) 496-5519.',
     keywords:
       'window cleaning Ripon, window washer Ripon CA, residential window cleaning Ripon, exterior window cleaning San Joaquin County',
   },
@@ -24,6 +24,14 @@ export default {
         'Ripon sits surrounded by some of San Joaquin County\'s most intensive orchard land — which means your windows collect agricultural dust year-round, explosive pollen loads during bloom, and fine soil particles after harvest equipment moves through nearby rows. Add Ripon\'s summer heat baking irrigation water onto glass, and professional window cleaning becomes less of a luxury and more of property maintenance.',
         'Mike\'s Exterior Cleaning Services cleans Ripon\'s Victorian-era downtown homes with careful attention to older frames, newer estate properties along the countryside with wall-length architectural glass, and suburban builds where families want streak-free views of backyard pools and play areas. We travel from Modesto regularly and treat Ripon as a priority market — not an afterthought on a long route.',
         'Our process uses purified water rinsing to prevent mineral spotting, professional squeegee technique for optical clarity, and track detailing where almond pollen turns into black sludge in window channels. Free estimates, insured crews, and a 5.0 Google rating back every Ripon job.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Ripon Window Cleaning Covers',
+      paragraphs: [
+        'Interior and exterior glass for Ripon homes — from divided-light downtown windows to large estate panes overlooking orchard land. Exterior-only and full inside-and-out packages available.',
+        'Screens and tracks — almond pollen packs into mesh and channels; we remove accessible screens, rinse debris from tracks, and reinstall carefully.',
+        'Hard-water spotting from Ripon irrigation — light mineral film is treated during a standard clean; heavier buildup is assessed during your free estimate so expectations stay clear.',
       ],
     },
     localChallenges: {

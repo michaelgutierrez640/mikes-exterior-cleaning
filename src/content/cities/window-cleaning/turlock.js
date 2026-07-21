@@ -4,9 +4,9 @@ export default {
   county: 'Stanislaus County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Turlock CA | Mike\'s Exterior Cleaning',
+    title: 'Window Cleaning in Turlock, CA | Homes & CSU-Area Rentals',
     description:
-      'Window cleaning in Turlock, CA — Montpelier, Dawson, CSU area rentals & family homes. Fog, pollen & hard water pros. 5.0 rating. Free estimates — (209) 496-5519.',
+      'Window cleaning in Turlock, CA — Montpelier, Dawson, CSU rentals & family homes. Interior/exterior, screens, tracks & hard water. Free estimates — (209) 496-5519.',
     keywords:
       'window cleaning Turlock, window washer Turlock CA, residential window cleaning Turlock, student rental window cleaning Stanislaus County',
   },
@@ -24,6 +24,14 @@ export default {
         'Turlock blends small-city living with deep agricultural roots — and your windows feel both. Fog settles on glass through winter mornings near the Tuolumne River corridor, Stanislaus State brings rental turnover and multi-unit properties that need fast, reliable cleaning between tenants, and family neighborhoods in Montpelier and Dawson collect pollen from backyard trees and front-yard gardens alike.',
         'Mike\'s Exterior Cleaning Services has cleaned Turlock windows on owner-occupied homes, landlord portfolios near campus, and commercial storefronts along Main Street. We arrive from Modesto with purified water systems, professional squeegees, and a reputation built on 44 five-star Google reviews. Turlock clients mention punctual arrival, fair quotes, and glass that stays clear longer than DIY attempts.',
         'Whether you manage rentals that need turnover sparkle or you own a two-story in a quiet Turlock cul-de-sac, we provide free on-site estimates that reflect your actual window count — not a national franchise menu price.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Turlock Window Cleaning Includes',
+      paragraphs: [
+        'Interior and exterior glass for Turlock family homes, CSU-area rentals, and Main Street storefronts — interior-only and exterior-only options available.',
+        'Screens and tracks — fog residue and pollen collect in channels; we clean accessible screens and wipe tracks so windows open smoothly.',
+        'Hard-water spotting from Turlock lawn irrigation — assessed on-site so light spotting and heavier mineral film get honest treatment notes before we begin.',
       ],
     },
     localChallenges: {

@@ -4,9 +4,9 @@ export default {
   county: 'Stanislaus County',
   state: 'CA',
   meta: {
-    title: 'Window Cleaning Salida CA | Mike\'s Exterior Cleaning',
+    title: 'Window Cleaning in Salida, CA | Sisk Road & Corridor Homes',
     description:
-      'Window cleaning in Salida, CA — Sisk Road subdivisions, Highway 99 corridor homes & rural lots. Hard water & dust specialists. Free estimates — (209) 496-5519.',
+      'Window cleaning in Salida, CA — Sisk Road subdivisions, Hwy 99 corridor & rural lots. Interior/exterior, screens, tracks & hard water. Free estimates — (209) 496-5519.',
     keywords:
       'window cleaning Salida, window washer Salida CA, residential window cleaning Salida, exterior window cleaning Stanislaus County',
   },
@@ -24,6 +24,14 @@ export default {
         'Salida sits at the crossroads of Stanislaus County growth — newer subdivisions along Sisk Road, established homes near the Salida corridor, and rural properties with larger window counts and longer driveway approaches. That mix means your glass collects a distinctive blend of construction dust from ongoing development, agricultural particulates drifting from surrounding fields, and hard water spotting from sprinklers working overtime through Salida\'s hot, dry summers.',
         'Mike\'s Exterior Cleaning Services makes the short trip from our Modesto base to Salida every week. We arrive with purified water systems that prevent the mineral deposits Salida tap water leaves behind, professional squeegees that eliminate streaks, and the patience to detail tracks where wind-blown soil accumulates between panes. Cathy and dozens of Central Valley clients chose us for punctual arrival, fair pricing, and glass that actually stays clear.',
         'Whether you own a single-story home in a Salida subdivision or a property with pasture views and wall-length sliders, we provide a free on-site estimate tailored to your window count, story height, and staining — never a generic quote from a price list.',
+      ],
+    },
+    serviceDetails: {
+      title: 'What Salida Window Cleaning Includes',
+      paragraphs: [
+        'Interior and exterior glass for Salida subdivisions and rural lots — vinyl windows, patio sliders, and second-story panes cleaned with coating-safe methods.',
+        'Screens and tracks — Highway 99 and field dust settle in mesh and channels; we rinse accessible screens and clear sill debris.',
+        'Hard-water spotting from Salida irrigation — light film is handled in a standard clean; heavier etching is flagged during the free walkthrough.',
       ],
     },
     localChallenges: {

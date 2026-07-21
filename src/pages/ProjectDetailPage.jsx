@@ -11,6 +11,7 @@ import {
   cityLabel,
   cityPath,
   formatCompletedDate,
+  projectCityServicePath,
   projectHeading,
   propertyTypeLabel,
   serviceLabel,
@@ -141,6 +142,15 @@ export default function ProjectDetailPage() {
                 >
                   Exterior cleaning in {cityLabel(project.city)} →
                 </Link>
+                {projectCityServicePath(project) &&
+                  projectCityServicePath(project) !== cityPath(project.city) && (
+                    <Link
+                      to={projectCityServicePath(project)}
+                      className="inline-flex min-h-11 items-center justify-center rounded-xl bg-royal-50 px-4 text-[0.875rem] font-semibold text-royal-800 ring-1 ring-royal-200/70"
+                    >
+                      Window cleaning in {cityLabel(project.city)} →
+                    </Link>
+                  )}
               </div>
             </div>
 
