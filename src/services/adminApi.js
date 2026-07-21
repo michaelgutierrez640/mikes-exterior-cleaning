@@ -135,6 +135,7 @@ function buildLeadsQuery(filters = {}) {
   if (filters.source) params.set('source', filters.source)
   if (filters.service) params.set('service', filters.service)
   if (filters.city) params.set('city', filters.city)
+  if (filters.followUp) params.set('followUp', filters.followUp)
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }

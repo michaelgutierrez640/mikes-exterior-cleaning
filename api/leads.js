@@ -4,7 +4,7 @@ import {
   createLeadFromIngest,
   getLead,
   isLeadsStorageConfigured,
-  listLeads,
+  listLeadsWithSummary,
   normalizeLeadId,
   toLeadListItem,
   updateLead,
@@ -41,7 +41,7 @@ function parseBody(req) {
  * Admin (cookie auth):
  * - GET  /api/leads
  * - GET  /api/leads?id=<leadId>
- * - PATCH /api/leads?id=<leadId>  body: { status?, note? }
+ * - PATCH /api/leads?id=<leadId>  body: { status?, note?, followUpDate?, followUpNote?, clearFollowUp? }
  */
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -102,17 +102,19 @@ export default async function handler(req, res) {
         return json(res, 200, { lead })
       }
 
-      const leads = await listLeads({
+      const { leads, followUpSummary } = await listLeadsWithSummary({
         status: req.query?.status,
         source: req.query?.source,
         q: req.query?.q,
         service: req.query?.service,
         city: req.query?.city,
+        followUp: req.query?.followUp,
       })
 
       return json(res, 200, {
-        leads: leads.map(toLeadListItem),
+        leads: leads.map((lead) => toLeadListItem(lead)),
         count: leads.length,
+        followUpSummary,
       })
     }
 
@@ -122,6 +124,9 @@ export default async function handler(req, res) {
       const lead = await updateLead(itemId, {
         status: body.status,
         note: body.note,
+        followUpDate: body.followUpDate,
+        followUpNote: body.followUpNote,
+        clearFollowUp: body.clearFollowUp === true,
       })
       console.info('[leads] updated', { id: lead.id, status: lead.status })
       return json(res, 200, { lead })

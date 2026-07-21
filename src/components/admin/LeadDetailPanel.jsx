@@ -1,13 +1,36 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchAdminLead, updateAdminLead } from '../../services/adminApi'
+import FollowUpBadge from './FollowUpBadge'
 import {
   LEAD_STATUSES,
+  formatFollowUpDate,
   formatLeadDate,
   formatLeadSource,
   mailtoHref,
   telHref,
 } from './leadHelpers'
+
+function todayPacificKey() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+}
+
+function getFollowUpBadgeClient(lead) {
+  if (!lead) return 'none'
+  if (lead.followUpDate) {
+    const today = todayPacificKey()
+    if (lead.followUpDate < today) return 'overdue'
+    if (lead.followUpDate === today) return 'today'
+    return 'upcoming'
+  }
+  if (lead.followUpCompletedAt) return 'completed'
+  return 'none'
+}
 
 function Field({ label, children }) {
   return (
@@ -25,6 +48,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   const [message, setMessage] = useState('')
   const [statusDraft, setStatusDraft] = useState('')
   const [noteDraft, setNoteDraft] = useState('')
+  const [followUpDateDraft, setFollowUpDateDraft] = useState('')
+  const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
@@ -38,6 +63,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       }
       setLead(data.lead)
       setStatusDraft(data.lead?.status || 'New Lead')
+      setFollowUpDateDraft(data.lead?.followUpDate || '')
+      setFollowUpNoteDraft(data.lead?.followUpNote || '')
     } catch (err) {
       setError(err.message || 'Failed to load lead')
       setLead(null)
@@ -59,7 +86,13 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     try {
       const updated = await updateAdminLead(lead.id, { status: statusDraft })
       setLead(updated)
-      setMessage('Status updated.')
+      setFollowUpDateDraft(updated.followUpDate || '')
+      setFollowUpNoteDraft(updated.followUpNote || '')
+      setMessage(
+        ['Completed', 'Lost'].includes(statusDraft) && !updated.followUpDate
+          ? 'Status updated. Active follow-up reminder cleared.'
+          : 'Status updated.',
+      )
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
@@ -94,6 +127,54 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     }
   }
 
+  async function handleFollowUpSave(e) {
+    e.preventDefault()
+    if (!lead) return
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await updateAdminLead(lead.id, {
+        followUpDate: followUpDateDraft || null,
+        followUpNote: followUpNoteDraft,
+      })
+      setLead(updated)
+      setFollowUpDateDraft(updated.followUpDate || '')
+      setFollowUpNoteDraft(updated.followUpNote || '')
+      setMessage(updated.followUpDate ? 'Follow-up saved.' : 'Follow-up date cleared.')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to save follow-up')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleFollowUpClear() {
+    if (!lead) return
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await updateAdminLead(lead.id, { clearFollowUp: true })
+      setLead(updated)
+      setFollowUpDateDraft('')
+      setFollowUpNoteDraft('')
+      setMessage('Follow-up cleared.')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to clear follow-up')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
@@ -117,6 +198,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   const emailLink = mailtoHref(lead.email)
   const notes = Array.isArray(lead.notes) ? [...lead.notes].reverse() : []
   const history = Array.isArray(lead.statusHistory) ? [...lead.statusHistory].reverse() : []
+  const followUpBadge = getFollowUpBadgeClient(lead)
 
   return (
     <div className="space-y-6">
@@ -157,9 +239,12 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               {formatLeadSource(lead.source)} · Submitted {formatLeadDate(lead.createdAt)}
             </p>
           </div>
-          <span className="rounded-full bg-royal-50 px-3 py-1 text-[0.75rem] font-semibold text-royal-800">
-            {lead.status}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-royal-50 px-3 py-1 text-[0.75rem] font-semibold text-royal-800">
+              {lead.status}
+            </span>
+            <FollowUpBadge badge={followUpBadge} />
+          </div>
         </div>
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
@@ -199,6 +284,72 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           <Field label="UTM content">{lead.utmContent}</Field>
         </div>
       </div>
+
+      <form
+        onSubmit={handleFollowUpSave}
+        className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-semibold text-navy-900">Follow-up reminder</h3>
+            <p className="mt-1 text-[0.8125rem] text-gray-500">
+              Admin-only reminder — no email or SMS is sent.
+            </p>
+          </div>
+          <FollowUpBadge badge={followUpBadge} />
+        </div>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="follow-up-date" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
+              Follow-up date
+            </label>
+            <input
+              id="follow-up-date"
+              type="date"
+              value={followUpDateDraft}
+              onChange={(e) => setFollowUpDateDraft(e.target.value)}
+              className="input-light"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="follow-up-note" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
+              Follow-up note (optional)
+            </label>
+            <textarea
+              id="follow-up-note"
+              rows={3}
+              value={followUpNoteDraft}
+              onChange={(e) => setFollowUpNoteDraft(e.target.value)}
+              className="input-light resize-none"
+              placeholder="Call back about estimate, confirm appointment…"
+            />
+          </div>
+        </div>
+        {(lead.followUpDate || lead.followUpCompletedAt) && (
+          <p className="mt-3 text-[0.75rem] text-gray-400">
+            {lead.followUpDate
+              ? `Scheduled for ${formatFollowUpDate(lead.followUpDate)}`
+              : `Reminder completed ${formatLeadDate(lead.followUpCompletedAt)}`}
+          </p>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save follow-up'}
+          </button>
+          <button
+            type="button"
+            onClick={handleFollowUpClear}
+            disabled={saving || (!lead.followUpDate && !lead.followUpNote)}
+            className="btn-secondary btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Clear follow-up
+          </button>
+        </div>
+      </form>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <form
