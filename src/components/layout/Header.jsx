@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
 import { LogoMark } from '../ui/Icons'
-import { BookOnlineButton, InstantQuoteButton, QuoteButton } from '../ui/Button'
+import { BookOnlineButton, InstantQuoteButton, PhoneLink, QuoteButton } from '../ui/Button'
 
 function NavLink({ href, children, onClick, mobile = false }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -102,8 +102,8 @@ export default function Header() {
           </nav>
 
           <div className="hidden shrink-0 items-center gap-2 justify-self-end lg:col-start-3 lg:flex xl:gap-3">
-            <a
-              href={BUSINESS.phoneHref}
+            <PhoneLink
+              sourceHint="header_desktop"
               className="flex items-center gap-2 text-[0.8125rem] font-medium whitespace-nowrap text-white/75 transition-colors duration-300 hover:text-white"
             >
               <svg className="h-4 w-4 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
@@ -111,7 +111,7 @@ export default function Header() {
               </svg>
               <span className="hidden 2xl:inline">{BUSINESS.phone}</span>
               <span className="2xl:hidden">Call</span>
-            </a>
+            </PhoneLink>
             <BookOnlineButton variant="nav" size="sm" showIcon={false} className="!px-3.5 xl:!px-4">
               <span className="xl:hidden">Book</span>
               <span className="hidden xl:inline">Book Online</span>
@@ -154,9 +154,9 @@ export default function Header() {
               </NavLink>
             ))}
             <div className="mt-8 flex flex-col gap-3">
-              <a href={BUSINESS.phoneHref} className="btn-secondary btn-md rounded-2xl text-center">
+              <PhoneLink sourceHint="header_mobile_menu" className="btn-secondary btn-md rounded-2xl text-center">
                 Call {BUSINESS.phone}
-              </a>
+              </PhoneLink>
               <BookOnlineButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
               <InstantQuoteButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
               <QuoteButton variant="secondary" size="md" className="rounded-2xl text-center justify-center" showIcon={false}>

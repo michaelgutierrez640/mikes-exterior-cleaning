@@ -1,6 +1,8 @@
 const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || ''
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID?.trim() || ''
 const INTERNAL_ENDPOINT = '/api/track-event'
+const QUOTE_STARTED_SESSION_KEY = 'mikes_quote_started_session'
+const PRODUCTION_HOSTS = new Set(['www.mikesexteriorcleaning.com', 'mikesexteriorcleaning.com'])
 
 function isDebugEnabled() {
   if (typeof window === 'undefined') return false
@@ -11,6 +13,37 @@ function isDebugEnabled() {
   } catch {
     return false
   }
+}
+
+/**
+ * Client-side mirror of lib/analyticsFilter.mjs host rules.
+ * Preview = *.vercel.app (or localhost). Production canonical hosts are always allowed.
+ */
+export function isNonProductionAnalyticsHost(hostname = typeof window !== 'undefined' ? window.location.hostname : '') {
+  const h = String(hostname || '')
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, '')
+  if (!h) return false
+  if (PRODUCTION_HOSTS.has(h)) return false
+  if (h.endsWith('.vercel.app')) return true
+  if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local')) return true
+  return false
+}
+
+export function isAdminAnalyticsPath(path) {
+  if (!path) return false
+  const p = String(path).split('?')[0]
+  return p === '/admin' || p.startsWith('/admin/')
+}
+
+/** Whether first-party events should be sent to /api/track-event from this browser context. */
+export function shouldSendInternalAnalytics(pathOverride) {
+  if (typeof window === 'undefined') return false
+  if (isNonProductionAnalyticsHost(window.location.hostname)) return false
+  const path = pathOverride ?? window.location.pathname + window.location.search
+  if (isAdminAnalyticsPath(path)) return false
+  return true
 }
 
 function getOrCreateId(key) {
@@ -160,6 +193,9 @@ export function trackEvent(eventName, params = {}) {
 export function trackInternalEvent(type, props = {}) {
   if (typeof window === 'undefined') return
 
+  const path = typeof props.path === 'string' ? props.path : window.location.pathname + window.location.search
+  if (!shouldSendInternalAnalytics(path)) return
+
   const visitorId = getOrCreateId('mikes_visitor_id')
   const sessionId = getSessionId()
   const utm = getUtmParams()
@@ -170,11 +206,11 @@ export function trackInternalEvent(type, props = {}) {
     type,
     visitorId,
     sessionId,
-    path: window.location.pathname + window.location.search,
     pageTitle: document.title,
     referrer: firstTouch.referrer,
     ...utm,
     ...props,
+    path,
     ...(debug ? { debug: true } : {}),
   }
 
@@ -206,6 +242,8 @@ export function trackInternalEvent(type, props = {}) {
 }
 
 export function trackPageView(path) {
+  if (!shouldSendInternalAnalytics(path)) return
+
   if (hasGtag() && GA_ID) {
     window.gtag('config', GA_ID, { page_path: path })
   }
@@ -217,9 +255,32 @@ export function trackPageView(path) {
   trackInternalEvent('page_view', { path })
 }
 
+export function trackPhoneClick(sourceHint = 'phone_link') {
+  trackInternalEvent('phone_clicked', { sourceHint: String(sourceHint || 'phone_link').slice(0, 100) })
+}
+
+/**
+ * Count at most one Instant Quote start per browser session.
+ * Call from the Instant Quote calculator mount only (not from CTA buttons).
+ * @returns {boolean} true if a new start event was recorded
+ */
 export function trackQuoteStarted() {
+  if (typeof window === 'undefined') return false
+  try {
+    if (window.sessionStorage.getItem(QUOTE_STARTED_SESSION_KEY) === '1') {
+      return false
+    }
+    window.sessionStorage.setItem(QUOTE_STARTED_SESSION_KEY, '1')
+  } catch {
+    // If sessionStorage is unavailable, still emit once this call.
+  }
+
   trackEvent('quote_started', { page: '/instant-quote' })
-  trackInternalEvent('instant_quote_started', { page: '/instant-quote' })
+  trackInternalEvent('instant_quote_started', {
+    path: '/instant-quote',
+    sourceHint: 'quote_calculator',
+  })
+  return true
 }
 
 export function trackQuoteServiceSelected(serviceId, selected) {
@@ -250,19 +311,22 @@ export function trackQuoteEstimateViewed(totalLow, totalHigh) {
   }
 }
 
+/** Exactly one first-party completion event per successful Instant Quote submission. */
 export function trackQuoteSubmitted({ totalLow, totalHigh, services }) {
+  const serviceList = Array.isArray(services) ? services : []
   trackEvent('quote_submitted', {
     value: totalLow,
     currency: 'USD',
     estimate_low: totalLow,
     estimate_high: totalHigh,
-    services: services.join(', '),
+    services: serviceList.join(', '),
   })
 
   trackInternalEvent('instant_quote_completed', {
     quoteValueLow: totalLow,
     quoteValueHigh: totalHigh,
-    service: services.join(', '),
+    service: serviceList.join(', '),
+    sourceHint: 'quote_contact_form',
   })
 
   if (hasFbq() && META_PIXEL_ID) {

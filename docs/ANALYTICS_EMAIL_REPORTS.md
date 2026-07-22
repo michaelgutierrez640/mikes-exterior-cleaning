@@ -3,8 +3,51 @@
 Private weekly and monthly website-performance emails for Mike, powered by first-party analytics + CRM data already stored in Upstash Redis.
 
 **Admin UI:** `/admin/reports` (password-protected)  
-**Cron:** `GET/POST /api/cron/analytics-reports` once daily  
-**Public site pages are not modified.**
+**Cron:** `GET/POST /api/cron/analytics-reports` once daily
+
+---
+
+## What is excluded from Production analytics
+
+First-party events are gated in both the browser (`src/utils/analytics.js`) and the ingest API (`api/track-event.js` via `lib/analyticsFilter.mjs`). Skipped events return `{ ok: true, persisted: false, skipped: "<reason>" }` and are **not** written to Production Redis.
+
+### Preview / non-Production hosts
+
+Identified by request `Host` / `X-Forwarded-Host` (normalized, lowercased, port stripped):
+
+| Host pattern | Result |
+|---|---|
+| `www.mikesexteriorcleaning.com` or `mikesexteriorcleaning.com` | **Allowed** (Production) |
+| Ends with `.vercel.app` | **Excluded** (`skipped: non_production_host`) — Vercel Preview and deployment URLs |
+| `localhost`, `127.0.0.1`, or `*.local` | **Excluded** — local dev against shared Redis |
+
+Legitimate public visitors on the canonical Production domain are never excluded by host rules.
+
+### Admin activity
+
+Identified by the event `path` (pathname only, query stripped):
+
+| Path | Result |
+|---|---|
+| Exactly `/admin` or any path starting with `/admin/` | **Excluded** (`skipped: admin_path`) |
+
+This covers admin page views and any admin-originated actions that would otherwise post to `/api/track-event`.
+
+Report aggregation also ignores any historical events whose `path` is under `/admin` (defense in depth for data collected before this gate).
+
+---
+
+## Instant Quote funnel counting
+
+- **Quote start (`instant_quote_started`):** fired once per browser session when the Instant Quote calculator mounts. CTA buttons that navigate to `/instant-quote` do **not** fire a start.
+- **Quote completion (`instant_quote_completed`):** fired once after a successful Instant Quote contact submit (same success path as the CRM lead + notification email). Submit is locked against double-clicks.
+- **CRM lead + email:** one `submitLead` call per successful Instant Quote (creates one Redis lead and one FormSubmit notification).
+
+---
+
+## Phone click tracking
+
+Public `tel:` links go through `PhoneLink` / `CallButton` (`src/components/ui/Button.jsx`), which record `phone_clicked`. Covered surfaces include header, footer, contact, hero, Instant Quote, book-online, service, city, and other pages that use those components.
 
 ---
 
@@ -123,8 +166,9 @@ On a non-Monday / non-1st, the response should show `skipped: not_due` for both 
 From analytics events + CRM leads + published projects when available:
 
 - Unique visitors, page views, top pages, traffic sources, referring domains, devices  
-- Phone clicks, Instant Quote starts/completions, contact submissions, booking requests  
-- New CRM leads; leads by source / service / city; conversion rate  
+- **Quote funnel:** starts, completions, completion rate (shows `n/a (no quote starts)` when starts = 0)  
+- **Leads & calls (labeled as event/form counts, not unique customers):** phone clicks, contact form events, booking request events, total CRM leads  
+- Visitor→CRM lead rate; leads by source / service / city  
 - Completed projects published in-range  
 
 Unavailable sources are labeled **Unavailable** (never invented).

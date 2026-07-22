@@ -3,7 +3,7 @@ import { getHeroImage } from '../../config/images'
 import { useCountUp } from '../../hooks/useCountUp'
 import ScrollReveal from '../ScrollReveal'
 import TrustBar from '../ui/TrustBar'
-import { CallButton, InstantQuoteButton, BookOnlineButton, QuoteButton } from '../ui/Button'
+import { CallButton, InstantQuoteButton, BookOnlineButton, PhoneLink, QuoteButton } from '../ui/Button'
 import ResponsiveImage from '../ui/ResponsiveImage'
 import { useEffect, useState } from 'react'
 
@@ -93,8 +93,8 @@ export default function Hero() {
           </ScrollReveal>
 
           <ScrollReveal delay="delay-400">
-            <a
-              href={BUSINESS.phoneHref}
+            <PhoneLink
+              sourceHint="hero_call_card"
               className="mt-9 inline-flex w-full items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.04] px-5 py-4 backdrop-blur-2xl transition-[border-color,background-color] duration-300 hover:border-white/[0.14] hover:bg-white/[0.07] sm:mt-10 sm:w-auto"
             >
               <div className="icon-wrap-royal">
@@ -106,7 +106,7 @@ export default function Hero() {
                 <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">Call for a Free Estimate</p>
                 <p className="mt-0.5 text-lg font-semibold text-white sm:text-xl">{BUSINESS.phone}</p>
               </div>
-            </a>
+            </PhoneLink>
           </ScrollReveal>
 
           <ScrollReveal delay="delay-500">

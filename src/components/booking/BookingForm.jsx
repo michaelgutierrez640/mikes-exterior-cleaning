@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BOOKABLE_SERVICES,
   BOOKING_MODE,
@@ -67,6 +67,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
   const [submitError, setSubmitError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [calendarNote, setCalendarNote] = useState('')
+  const submitLock = useRef(false)
 
   const estimateRange = prefill?.estimateRange ?? ''
   const quoteDetails = prefill?.quoteDetails ?? ''
@@ -95,12 +96,15 @@ export default function BookingForm({ prefill = null, compact = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitLock.current || status === 'sending') return
+
     const validationErrors = validateBooking(form, selectedServices, timeWindow, customTime)
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors)
       return
     }
 
+    submitLock.current = true
     setStatus('sending')
     setSubmitError('')
 
@@ -109,10 +113,6 @@ export default function BookingForm({ prefill = null, compact = false }) {
       .filter(Boolean)
 
     try {
-      trackInternalEvent('booking_requested', {
-        service: serviceNames.join(', ') || null,
-        sourceHint: 'booking_form',
-      })
       await submitBookingRequest({
         name: form.name.trim(),
         phone: form.phone.trim(),
@@ -127,8 +127,13 @@ export default function BookingForm({ prefill = null, compact = false }) {
         quoteDetails,
         companyWebsite: form.companyWebsite || '',
       })
+      trackInternalEvent('booking_requested', {
+        service: serviceNames.join(', ') || null,
+        sourceHint: 'booking_form',
+      })
       setSubmitted(true)
     } catch {
+      submitLock.current = false
       setStatus('error')
       setSubmitError('Something went wrong. Please call us directly or try again.')
     }

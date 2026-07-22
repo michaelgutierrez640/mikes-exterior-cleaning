@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { BUSINESS } from '../../config/business'
 import { buildQuoteSummaryText } from '../../utils/quotePricing'
 import { buildBookingPrefill, saveBookingPrefill } from '../../utils/bookingPrefill'
-import { CallButton } from '../ui/Button'
+import { CallButton, PhoneLink } from '../ui/Button'
 import QuoteSummary from './QuoteSummary'
 
 export default function QuoteConfirmation({ quote, contact, selectedServices, answers }) {
@@ -65,9 +65,9 @@ export default function QuoteConfirmation({ quote, contact, selectedServices, an
 
       <p className="mt-6 text-[0.8125rem] text-gray-400">
         Need immediate help? Call{' '}
-        <a href={BUSINESS.phoneHref} className="font-medium text-royal-600 hover:text-royal-700">
+        <PhoneLink sourceHint="quote_confirmation" className="font-medium text-royal-600 hover:text-royal-700">
           {BUSINESS.phone}
-        </a>
+        </PhoneLink>
       </p>
     </div>
   )

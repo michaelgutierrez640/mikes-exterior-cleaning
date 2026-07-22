@@ -6,6 +6,7 @@ import JsonLd from '../components/seo/JsonLd'
 import InstantQuoteCalculator from '../components/quote/InstantQuoteCalculator'
 import ScrollReveal from '../components/ScrollReveal'
 import { BUSINESS } from '../config/business'
+import { PhoneLink } from '../components/ui/Button'
 
 const pageSeo = getInstantQuotePageSeo()
 
@@ -51,12 +52,12 @@ export default function InstantQuotePage() {
       <section className="border-t border-gray-100 bg-white py-12 text-center">
         <div className="section-container max-w-xl">
           <p className="text-[0.8125rem] font-medium text-gray-400">Prefer to talk to someone?</p>
-          <a
-            href={BUSINESS.phoneHref}
+          <PhoneLink
+            sourceHint="instant_quote_page"
             className="mt-2 inline-block font-display text-2xl font-semibold text-navy-900 transition-colors hover:text-royal-600"
           >
             {BUSINESS.phone}
-          </a>
+          </PhoneLink>
           <p className="mt-2 text-[0.8125rem] text-gray-400">Call for a free on-site estimate — no pressure, no obligation.</p>
         </div>
       </section>

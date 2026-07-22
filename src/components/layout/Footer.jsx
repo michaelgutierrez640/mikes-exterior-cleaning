@@ -4,6 +4,7 @@ import { useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
 import { LogoMark } from '../ui/Icons'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
+import { PhoneLink } from '../ui/Button'
 
 function FooterLink({ href, children }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -75,9 +76,12 @@ export default function Footer() {
           <div className="lg:col-span-3">
             <p className="text-[10px] font-semibold tracking-[0.2em] text-royal-400 uppercase">Contact</p>
             <div className="mt-5 space-y-3">
-              <a href={BUSINESS.phoneHref} className="block text-[0.9375rem] font-semibold text-white/75 transition-colors hover:text-white">
+              <PhoneLink
+                sourceHint="footer"
+                className="block text-[0.9375rem] font-semibold text-white/75 transition-colors hover:text-white"
+              >
                 {BUSINESS.phone}
-              </a>
+              </PhoneLink>
               <a href={BUSINESS.emailHref} className="block break-all text-[0.8125rem] text-white/45 transition-colors hover:text-white/75">
                 {BUSINESS.email}
               </a>
