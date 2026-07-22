@@ -70,7 +70,7 @@ export default function Header() {
           boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.18)' : 'none',
         }}
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-3.5 sm:px-10 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-4 lg:px-12">
+        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-7 py-3.5 sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14">
           <Link
             to="/"
             className="relative z-20 flex shrink-0 items-center transition-opacity duration-300 hover:opacity-90"
@@ -82,7 +82,7 @@ export default function Header() {
               width={364}
               height={216}
               decoding="async"
-              className="h-[42px] w-auto max-w-none object-contain object-left sm:h-[54px]"
+              className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
             />
           </Link>
 
@@ -90,7 +90,7 @@ export default function Header() {
             className="hidden min-w-0 justify-center lg:col-start-2 lg:row-start-1 lg:flex"
             aria-label="Main navigation"
           >
-            <div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.04] px-1 py-1 backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.04] px-1 py-1 backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {HEADER_NAV_LINKS.map((link) => (
                 <NavLink key={link.href} href={link.href}>
                   <NavLabel link={link} />
@@ -142,7 +142,7 @@ export default function Header() {
       {menuOpen && (
         <div
           id="mobile-menu"
-          className="fixed inset-0 top-[calc(4.75rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-6 py-8 backdrop-blur-3xl lg:hidden"
+          className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-7 py-8 backdrop-blur-3xl lg:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
