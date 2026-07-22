@@ -51,6 +51,44 @@ export async function fetchDashboardMetrics() {
   return res.json()
 }
 
+export async function fetchReportAdminStatus() {
+  const res = await fetch('/api/admin/metrics?view=reports', {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to load report settings')
+  }
+  return res.json()
+}
+
+export async function fetchReportPreview(periodKey) {
+  const res = await fetch(`/api/admin/metrics?view=report-preview&periodKey=${encodeURIComponent(periodKey)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  const data = await parseJson(res)
+  if (!res.ok) throw new Error(data.error || 'Failed to load report preview')
+  return data
+}
+
+export async function postReportAction(payload) {
+  const res = await fetch('/api/admin/metrics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Report action failed')
+  return data
+}
+
 export async function fetchAdminProjects(status = 'all') {
   const res = await fetch(`/api/admin/projects?status=${encodeURIComponent(status)}`, {
     headers: { Accept: 'application/json' },

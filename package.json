@@ -10,7 +10,8 @@
     "validate-sitemap": "node scripts/validate-sitemap.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "organize-images": "node scripts/organize-images.mjs"
+    "organize-images": "node scripts/organize-images.mjs",
+    "test:reports": "node scripts/test-analytics-reports.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",
