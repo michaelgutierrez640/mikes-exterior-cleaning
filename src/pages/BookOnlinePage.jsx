@@ -13,6 +13,7 @@ import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
 import BookingForm from '../components/booking/BookingForm'
+import { PhoneLink } from '../components/ui/Button'
 import { loadBookingPrefill, mergeBookingPrefill } from '../utils/bookingPrefill'
 
 const pageSeo = getBookOnlinePageSeo()
@@ -82,9 +83,9 @@ export default function BookOnlinePage() {
           </Link>
           <p className="mt-4 text-[0.8125rem] text-gray-400">
             Or call{' '}
-            <a href={BUSINESS.phoneHref} className="font-medium text-navy-900 hover:text-royal-600">
+            <PhoneLink sourceHint="book_online_page" className="font-medium text-navy-900 hover:text-royal-600">
               {BUSINESS.phone}
-            </a>
+            </PhoneLink>
           </p>
         </div>
       </section>

@@ -2,6 +2,7 @@ import { Link, NavLink } from 'react-router-dom'
 
 const PRIMARY = [
   { to: '/admin/dashboard', label: 'Analytics', end: true, area: 'analytics' },
+  { to: '/admin/reports', label: 'Reports', end: false, matchPrefix: '/admin/reports', area: 'reports' },
   { to: '/admin/leads', label: 'Leads', end: false, matchPrefix: '/admin/leads', area: 'leads' },
   {
     to: '/admin/completed-jobs/new',

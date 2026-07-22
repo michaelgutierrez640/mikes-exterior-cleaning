@@ -11,6 +11,7 @@ import ceres from './ceres'
 import tracy from './tracy'
 import stockton from './stockton'
 import manteca from './manteca'
+import patterson from './patterson'
 
 export const WINDOW_CLEANING_CITY_PAGES = [
   modesto,
@@ -23,6 +24,7 @@ export const WINDOW_CLEANING_CITY_PAGES = [
   tracy,
   stockton,
   manteca,
+  patterson,
 ]
 
 export const WINDOW_CLEANING_CITY_SLUGS = WINDOW_CLEANING_CITY_PAGES.map((p) => p.citySlug)

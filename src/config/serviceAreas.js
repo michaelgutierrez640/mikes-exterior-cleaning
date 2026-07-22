@@ -86,6 +86,14 @@ export const SERVICE_CITIES = [
     description:
       'Select Stockton service areas for commercial window cleaning, multi-story residential glass, and large-format pressure washing projects.',
   },
+  {
+    slug: 'patterson',
+    name: 'Patterson',
+    county: 'Stanislaus County',
+    state: 'CA',
+    description:
+      'West Stanislaus exterior cleaning for Patterson homes near I-5, Sperry Avenue, and downtown — windows, driveways, gutters, and solar from our Modesto team.',
+  },
 ]
 
 export const SERVICE_CITY_NAMES = SERVICE_CITIES.map((c) => c.name)

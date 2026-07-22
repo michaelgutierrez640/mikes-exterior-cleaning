@@ -35,6 +35,7 @@ export const BUSINESS = {
     'Manteca',
     'Tracy',
     'Stockton',
+    'Patterson',
   ],
   region: 'Central Valley',
   hours: [

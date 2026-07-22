@@ -3,6 +3,7 @@ import { getLogoImage } from '../../config/images'
 import ContactForm from '../ContactForm'
 import ScrollReveal from '../ScrollReveal'
 import ResponsiveImage from '../ui/ResponsiveImage'
+import { PhoneLink } from '../ui/Button'
 
 const logoImage = getLogoImage()
 
@@ -40,8 +41,8 @@ export default function Contact() {
             </p>
 
             <div className="mt-8 space-y-3 sm:mt-10">
-              <a
-                href={BUSINESS.phoneHref}
+              <PhoneLink
+                sourceHint="contact_section"
                 className="group flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 transition-[border-color,background-color] duration-300 hover:border-white/[0.1] hover:bg-white/[0.05]"
               >
                 <div className="icon-wrap bg-royal-600/15 text-royal-300">
@@ -53,7 +54,7 @@ export default function Contact() {
                   <p className="text-[0.75rem] font-medium text-white/40">Call Us Directly</p>
                   <p className="mt-0.5 text-[1.0625rem] font-semibold text-white">{BUSINESS.phone}</p>
                 </div>
-              </a>
+              </PhoneLink>
               <a
                 href={BUSINESS.emailHref}
                 className="group flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 transition-[border-color,background-color] duration-300 hover:border-white/[0.1] hover:bg-white/[0.05]"

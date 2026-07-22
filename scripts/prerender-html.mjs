@@ -185,6 +185,35 @@ async function collectRoutes(modules, publishedProjects = []) {
             { href: '/projects', label: 'Completed projects' },
           ],
     })
+
+    for (const city of serviceAreas.SERVICE_CITIES) {
+      const path = `/services/${service.slug}/${city.slug}`
+      const title = `${service.serviceName} in ${city.name} CA | Mike's Exterior`
+      const description =
+        service.meta?.description ||
+        `Professional ${service.serviceName.toLowerCase()} in ${city.name}, CA. See recent completed projects and get a free Instant Quote.`
+      routes.push({
+        path,
+        seo: {
+          title,
+          description,
+          keywords: `${service.serviceName}, ${city.name}, completed projects`,
+          canonical: absoluteUrl(path),
+        },
+        schemas: [
+          seo.getOrganizationSchema(),
+          seo.getLocalBusinessSchema({
+            areaServed: [{ '@type': 'City', name: `${city.name}, ${city.state}` }],
+          }),
+          seo.getBreadcrumbSchema([
+            { name: 'Home', url: absoluteUrl('/') },
+            { name: service.serviceName, url: absoluteUrl(`/services/${service.slug}`) },
+            { name: `${service.serviceName} in ${city.name}`, url: absoluteUrl(path) },
+          ]),
+        ],
+        ogImage: service.hero?.image ? absoluteUrl(service.hero.image) : DEFAULT_OG_IMAGE,
+      })
+    }
   }
 
   for (const city of wcCities.WINDOW_CLEANING_CITY_PAGES) {

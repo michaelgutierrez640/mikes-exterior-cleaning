@@ -19,5 +19,11 @@
       "source": "/((?!api/|sitemap\\.xml$|robots\\.txt$|assets/).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/analytics-reports",
+      "schedule": "0 15 * * *"
+    }
   ]
 }

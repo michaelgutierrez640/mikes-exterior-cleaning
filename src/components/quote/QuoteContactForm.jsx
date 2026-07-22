@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BUSINESS } from '../../config/business'
 import { submitLead } from '../../services/submitLead'
 import { buildQuoteSummaryText } from '../../utils/quotePricing'
 import { trackQuoteSubmitted } from '../../utils/analytics'
-import { trackInternalEvent } from '../../utils/analytics'
 
 function validateContact({ name, phone, email, address }) {
   const errors = {}
@@ -26,6 +25,7 @@ export default function QuoteContactForm({
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
+  const submitLock = useRef(false)
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -34,12 +34,15 @@ export default function QuoteContactForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitLock.current || status === 'sending') return
+
     const validationErrors = validateContact(form)
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors)
       return
     }
 
+    submitLock.current = true
     setStatus('sending')
     setSubmitError('')
 
@@ -51,6 +54,7 @@ export default function QuoteContactForm({
     const summaryText = buildQuoteSummaryText(selectedServices, answers, quote)
 
     try {
+      // Exactly one CRM lead + one FormSubmit email (via submitLead)
       await submitLead({
         name: form.name.trim(),
         phone: form.phone.trim(),
@@ -63,13 +67,7 @@ export default function QuoteContactForm({
         companyWebsite: form.companyWebsite || '',
       })
 
-      trackInternalEvent('instant_quote_completed', {
-        quoteValueLow: quote.totalLow,
-        quoteValueHigh: quote.totalHigh,
-        service: serviceNames || 'Instant Quote',
-        sourceHint: 'quote_contact_form',
-      })
-
+      // Exactly one instant_quote_completed first-party event
       trackQuoteSubmitted({
         totalLow: quote.totalLow,
         totalHigh: quote.totalHigh,
@@ -78,6 +76,7 @@ export default function QuoteContactForm({
 
       onSuccess(form)
     } catch {
+      submitLock.current = false
       setStatus('error')
       setSubmitError('Something went wrong. Please call us directly or try again.')
     }

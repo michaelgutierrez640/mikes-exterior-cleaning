@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
-import { LogoMark } from '../ui/Icons'
-import { BookOnlineButton, InstantQuoteButton, QuoteButton } from '../ui/Button'
+import { BookOnlineButton, InstantQuoteButton, PhoneLink, QuoteButton } from '../ui/Button'
+
+const BRAND_LOGO_SRC = '/images/brand/mikes-exterior-logo.png'
 
 function NavLink({ href, children, onClick, mobile = false }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -69,30 +70,27 @@ export default function Header() {
           boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.18)' : 'none',
         }}
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-3.5 sm:px-10 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-4 lg:px-12">
+        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-7 py-3.5 sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14">
           <Link
             to="/"
-            className="group relative z-20 flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3 lg:max-w-[11.5rem] xl:max-w-none"
+            className="relative z-20 flex shrink-0 items-center transition-opacity duration-300 hover:opacity-90"
             aria-label={`${BUSINESS.name} home`}
           >
-            <div className="icon-wrap-royal shrink-0 transition-transform duration-300 group-hover:scale-[1.03]">
-              <LogoMark />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-display text-[0.9375rem] font-semibold leading-tight text-white sm:text-[1.0625rem]">
-                {BUSINESS.shortName}
-              </p>
-              <p className="truncate text-[9px] font-medium tracking-[0.18em] text-white/50 uppercase sm:text-[10px] sm:tracking-[0.2em]">
-                {BUSINESS.tagline}
-              </p>
-            </div>
+            <img
+              src={BRAND_LOGO_SRC}
+              alt={BUSINESS.name}
+              width={364}
+              height={216}
+              decoding="async"
+              className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
+            />
           </Link>
 
           <nav
             className="hidden min-w-0 justify-center lg:col-start-2 lg:row-start-1 lg:flex"
             aria-label="Main navigation"
           >
-            <div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.04] px-1 py-1 backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex max-w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-full border border-white/[0.08] bg-white/[0.04] px-1 py-1 backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {HEADER_NAV_LINKS.map((link) => (
                 <NavLink key={link.href} href={link.href}>
                   <NavLabel link={link} />
@@ -102,8 +100,8 @@ export default function Header() {
           </nav>
 
           <div className="hidden shrink-0 items-center gap-2 justify-self-end lg:col-start-3 lg:flex xl:gap-3">
-            <a
-              href={BUSINESS.phoneHref}
+            <PhoneLink
+              sourceHint="header_desktop"
               className="flex items-center gap-2 text-[0.8125rem] font-medium whitespace-nowrap text-white/75 transition-colors duration-300 hover:text-white"
             >
               <svg className="h-4 w-4 shrink-0 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
@@ -111,7 +109,7 @@ export default function Header() {
               </svg>
               <span className="hidden 2xl:inline">{BUSINESS.phone}</span>
               <span className="2xl:hidden">Call</span>
-            </a>
+            </PhoneLink>
             <BookOnlineButton variant="nav" size="sm" showIcon={false} className="!px-3.5 xl:!px-4">
               <span className="xl:hidden">Book</span>
               <span className="hidden xl:inline">Book Online</span>
@@ -144,7 +142,7 @@ export default function Header() {
       {menuOpen && (
         <div
           id="mobile-menu"
-          className="fixed inset-0 top-[calc(3.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-6 py-8 backdrop-blur-3xl lg:hidden"
+          className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-7 py-8 backdrop-blur-3xl lg:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
@@ -154,9 +152,9 @@ export default function Header() {
               </NavLink>
             ))}
             <div className="mt-8 flex flex-col gap-3">
-              <a href={BUSINESS.phoneHref} className="btn-secondary btn-md rounded-2xl text-center">
+              <PhoneLink sourceHint="header_mobile_menu" className="btn-secondary btn-md rounded-2xl text-center">
                 Call {BUSINESS.phone}
-              </a>
+              </PhoneLink>
               <BookOnlineButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
               <InstantQuoteButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
               <QuoteButton variant="secondary" size="md" className="rounded-2xl text-center justify-center" showIcon={false}>

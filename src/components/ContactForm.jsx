@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { BUSINESS } from '../config/business'
 import { submitLead } from '../services/submitLead'
 import { trackInternalEvent } from '../utils/analytics'
@@ -15,9 +15,12 @@ const SERVICE_OPTIONS = [
 export default function ContactForm() {
   const [status, setStatus] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
+  const submitLock = useRef(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (submitLock.current || status === 'sending') return
+
     setStatus('sending')
     setErrorMsg('')
 
@@ -35,6 +38,8 @@ export default function ContactForm() {
       setErrorMsg('Please fill in all required fields.')
       return
     }
+
+    submitLock.current = true
 
     try {
       await submitLead({
@@ -57,6 +62,7 @@ export default function ContactForm() {
       setStatus('success')
       form.reset()
     } catch {
+      submitLock.current = false
       setStatus('error')
       setErrorMsg('Something went wrong. Please call us directly or try again.')
     }

@@ -233,7 +233,7 @@ export function getServiceAreasPageSeo() {
   return {
     title: 'Service Areas | Exterior Cleaning Modesto & Central Valley | Mike\'s Exterior',
     description:
-      'Mike\'s Exterior Cleaning Services serves Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, and Stockton with window cleaning, pressure washing, solar panel cleaning, and gutter cleaning. Free estimates.',
+      'Mike\'s Exterior Cleaning Services serves Modesto, Salida, Riverbank, Oakdale, Ripon, Turlock, Ceres, Manteca, Tracy, Stockton, and Patterson with window cleaning, pressure washing, solar panel cleaning, gutter cleaning, and more. Free estimates.',
     keywords:
       'exterior cleaning service areas, window cleaning Modesto, pressure washing Central Valley, gutter cleaning Stanislaus County, solar panel cleaning San Joaquin County',
     canonical: absoluteUrl('/service-areas'),
@@ -492,6 +492,7 @@ function projectServiceLabel(service) {
     'solar-panel-cleaning': 'Solar Panel Cleaning',
     'gutter-cleaning': 'Gutter Cleaning',
     'residential-window-cleaning': 'Residential Window Cleaning',
+    'pigeon-guard': 'Pigeon Guard',
   }
   return map[service] || humanizeSlug(service)
 }

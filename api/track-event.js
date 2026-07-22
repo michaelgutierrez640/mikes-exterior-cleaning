@@ -1,4 +1,5 @@
 import { addEvent, nowIso, safeId } from '../lib/analyticsStore.mjs'
+import { getRequestHost, shouldPersistAnalyticsEvent } from '../lib/analyticsFilter.mjs'
 
 const ALLOWED_EVENTS = new Set([
   'page_view',
@@ -64,6 +65,14 @@ export default async function handler(req, res) {
     return json(res, 400, { error: 'Invalid event type' })
   }
 
+  const path = typeof body.path === 'string' ? body.path.slice(0, 300) : null
+  const host = getRequestHost(req)
+  const gate = shouldPersistAnalyticsEvent({ host, path })
+  if (!gate.persist) {
+    res.setHeader('Cache-Control', 'no-store')
+    return json(res, 200, { ok: true, persisted: false, skipped: gate.reason })
+  }
+
   const event = {
     id: safeId('evt'),
     type,
@@ -71,7 +80,7 @@ export default async function handler(req, res) {
     at: nowIso(),
     visitorId: typeof body.visitorId === 'string' ? body.visitorId.slice(0, 100) : null,
     sessionId: typeof body.sessionId === 'string' ? body.sessionId.slice(0, 100) : null,
-    path: typeof body.path === 'string' ? body.path.slice(0, 300) : null,
+    path,
     pageTitle: typeof body.pageTitle === 'string' ? body.pageTitle.slice(0, 160) : null,
     referrer: typeof body.referrer === 'string' ? body.referrer.slice(0, 500) : null,
     userAgent: typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'].slice(0, 400) : null,
@@ -82,8 +91,6 @@ export default async function handler(req, res) {
     utmTerm: typeof body.utmTerm === 'string' ? body.utmTerm.slice(0, 160) : null,
     utmContent: typeof body.utmContent === 'string' ? body.utmContent.slice(0, 160) : null,
     sourceHint: typeof body.sourceHint === 'string' ? body.sourceHint.slice(0, 100) : null,
-
-    // business fields
     service: typeof body.service === 'string' ? body.service.slice(0, 120) : null,
     city: typeof body.city === 'string' ? body.city.slice(0, 120) : null,
     quoteValueLow: Number.isFinite(Number(body.quoteValueLow)) ? Number(body.quoteValueLow) : null,
@@ -109,4 +116,3 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
   return json(res, 200, { ok: true, persisted: true })
 }
-

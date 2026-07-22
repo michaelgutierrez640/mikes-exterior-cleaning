@@ -3,6 +3,7 @@ import pressureWashing from './pressure-washing'
 import solarPanelCleaning from './solar-panel-cleaning'
 import gutterCleaning from './gutter-cleaning'
 import residentialWindowCleaning from './residential-window-cleaning'
+import pigeonGuard from './pigeon-guard'
 
 export const SERVICE_PAGES = [
   windowCleaning,
@@ -10,6 +11,7 @@ export const SERVICE_PAGES = [
   solarPanelCleaning,
   gutterCleaning,
   residentialWindowCleaning,
+  pigeonGuard,
 ]
 
 export function getServicePageBySlug(slug) {

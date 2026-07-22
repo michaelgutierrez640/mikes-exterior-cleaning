@@ -14,12 +14,14 @@ const ResourceArticlePage = lazy(() => import('./pages/ResourceArticlePage'))
 const InstantQuotePage = lazy(() => import('./pages/InstantQuotePage'))
 const BookOnlinePage = lazy(() => import('./pages/BookOnlinePage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
+const AdminReportsPage = lazy(() => import('./pages/AdminReportsPage'))
 const AdminLeadsPage = lazy(() => import('./pages/AdminLeadsPage'))
 const AdminLeadDetailPage = lazy(() => import('./pages/AdminLeadDetailPage'))
 const AdminCompletedJobsPage = lazy(() => import('./pages/AdminCompletedJobsPage'))
 const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
+const ServiceCityPage = lazy(() => import('./pages/ServiceCityPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -43,6 +45,7 @@ export default function App() {
         <Routes>
         <Route path="/" element={<HomePage />} />
         <Route element={<Layout />}>
+          <Route path="/services/:slug/:citySlug" element={<LazyPage><ServiceCityPage /></LazyPage>} />
           <Route path="/services/:slug" element={<LazyPage><ServicePage /></LazyPage>} />
           <Route path="/window-cleaning/:citySlug" element={<LazyPage><WindowCleaningCityPage /></LazyPage>} />
           <Route path="/service-areas" element={<LazyPage><ServiceAreasPage /></LazyPage>} />
@@ -54,6 +57,7 @@ export default function App() {
           <Route path="/projects" element={<LazyPage><ProjectsPage /></LazyPage>} />
           <Route path="/projects/:slug" element={<LazyPage><ProjectDetailPage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
+          <Route path="/admin/reports" element={<LazyPage><AdminReportsPage /></LazyPage>} />
           <Route path="/admin/leads" element={<LazyPage><AdminLeadsPage /></LazyPage>} />
           <Route path="/admin/leads/:id" element={<LazyPage><AdminLeadDetailPage /></LazyPage>} />
           <Route path="/admin/completed-jobs" element={<Navigate to="/admin/completed-jobs/new" replace />} />
