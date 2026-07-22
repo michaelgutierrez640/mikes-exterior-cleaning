@@ -85,7 +85,11 @@ export async function postReportAction(payload) {
     err.unauthorized = true
     throw err
   }
-  if (!res.ok) throw new Error(data.error || 'Report action failed')
+  if (!res.ok) {
+    const err = new Error(data.error || 'Report action failed')
+    err.diagnostics = data.diagnostics || null
+    throw err
+  }
   return data
 }
 

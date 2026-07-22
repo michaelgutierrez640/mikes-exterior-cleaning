@@ -26,6 +26,10 @@ import {
   isNonProductionAnalyticsHost,
   shouldPersistAnalyticsEvent,
 } from '../lib/analyticsFilter.mjs'
+import {
+  assertSendableEmailBodies,
+  sanitizeEmailBody,
+} from '../lib/reportBody.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -323,6 +327,58 @@ test('zero quote starts email shows n/a completion rate', () => {
 
 test('unused ptDate helper kept for clarity', () => {
   assert.ok(ptDate('2026-07-20T16:00:00.000Z') instanceof Date)
+})
+
+test('sanitizeEmailBody strips null bytes that can blank Gmail', () => {
+  const dirty = `Hello\u0000World`
+  assert.strictEqual(sanitizeEmailBody(dirty), 'HelloWorld')
+  const email = buildReportEmail({
+    type: 'weekly',
+    payload: {
+      range: { label: 'Jul 13 – Jul 19, 2026' },
+      uniqueVisitors: { available: true, value: 1 },
+      pageViews: { available: true, value: 1 },
+      totalLeads: { available: true, value: 0 },
+      instantQuoteStarts: { available: true, value: 0 },
+      instantQuoteCompletions: { available: true, value: 0 },
+      instantQuoteCompletionRate: { available: true, value: null },
+      phoneClicks: { available: true, value: 0 },
+      topPages: { available: true, value: [{ key: '/path\u0000evil', count: 1 }] },
+      trafficSources: { available: true, value: [] },
+      referringDomains: { available: true, value: [] },
+      deviceTypes: { available: true, value: { desktop: 1 } },
+      leadsByService: { available: true, value: [] },
+      leadsByCity: { available: true, value: [] },
+      contactFormSubmissions: { available: true, value: 0 },
+      bookingRequests: { available: true, value: 0 },
+      projectsPublished: { available: true, value: 0 },
+      conversionRate: { available: true, value: 0 },
+      comparisons: {},
+    },
+    summaryLines: ['Summary with\u0000null'],
+    adminUrl: 'https://www.mikesexteriorcleaning.com/admin/dashboard',
+    businessName: "Mike's Exterior Cleaning Services",
+  })
+  assert.ok(!email.html.includes('\u0000'))
+  assert.ok(!email.text.includes('\u0000'))
+  assert.ok(email.html.length > 200)
+  assert.ok(email.text.length > 40)
+})
+
+test('assertSendableEmailBodies rejects empty or tiny bodies', () => {
+  const empty = assertSendableEmailBodies({ html: '', text: '' })
+  assert.strictEqual(empty.ok, false)
+
+  const tiny = assertSendableEmailBodies({ html: '<p>x</p>', text: 'x' })
+  assert.strictEqual(tiny.ok, false)
+
+  const ok = assertSendableEmailBodies({
+    html: `<html>${'a'.repeat(220)}</html>`,
+    text: `${'b'.repeat(50)}`,
+  })
+  assert.strictEqual(ok.ok, true)
+  assert.ok(ok.htmlChars > 200)
+  assert.ok(ok.textChars > 40)
 })
 
 console.log(`\n${passed} tests completed`)

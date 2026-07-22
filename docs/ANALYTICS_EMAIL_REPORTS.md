@@ -139,11 +139,30 @@ Delivery records store aggregate metrics HTML only — **no customer names, phon
 
 ---
 
+## Empty-body protection
+
+Before any Resend call, the server:
+
+1. Sanitizes HTML/text (strips null bytes / C0 controls that can make Gmail show a blank message).
+2. Rejects the send if HTML or text is empty or below minimum size.
+3. Returns a private admin error + diagnostics (character counts only) — never logs the full email body.
+
+On `/admin/reports`, after Generate preview or Send test, check **Last generation diagnostics**:
+
+- Generated HTML characters
+- Generated text characters
+- Report period
+- Whether analytics / leads / projects storage loaded
+
+Do **not** send Production or rely on the Monday cron until both character counts are **greater than zero**.
+
+---
+
 ## How to test without a real scheduled send
 
 1. Open Preview → `/admin/reports` and sign in.
-2. **Generate weekly/monthly preview** — builds HTML in-admin; does not email the scheduled period as “sent”.
-3. **Send test weekly/monthly email** — emails Mike with a `[TEST]` subject; does not mark the real period delivered.
+2. **Generate weekly/monthly preview** — builds HTML in-admin; does not email the scheduled period as “sent”. Confirm diagnostics show HTML/text char counts &gt; 0.
+3. **Send test weekly/monthly email** — emails Mike with a `[TEST]` subject; does not mark the real period delivered. Only after Preview diagnostics look good.
 4. Offline unit tests (no Redis/email):
 
 ```bash

@@ -29,6 +29,7 @@ function ReportsBody({ signOut }) {
   const [message, setMessage] = useState('')
   const [previewHtml, setPreviewHtml] = useState('')
   const [previewTitle, setPreviewTitle] = useState('')
+  const [diagnostics, setDiagnostics] = useState(null)
   const [weeklyEnabled, setWeeklyEnabled] = useState(true)
   const [monthlyEnabled, setMonthlyEnabled] = useState(true)
 
@@ -74,14 +75,25 @@ function ReportsBody({ signOut }) {
     setBusy(`${action}-${type}`)
     setMessage('')
     setPreviewHtml('')
+    setDiagnostics(null)
     try {
       const result = await postReportAction({ action, type })
+      if (result.diagnostics) setDiagnostics(result.diagnostics)
+
       if (action === 'generate-preview') {
         setPreviewTitle(result.subject || 'Preview')
         setPreviewHtml(result.html || '')
-        setMessage('Preview generated (not emailed).')
+        const htmlChars = result.diagnostics?.htmlChars ?? (result.html || '').length
+        const textChars = result.diagnostics?.textChars ?? (result.text || '').length
+        setMessage(`Preview generated (not emailed). HTML ${htmlChars} chars · text ${textChars} chars.`)
       } else if (result.sent) {
-        setMessage(`Email sent${result.providerMessageId ? ` (id: ${result.providerMessageId})` : ''}.`)
+        const htmlChars = result.diagnostics?.htmlChars
+        const textChars = result.diagnostics?.textChars
+        const sizeNote =
+          htmlChars != null && textChars != null ? ` HTML ${htmlChars} chars · text ${textChars} chars.` : ''
+        setMessage(
+          `Email sent${result.providerMessageId ? ` (id: ${result.providerMessageId})` : ''}.${sizeNote} Confirm both counts are > 0 before relying on Production.`,
+        )
       } else if (result.skipped) {
         setMessage(`Skipped: ${result.reason}`)
       } else {
@@ -89,6 +101,7 @@ function ReportsBody({ signOut }) {
       }
       await load()
     } catch (err) {
+      if (err.diagnostics) setDiagnostics(err.diagnostics)
       setMessage(err.message || 'Action failed')
     } finally {
       setBusy('')
@@ -246,6 +259,57 @@ function ReportsBody({ signOut }) {
           </button>
         </div>
 
+        {diagnostics && (
+          <div className="mt-8 rounded-xl border border-black/[0.06] bg-gray-50 p-4">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last generation diagnostics</p>
+            <p className="mt-2 text-[0.8125rem] text-gray-600">
+              Private checks only — no secrets, no customer data, no email body content.
+            </p>
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">Report period</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900">{diagnostics.periodLabel || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">Bodies ready to send</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900">{diagnostics.bodiesReady ? 'Yes' : 'No'}</dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">Generated HTML characters</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900">{diagnostics.htmlChars ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">Generated text characters</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900">{diagnostics.textChars ?? '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">Report data loaded</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900">
+                  analytics {diagnostics.reportDataLoaded?.analytics ? 'yes' : 'no'} · leads{' '}
+                  {diagnostics.reportDataLoaded?.leads ? 'yes' : 'no'} · projects{' '}
+                  {diagnostics.reportDataLoaded?.projects ? 'yes' : 'no'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[0.75rem] text-gray-500">From address</dt>
+                <dd className="text-[0.875rem] font-semibold text-navy-900 break-all">
+                  {diagnostics.fromAddress || 'Not shown until send'}
+                  {diagnostics.fromAddress
+                    ? diagnostics.fromMatchesExpected
+                      ? ' · matches expected'
+                      : ' · does not match reports@reports.mikesexteriorcleaning.com'
+                    : null}
+                </dd>
+              </div>
+            </dl>
+            {(diagnostics.htmlChars === 0 || diagnostics.textChars === 0) && (
+              <p className="mt-3 text-[0.8125rem] font-semibold text-red-700">
+                Do not send Production or scheduled email until both character counts are greater than zero.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-black/[0.06] p-4">
             <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last weekly sent</p>
@@ -277,7 +341,7 @@ function ReportsBody({ signOut }) {
           <table className="w-full min-w-[640px] text-left">
             <thead>
               <tr className="border-b border-black/[0.06]">
-                {['Type', 'Period', 'Status', 'Sent', 'Recipient', 'Actions'].map((h) => (
+                {['Type', 'Period', 'Status', 'Body size', 'Sent', 'Recipient', 'Actions'].map((h) => (
                   <th key={h} className="py-2 pr-3 text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">
                     {h}
                   </th>
@@ -293,6 +357,11 @@ function ReportsBody({ signOut }) {
                     {row.failureReason ? <div className="mt-1 text-red-600">{row.failureReason}</div> : null}
                   </td>
                   <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">{row.status}</td>
+                  <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">
+                    {row.htmlChars != null || row.textChars != null
+                      ? `H ${row.htmlChars ?? '—'} · T ${row.textChars ?? '—'}`
+                      : '—'}
+                  </td>
                   <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">
                     {row.sentAt ? new Date(row.sentAt).toLocaleString() : '—'}
                   </td>
@@ -323,7 +392,7 @@ function ReportsBody({ signOut }) {
               ))}
               {!(data.history || []).length && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[0.875rem] text-gray-500">
+                  <td colSpan={7} className="py-8 text-center text-[0.875rem] text-gray-500">
                     No reports sent yet.
                   </td>
                 </tr>

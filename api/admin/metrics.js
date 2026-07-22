@@ -119,7 +119,17 @@ export default async function handler(req, res) {
         const range = type === 'weekly' ? getPreviousWeekRange() : getPreviousMonthRange()
         const priorRange = type === 'weekly' ? getPriorWeekRange(range) : getPriorMonthRange(range)
         const result = await runReport(type, { send: false, range, priorRange })
-        return json(res, 200, result)
+        // Include html/text for admin iframe + diagnostics (no full metrics payload).
+        return json(res, 200, {
+          ok: result.ok,
+          preview: true,
+          periodKey: result.periodKey,
+          subject: result.subject,
+          html: result.html,
+          text: result.text,
+          diagnostics: result.diagnostics,
+          delivery: result.delivery,
+        })
       }
 
       if (action === 'send-test') {
@@ -127,8 +137,23 @@ export default async function handler(req, res) {
         const range = type === 'weekly' ? getPreviousWeekRange() : getPreviousMonthRange()
         const priorRange = type === 'weekly' ? getPriorWeekRange(range) : getPriorMonthRange(range)
         const result = await runReport(type, { send: true, isTest: true, force: true, range, priorRange })
-        if (!result.ok) return json(res, 502, result)
-        return json(res, 200, result)
+        if (!result.ok) {
+          const status = result.error?.includes('empty') || result.error?.includes('too small') ? 500 : 502
+          return json(res, status, {
+            ok: false,
+            error: result.error || 'Test send failed',
+            diagnostics: result.diagnostics,
+            delivery: result.delivery,
+          })
+        }
+        return json(res, 200, {
+          ok: true,
+          sent: true,
+          periodKey: result.periodKey,
+          providerMessageId: result.providerMessageId,
+          diagnostics: result.diagnostics,
+          delivery: result.delivery,
+        })
       }
 
       if (action === 'resend') {
