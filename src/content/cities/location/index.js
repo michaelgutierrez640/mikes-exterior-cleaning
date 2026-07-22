@@ -8,6 +8,7 @@ import oakdale from './oakdale'
 import manteca from './manteca'
 import tracy from './tracy'
 import stockton from './stockton'
+import patterson from './patterson'
 
 export const LOCATION_PAGES = [
   modesto,
@@ -20,6 +21,7 @@ export const LOCATION_PAGES = [
   manteca,
   tracy,
   stockton,
+  patterson,
 ]
 
 export const PRIORITY_LOCATION_SLUGS = LOCATION_PAGES.map((p) => p.citySlug)

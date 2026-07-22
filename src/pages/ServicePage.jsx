@@ -28,7 +28,7 @@ import RelatedServicesGrid from '../components/service/RelatedServicesGrid'
 import WindowCleaningCitiesNav from '../components/service/WindowCleaningCitiesNav'
 import LocationLinks from '../components/service/LocationLinks'
 import ServiceRelatedArticles from '../components/service/ServiceRelatedArticles'
-import RelatedProjects from '../components/projects/RelatedProjects'
+import PublishedProjectsSection from '../components/projects/PublishedProjectsSection'
 
 function ServiceFaq({ faqs }) {
   const [open, setOpen] = useState(0)
@@ -199,6 +199,14 @@ export default function ServicePage() {
 
       <ServiceBeforeAfter slug={slug} serviceName={serviceName} id={`${slug}-before-after`} />
 
+      <PublishedProjectsSection
+        service={slug}
+        limit={6}
+        heading={`Recent ${serviceName} Projects`}
+        subheading={`Published ${serviceName.toLowerCase()} jobs from around the Central Valley.`}
+        id={`${slug}-projects`}
+      />
+
       <ProcessTimeline
         id={`${slug}-timeline`}
         title={`${serviceName} in 5 Steps`}
@@ -279,14 +287,6 @@ export default function ServicePage() {
       {slug === 'window-cleaning' && <WindowCleaningCitiesNav />}
 
       <LocationLinks serviceName={serviceName} />
-
-      <RelatedProjects
-        service={slug}
-        limit={3}
-        heading={`Recent ${serviceName} Projects`}
-        subheading={`Published ${serviceName.toLowerCase()} jobs across our service area.`}
-        id={`${slug}-projects`}
-      />
 
       <ServiceRelatedArticles serviceSlug={slug} id={`${slug}-resources`} />
 
