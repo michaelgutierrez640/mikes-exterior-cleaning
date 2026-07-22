@@ -4,8 +4,14 @@ import { getServiceImage } from '../../config/images'
 import ScrollReveal from '../ScrollReveal'
 import ResponsiveImage from '../ui/ResponsiveImage'
 
-/** Home Services grid — omit Window Cleaning to avoid duplicating Residential Window Cleaning. */
-const HOME_SERVICE_CARDS = SERVICES.filter((service) => service.slug !== 'window-cleaning')
+/** Home Services grid — omit Window Cleaning; show Residential Window Cleaning first. */
+const HOME_SERVICE_CARDS = SERVICES
+  .filter((service) => service.slug !== 'window-cleaning')
+  .sort((a, b) => {
+    if (a.slug === 'residential-window-cleaning') return -1
+    if (b.slug === 'residential-window-cleaning') return 1
+    return 0
+  })
 
 export default function Services() {
   return (
