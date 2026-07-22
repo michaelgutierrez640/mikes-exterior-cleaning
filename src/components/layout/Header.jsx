@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
-import { LogoMark } from '../ui/Icons'
 import { BookOnlineButton, InstantQuoteButton, QuoteButton } from '../ui/Button'
+
+const BRAND_LOGO_SRC = '/images/brand/mikes-exterior-logo.png'
 
 function NavLink({ href, children, onClick, mobile = false }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -72,20 +73,17 @@ export default function Header() {
         <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-3.5 sm:px-10 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-4 lg:px-12">
           <Link
             to="/"
-            className="group relative z-20 flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3 lg:max-w-[11.5rem] xl:max-w-none"
+            className="relative z-20 flex shrink-0 items-center transition-opacity duration-300 hover:opacity-90"
             aria-label={`${BUSINESS.name} home`}
           >
-            <div className="icon-wrap-royal shrink-0 transition-transform duration-300 group-hover:scale-[1.03]">
-              <LogoMark />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate font-display text-[0.9375rem] font-semibold leading-tight text-white sm:text-[1.0625rem]">
-                {BUSINESS.shortName}
-              </p>
-              <p className="truncate text-[9px] font-medium tracking-[0.18em] text-white/50 uppercase sm:text-[10px] sm:tracking-[0.2em]">
-                {BUSINESS.tagline}
-              </p>
-            </div>
+            <img
+              src={BRAND_LOGO_SRC}
+              alt={BUSINESS.name}
+              width={360}
+              height={216}
+              decoding="async"
+              className="h-[42px] w-auto max-w-none object-contain object-left sm:h-[54px]"
+            />
           </Link>
 
           <nav
@@ -144,7 +142,7 @@ export default function Header() {
       {menuOpen && (
         <div
           id="mobile-menu"
-          className="fixed inset-0 top-[calc(3.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-6 py-8 backdrop-blur-3xl lg:hidden"
+          className="fixed inset-0 top-[calc(4.75rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-6 py-8 backdrop-blur-3xl lg:hidden"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
