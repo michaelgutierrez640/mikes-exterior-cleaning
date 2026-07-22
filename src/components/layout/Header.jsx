@@ -79,7 +79,7 @@ export default function Header() {
             <img
               src={BRAND_LOGO_SRC}
               alt={BUSINESS.name}
-              width={360}
+              width={364}
               height={216}
               decoding="async"
               className="h-[42px] w-auto max-w-none object-contain object-left sm:h-[54px]"
