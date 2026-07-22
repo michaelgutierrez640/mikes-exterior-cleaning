@@ -36,11 +36,11 @@ export const LOGO_IMAGE = {
 
 export const SERVICE_IMAGES = {
   'window-cleaning': {
-    ...img('/images/before-after/img-0947-after.jpg'),
+    ...img('/images/gallery/window-cleaning/window-cleaning-11.jpg'),
     srcSet:
-      '/images/before-after/img-0947-after-800w.webp 800w, /images/before-after/img-0947-after-1200w.webp 1200w, /images/before-after/img-0947-after-1600w.webp 1600w',
-    alt: 'Crystal-clear sliding glass door after professional window cleaning',
-    objectPosition: 'center center',
+      '/images/gallery/window-cleaning/window-cleaning-11-480w.webp 480w, /images/gallery/window-cleaning/window-cleaning-11-800w.webp 800w, /images/gallery/window-cleaning/window-cleaning-11-1200w.webp 1200w',
+    alt: 'Professional window cleaner standing in a bathtub cleaning a large interior bay window',
+    objectPosition: 'center 35%',
   },
   'pressure-washing': {
     ...img('/images/gallery/commercial/commercial-02.jpg'),
