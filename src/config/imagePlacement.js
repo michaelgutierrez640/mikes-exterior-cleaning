@@ -64,11 +64,11 @@ export const SERVICE_IMAGES = {
     objectPosition: 'center center',
   },
   'residential-window-cleaning': {
-    ...img('/images/gallery/window-cleaning/window-cleaning-01.jpg'),
+    ...img('/images/gallery/window-cleaning/window-cleaning-11.jpg'),
     srcSet:
-      '/images/gallery/window-cleaning/window-cleaning-01-480w.webp 480w, /images/gallery/window-cleaning/window-cleaning-01-800w.webp 800w, /images/gallery/window-cleaning/window-cleaning-01-1200w.webp 1200w',
-    alt: 'Residential window cleaning at a home in Modesto',
-    objectPosition: 'center center',
+      '/images/gallery/window-cleaning/window-cleaning-11-480w.webp 480w, /images/gallery/window-cleaning/window-cleaning-11-800w.webp 800w, /images/gallery/window-cleaning/window-cleaning-11-1200w.webp 1200w',
+    alt: 'Professional window cleaner standing in a bathtub cleaning a large interior bay window',
+    objectPosition: 'center 35%',
   },
   'solar-panel-cleaning': {
     ...img('/images/gallery/solar-panel-cleaning/solar-panel-cleaning-01.jpg'),

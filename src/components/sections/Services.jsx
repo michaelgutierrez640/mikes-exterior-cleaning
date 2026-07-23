@@ -4,6 +4,15 @@ import { getServiceImage } from '../../config/images'
 import ScrollReveal from '../ScrollReveal'
 import ResponsiveImage from '../ui/ResponsiveImage'
 
+/** Home Services grid — omit Window Cleaning; show Residential Window Cleaning first. */
+const HOME_SERVICE_CARDS = SERVICES
+  .filter((service) => service.slug !== 'window-cleaning')
+  .sort((a, b) => {
+    if (a.slug === 'residential-window-cleaning') return -1
+    if (b.slug === 'residential-window-cleaning') return 1
+    return 0
+  })
+
 export default function Services() {
   return (
     <section id="services" className="section-padding relative bg-section-services" aria-labelledby="services-heading">
@@ -20,7 +29,7 @@ export default function Services() {
         </ScrollReveal>
 
         <div className="section-content grid gap-5 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-          {SERVICES.map((service, i) => {
+          {HOME_SERVICE_CARDS.map((service, i) => {
             const photo = getServiceImage(service.slug)
             return (
               <ScrollReveal key={service.slug} stagger={i + 1}>
