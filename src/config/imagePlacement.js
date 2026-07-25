@@ -146,28 +146,22 @@ const CATEGORY_TITLES = {
 /**
  * Master library — order = display priority in "All" gallery.
  * `categories` lists every tab where the image belongs (true service + optional transformations).
+ * `pairLabel`: 'Before' | 'After' — keep matching pairs adjacent (Before then After).
+ *
+ * Hidden from Our Work (files kept on disk): orphan dirty befores without a verified
+ * matching after in this library — see gallery review notes in PR / release notes.
  */
 const IMAGE_LIBRARY = [
-  // ── Featured transformations (dramatic results & in-frame before/after) ──
+  // ── Featured transformations (in-frame before/after & work-in-progress) ──
   {
     src: '/images/gallery/window-cleaning/window-cleaning-06.jpg',
     categories: ['transformations', 'window-cleaning'],
     alt: 'Window cleaning transformation — dirty vs crystal-clear glass',
   },
   {
-    src: '/images/gallery/roof-cleaning/roof-cleaning-05.jpg',
-    categories: ['transformations', 'roof-cleaning'],
-    alt: 'Roof cleaning transformation — moss removal from tile roof',
-  },
-  {
     src: '/images/gallery/roof-cleaning/roof-cleaning-12.jpg',
     categories: ['transformations', 'roof-cleaning'],
     alt: 'Roof cleaning in progress — clean vs mossy shingles',
-  },
-  {
-    src: '/images/before-after/img-5766-before.jpg',
-    categories: ['transformations', 'roof-cleaning'],
-    alt: 'Moss-covered tile roof before professional cleaning',
   },
   {
     src: '/images/gallery/window-cleaning/window-cleaning-05.jpg',
@@ -180,11 +174,15 @@ const IMAGE_LIBRARY = [
     src: '/images/before-after/img-0947-before.jpg',
     categories: ['window-cleaning'],
     alt: 'Window cleaning before — dirty sliding glass door',
+    pairLabel: 'Before',
+    pairId: 'img-0947',
   },
   {
     src: '/images/before-after/img-0947-after.jpg',
     categories: ['window-cleaning'],
     alt: 'Window cleaning after — crystal-clear sliding glass door',
+    pairLabel: 'After',
+    pairId: 'img-0947',
   },
   {
     src: '/images/gallery/window-cleaning/window-cleaning-01.jpg',
@@ -256,7 +254,7 @@ const IMAGE_LIBRARY = [
   {
     src: '/images/gallery/luxury-homes/luxury-homes-02.jpg',
     categories: ['solar-panel-cleaning'],
-    alt: 'Spotless solar panel array after professional cleaning',
+    alt: 'Solar panels mid-clean — dirty vs clean panels on the same roof',
   },
   {
     src: '/images/gallery/window-cleaning/window-cleaning-07.jpg',
@@ -274,16 +272,15 @@ const IMAGE_LIBRARY = [
     src: '/images/gallery/pressure-washing/pressure-washing-01.jpg',
     categories: ['pressure-washing'],
     alt: 'Driveway pressure washing before — stained concrete',
+    pairLabel: 'Before',
+    pairId: 'driveway-pressure',
   },
   {
     src: '/images/gallery/pressure-washing/pressure-washing-02.jpg',
     categories: ['pressure-washing'],
     alt: 'Driveway pressure washing after — clean concrete',
-  },
-  {
-    src: '/images/gallery/pressure-washing/pressure-washing-04.jpg',
-    categories: ['pressure-washing', 'luxury-homes'],
-    alt: 'Luxury home driveway pressure washing transformation',
+    pairLabel: 'After',
+    pairId: 'driveway-pressure',
   },
   {
     src: '/images/gallery/commercial/commercial-01.jpg',
@@ -295,23 +292,8 @@ const IMAGE_LIBRARY = [
     categories: ['pressure-washing'],
     alt: 'Branded pressure washing service on a suburban driveway',
   },
-  {
-    src: '/images/before-after/img-5272-before.jpg',
-    categories: ['pressure-washing'],
-    alt: 'House washing before — algae-stained siding',
-  },
 
   // ── Roof cleaning ──
-  {
-    src: '/images/gallery/roof-cleaning/roof-cleaning-01.jpg',
-    categories: ['roof-cleaning'],
-    alt: 'Dirty roof tiles before professional roof cleaning',
-  },
-  {
-    src: '/images/gallery/roof-cleaning/roof-cleaning-07.jpg',
-    categories: ['roof-cleaning'],
-    alt: 'Moss-covered roof before cleaning — aerial view',
-  },
   {
     src: '/images/gallery/roof-cleaning/roof-cleaning-08.jpg',
     categories: ['roof-cleaning'],
@@ -324,16 +306,6 @@ const IMAGE_LIBRARY = [
   },
 
   // ── Gutter cleaning ──
-  {
-    src: '/images/gallery/gutter-cleaning/gutter-cleaning-01.jpg',
-    categories: ['gutter-cleaning'],
-    alt: 'Clogged gutter with weeds before professional gutter cleaning',
-  },
-  {
-    src: '/images/gallery/gutter-cleaning/gutter-cleaning-02.jpg',
-    categories: ['gutter-cleaning'],
-    alt: 'Debris-filled gutter on a tile roof before cleaning',
-  },
   {
     src: '/images/gallery/luxury-homes/luxury-homes-04.jpg',
     categories: ['gutter-cleaning'],
@@ -378,7 +350,12 @@ function findGalleryItem(gallery, src) {
 
 function resolveEntry(gallery, entry) {
   const item = findGalleryItem(gallery, entry.src)
-  return item ? { ...item, alt: entry.alt } : makeImageItem({ src: entry.src, alt: entry.alt })
+  const base = item ? { ...item, alt: entry.alt } : makeImageItem({ src: entry.src, alt: entry.alt })
+  if (entry.pairLabel) {
+    base.pairLabel = entry.pairLabel
+    base.pairId = entry.pairId
+  }
+  return base
 }
 
 /** "All" gallery — every library image once, priority order. */

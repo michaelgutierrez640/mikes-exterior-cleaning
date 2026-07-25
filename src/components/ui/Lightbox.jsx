@@ -79,7 +79,9 @@ export default function Lightbox({ items, index, onClose, onNavigate }) {
           loading="eager"
           sizes="90vw"
         />
-        <figcaption className="mt-4 text-center text-sm text-white/60">{current.alt}</figcaption>
+        <figcaption className="mt-4 text-center text-sm text-white/60">
+          {current.pairLabel ? `${current.pairLabel} — ${current.alt}` : current.alt}
+        </figcaption>
       </figure>
     </div>
   )
