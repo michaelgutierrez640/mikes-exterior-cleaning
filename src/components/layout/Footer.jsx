@@ -120,9 +120,12 @@ export default function Footer() {
         </div>
 
         <div className="mt-14 flex flex-col items-center justify-between gap-5 border-t border-white/[0.05] pt-8 sm:flex-row">
-          <p className="text-center text-[0.75rem] text-white/30 sm:text-left">
-            &copy; {new Date().getFullYear()} {BUSINESS.name}. All rights reserved.
-          </p>
+          <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+            <p className="text-[0.75rem] text-white/30">
+              &copy; {new Date().getFullYear()} {BUSINESS.name}. All rights reserved.
+            </p>
+            <FooterLink href="/privacy-policy">Privacy Policy</FooterLink>
+          </div>
           {(reviewsLink || BUSINESS.social.facebook || BUSINESS.social.instagram) && (
             <div className="flex items-center gap-2.5">
               {reviewsLink && (

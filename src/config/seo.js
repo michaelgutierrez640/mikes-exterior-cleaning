@@ -512,6 +512,39 @@ export function getProjectsIndexSeo() {
   }
 }
 
+export function getPrivacyPolicyPageSeo() {
+  return {
+    title: "Privacy Policy | Mike's Exterior Cleaning Services",
+    description:
+      "Learn how Mike's Exterior Cleaning Services collects, uses, and protects personal information from quote requests, website visits, and advertising tools.",
+    keywords:
+      "privacy policy, Mike's Exterior Cleaning Services, data privacy, Modesto exterior cleaning",
+    canonical: absoluteUrl('/privacy-policy'),
+  }
+}
+
+export function getPrivacyPolicyPageSchemas() {
+  return [
+    getOrganizationSchema(),
+    getWebSiteSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Privacy Policy', url: absoluteUrl('/privacy-policy') },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': `${absoluteUrl('/privacy-policy')}#webpage`,
+      name: "Privacy Policy | Mike's Exterior Cleaning Services",
+      description: getPrivacyPolicyPageSeo().description,
+      url: absoluteUrl('/privacy-policy'),
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#localbusiness` },
+      dateModified: '2026-07-25',
+    },
+  ]
+}
+
 export function getProjectsIndexSchemas() {
   return [
     getOrganizationSchema(),

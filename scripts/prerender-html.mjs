@@ -142,6 +142,7 @@ async function collectRoutes(modules, publishedProjects = []) {
     { path: '/instant-quote', seo: seo.getInstantQuotePageSeo(), schemas: seo.getInstantQuotePageSchemas() },
     { path: '/book-online', seo: seo.getBookOnlinePageSeo(), schemas: seo.getBookOnlinePageSchemas() },
     { path: '/projects', seo: seo.getProjectsIndexSeo(), schemas: seo.getProjectsIndexSchemas() },
+    { path: '/privacy-policy', seo: seo.getPrivacyPolicyPageSeo(), schemas: seo.getPrivacyPolicyPageSchemas() },
     { path: '/resources', seo: seo.getBlogIndexSeo(), schemas: [
       seo.getOrganizationSchema(),
       seo.getWebSiteSchema(),
