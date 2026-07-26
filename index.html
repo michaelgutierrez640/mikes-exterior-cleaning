@@ -10,6 +10,45 @@
     <meta name="author" content="Mike's Exterior Cleaning Services" />
     <meta name="theme-color" content="#0a1628" />
 
+    <!--
+      Critical first-paint styles: prevent FOUC from the prerendered SEO shell
+      (unstyled h1/p/nav on a white page) before the main stylesheet arrives.
+      Shell stays in the DOM for crawlers; visually clipped until React replaces #root.
+    -->
+    <style>
+      html {
+        background-color: #0a1628;
+        color-scheme: dark;
+      }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background-color: #0a1628;
+      }
+      body {
+        color: rgba(255, 255, 255, 0.72);
+      }
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+        background-color: #0a1628;
+      }
+      #root [data-prerender-shell] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      #root [data-prerender-shell] a {
+        color: inherit;
+      }
+    </style>
+
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Mike's Exterior Cleaning Services | Window Cleaning Modesto" />
