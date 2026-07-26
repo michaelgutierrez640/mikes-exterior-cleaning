@@ -8,89 +8,27 @@ import { DEFAULT_OG_IMAGE } from '../config/site'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ScrollReveal from '../components/ScrollReveal'
-import { CallButton, PhoneLink, QuoteButton } from '../components/ui/Button'
+import { PhoneLink } from '../components/ui/Button'
 
 const pageSeo = getPrivacyPolicyPageSeo()
 const LAST_UPDATED = 'July 25, 2026'
 
-const SECTIONS = [
-  {
-    id: 'information-we-collect',
-    heading: 'Information We Collect',
-    paragraphs: [
-      'We may collect information you provide when you request a quote, book a service, submit a contact form, or otherwise communicate with us. This may include your name, phone number, email address, property address, service details, quote requests, form responses, and related notes about the work you need.',
-      'We may also collect website usage information, such as pages visited, approximate location derived from IP address, device and browser type, and how you interact with our site. This helps us understand site performance and improve the experience for visitors.',
-    ],
-  },
-  {
-    id: 'how-we-use-information',
-    heading: 'How We Use Information',
-    paragraphs: [
-      'We may use the information we collect to provide quotes, schedule services, contact customers, respond to inquiries, and deliver customer support.',
-      'We may also use information to improve our website, measure advertising performance, understand which services and pages are most useful, and operate and grow our business in a responsible way.',
-    ],
-  },
-  {
-    id: 'meta-and-advertising',
-    heading: 'Meta and Advertising',
-    paragraphs: [
-      'Customers may submit information through Facebook or Instagram lead forms when those options are available. When you submit a lead form on Meta platforms, Meta may share the details you provide with us so we can respond to your request.',
-      'We may use Meta Pixel, Meta Conversions API, or similar advertising tools to measure ad performance, understand the effectiveness of our advertising, and improve how we reach people who may be interested in our services. These tools may collect or receive information about visits to our website and related actions, subject to Meta\'s policies and your privacy settings on those platforms.',
-    ],
-  },
-  {
-    id: 'cookies-and-analytics',
-    heading: 'Cookies and Analytics',
-    paragraphs: [
-      'Our website may use cookies and similar technologies, along with analytics tools such as Vercel Analytics, Google Analytics, or Meta Pixel. These tools help us understand traffic, improve site performance, and measure advertising results.',
-      'You can control cookies through your browser settings. Disabling certain cookies may affect how some features of the site work.',
-    ],
-  },
-  {
-    id: 'sharing-of-information',
-    heading: 'Sharing of Information',
-    paragraphs: [
-      'We do not sell your personal information.',
-      'We may share information with trusted service providers only when needed to operate the website, process leads, provide services, send communications, or comply with legal requirements. Examples may include hosting, email delivery, analytics, advertising measurement, and scheduling or customer-management tools we use to run the business.',
-    ],
-  },
-  {
-    id: 'data-security',
-    heading: 'Data Security',
-    paragraphs: [
-      'We take reasonable steps to protect customer information against unauthorized access, loss, or misuse. However, no method of transmission over the internet or electronic storage is completely secure, and we cannot guarantee absolute security.',
-    ],
-  },
-  {
-    id: 'data-retention',
-    heading: 'Data Retention',
-    paragraphs: [
-      'We keep information only as long as reasonably necessary for business operations, customer service, legal obligations, and recordkeeping purposes. When information is no longer needed for these purposes, we take steps to delete or de-identify it where practical.',
-    ],
-  },
-  {
-    id: 'your-choices',
-    heading: 'Your Choices',
-    paragraphs: [
-      'You may request access to, correction of, or deletion of personal information we hold about you, subject to applicable law and any information we must retain for legitimate business or legal reasons.',
-      'You may also opt out of marketing messages by using the unsubscribe option in an email (when available) or by contacting us directly and asking to be removed from marketing communications. Transactional messages related to quotes, appointments, or services may still be necessary to fulfill your request.',
-    ],
-  },
-  {
-    id: 'childrens-privacy',
-    heading: "Children's Privacy",
-    paragraphs: [
-      'Our services are not directed toward children under 13, and we do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us so we can take appropriate steps.',
-    ],
-  },
-  {
-    id: 'changes-to-this-policy',
-    heading: 'Changes to This Policy',
-    paragraphs: [
-      'We may update this Privacy Policy from time to time. When we do, we will revise the "Last updated" date shown on this page. We encourage you to review this page periodically for the latest information about our privacy practices.',
-    ],
-  },
-]
+/** Display casing requested for the privacy contact block (same mailbox as BUSINESS.email). */
+const PRIVACY_CONTACT_EMAIL = 'Mikesexteriorcleaning209@gmail.com'
+
+function Section({ id, heading, children }) {
+  return (
+    <ScrollReveal className="mt-12">
+      <h2
+        id={id}
+        className="font-display text-2xl font-semibold text-navy-900 scroll-mt-28"
+      >
+        {heading}
+      </h2>
+      <div className="service-prose mt-5">{children}</div>
+    </ScrollReveal>
+  )
+}
 
 export default function PrivacyPolicyPage() {
   const schemas = getPrivacyPolicyPageSchemas()
@@ -111,9 +49,6 @@ export default function PrivacyPolicyPage() {
             <h1 className="font-display text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
               Privacy Policy
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/70">
-              How {BUSINESS.name} collects, uses, and protects information when you visit our website or request our services.
-            </p>
             <p className="mt-4 text-[0.9375rem] text-white/55">
               Last updated: {LAST_UPDATED}
             </p>
@@ -122,38 +57,152 @@ export default function PrivacyPolicyPage() {
 
         <div className="service-section bg-white">
           <div className="section-container max-w-3xl">
-            <p className="text-lg leading-relaxed text-gray-600">
-              {`This Privacy Policy describes how ${BUSINESS.name} ("we," "us," or "our") handles information in connection with our website and exterior cleaning services. By using our website or submitting information to us, you acknowledge this policy.`}
-            </p>
+            <div className="service-prose">
+              <p>
+                {BUSINESS.name} respects your privacy. This Privacy Policy explains what information we may
+                collect, how we may use it, and the choices available to you when you visit our website,
+                request a quote, or submit information through one of our advertisements.
+              </p>
+            </div>
 
-            {SECTIONS.map((section) => (
-              <ScrollReveal key={section.id} className="mt-12">
-                <h2
-                  id={section.id}
-                  className="font-display text-2xl font-semibold text-navy-900 scroll-mt-28"
-                >
-                  {section.heading}
-                </h2>
-                <div className="service-prose mt-5">
-                  {section.paragraphs.map((p) => (
-                    <p key={p.slice(0, 56)}>{p}</p>
-                  ))}
-                </div>
-              </ScrollReveal>
-            ))}
+            <Section id="information-we-may-collect" heading="Information We May Collect">
+              <p>We may collect information that you voluntarily provide, including:</p>
+              <ul>
+                <li>Your name</li>
+                <li>Phone number</li>
+                <li>Email address</li>
+                <li>Property city or service address</li>
+                <li>Requested service</li>
+                <li>Property and roof-access details</li>
+                <li>Solar-panel count</li>
+                <li>Photos or information you provide for an estimate</li>
+                <li>Messages and form responses</li>
+              </ul>
+              <p>
+                We may also receive limited technical information when you use our website, such as browser
+                type, device type, referring page, pages visited, and general website interaction data.
+              </p>
+            </Section>
 
-            <ScrollReveal className="mt-12">
-              <h2 id="contact-us" className="font-display text-2xl font-semibold text-navy-900 scroll-mt-28">
-                Contact Us
-              </h2>
-              <div className="service-prose mt-5">
-                <p>
-                  If you have questions about this Privacy Policy or want to make a privacy-related request, contact us:
-                </p>
-              </div>
-              <address className="mt-5 not-italic text-[0.9375rem] leading-relaxed text-gray-700">
-                <p className="font-semibold text-navy-900">{BUSINESS.name}</p>
-                <p className="mt-2">
+            <Section id="how-we-use-information" heading="How We Use Information">
+              <p>We may use the information we collect to:</p>
+              <ul>
+                <li>Respond to inquiries</li>
+                <li>Prepare and provide estimates</li>
+                <li>Confirm service eligibility and pricing</li>
+                <li>Schedule and perform services</li>
+                <li>Contact customers regarding requested services</li>
+                <li>Provide customer support</li>
+                <li>Maintain business records</li>
+                <li>Improve our website and advertising</li>
+                <li>Prevent fraud, misuse, or security issues</li>
+                <li>Comply with applicable legal obligations</li>
+              </ul>
+            </Section>
+
+            <Section id="facebook-and-instagram-lead-forms" heading="Facebook and Instagram Lead Forms">
+              <p>
+                When you submit information through a Facebook or Instagram lead form, Meta may provide that
+                information to {BUSINESS.name} so we can respond to your request.
+              </p>
+              <p>
+                Information submitted through Meta is also subject to Meta&apos;s own privacy terms and policies.
+              </p>
+            </Section>
+
+            <Section id="cookies-analytics-and-advertising-tools" heading="Cookies, Analytics, and Advertising Tools">
+              <p>
+                Our website may use cookies or similar technologies for basic website functionality, analytics,
+                and advertising measurement.
+              </p>
+              <p>
+                These tools may collect limited information about website visits and interactions. The specific
+                tools used may change over time.
+              </p>
+            </Section>
+
+            <Section id="how-we-share-information" heading="How We Share Information">
+              <p>We do not sell personal information for money.</p>
+              <p>
+                We may share information with service providers that help us operate our website, communicate
+                with customers, manage leads, provide analytics, or perform other necessary business functions.
+              </p>
+              <p>We may also disclose information when reasonably necessary to:</p>
+              <ul>
+                <li>Comply with applicable law or legal process</li>
+                <li>Protect our rights, customers, property, or safety</li>
+                <li>Investigate fraud, misuse, or security concerns</li>
+                <li>Complete a business transfer, merger, or sale if one occurs</li>
+              </ul>
+            </Section>
+
+            <Section id="data-retention" heading="Data Retention">
+              <p>
+                We retain information only for as long as reasonably necessary to respond to inquiries, provide
+                services, maintain appropriate business records, resolve disputes, and meet legal or operational
+                obligations.
+              </p>
+            </Section>
+
+            <Section id="data-security" heading="Data Security">
+              <p>
+                We take reasonable measures intended to protect the information we maintain. However, no website,
+                electronic transmission, or storage system can be guaranteed to be completely secure.
+              </p>
+            </Section>
+
+            <Section id="your-choices" heading="Your Choices">
+              <p>You may contact us to:</p>
+              <ul>
+                <li>Ask what personal information we have about you</li>
+                <li>Request a correction</li>
+                <li>Request deletion, subject to legal or legitimate business exceptions</li>
+                <li>Ask us to stop sending promotional communications</li>
+              </ul>
+              <p>We may need to verify your identity before completing certain requests.</p>
+            </Section>
+
+            <Section id="california-privacy-rights" heading="California Privacy Rights">
+              <p>
+                California residents may have rights regarding their personal information under applicable
+                California privacy laws.
+              </p>
+              <p>
+                These rights may include requesting information about personal information collected, requesting
+                correction or deletion, and opting out of certain uses or disclosures when applicable.
+              </p>
+              <p>
+                Not every California privacy law applies to every small business. {BUSINESS.name} will respond to
+                verified privacy requests as required by applicable law.
+              </p>
+            </Section>
+
+            <Section id="childrens-privacy" heading={"Children's Privacy"}>
+              <p>
+                Our website and services are intended for adults seeking property-cleaning services. We do not
+                knowingly collect personal information from children under 13.
+              </p>
+            </Section>
+
+            <Section id="third-party-links" heading="Third-Party Links">
+              <p>
+                Our website may contain links to third-party websites or services. We are not responsible for the
+                privacy practices or content of those third parties.
+              </p>
+            </Section>
+
+            <Section id="changes-to-this-policy" heading="Changes to This Policy">
+              <p>
+                We may update this Privacy Policy periodically. The revised policy will be posted on this page
+                with an updated &quot;Last updated&quot; date.
+              </p>
+            </Section>
+
+            <Section id="contact-us" heading="Contact Us">
+              <p>For privacy questions or requests, contact:</p>
+              <address className="not-italic">
+                <p className="font-semibold text-navy-900 !mb-2">{BUSINESS.name}</p>
+                <p className="!mb-1">
                   Phone:{' '}
                   <PhoneLink
                     sourceHint="privacy-policy"
@@ -162,28 +211,17 @@ export default function PrivacyPolicyPage() {
                     {BUSINESS.phone}
                   </PhoneLink>
                 </p>
-                <p className="mt-1">
+                <p className="!mb-0">
                   Email:{' '}
                   <a
                     href={BUSINESS.emailHref}
                     className="font-medium break-all text-royal-700 hover:text-royal-800"
                   >
-                    {BUSINESS.email}
+                    {PRIVACY_CONTACT_EMAIL}
                   </a>
                 </p>
               </address>
-            </ScrollReveal>
-
-            <div className="mt-14 rounded-[1.25rem] border border-royal-100 bg-royal-50/50 p-8 text-center">
-              <h2 className="font-display text-xl font-semibold text-navy-900">Need Exterior Cleaning Help?</h2>
-              <p className="mt-3 text-gray-600">
-                Free estimates across Modesto and the Central Valley.
-              </p>
-              <div className="mt-6 flex flex-wrap justify-center gap-4">
-                <QuoteButton variant="primary" />
-                <CallButton variant="secondary" />
-              </div>
-            </div>
+            </Section>
           </div>
         </div>
       </article>
