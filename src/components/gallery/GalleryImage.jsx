@@ -53,6 +53,17 @@ function GalleryImage({ item, onOpen }) {
             onClick={() => onOpen(item)}
             className="img-loaded w-full cursor-pointer object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
           />
+          {item.pairLabel && (
+            <span
+              className={`pointer-events-none absolute left-3 top-3 rounded-md px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.06em] shadow-[0_2px_10px_rgba(0,0,0,0.18)] ${
+                item.pairLabel === 'Before'
+                  ? 'bg-navy-900/90 text-white'
+                  : 'bg-white/95 text-navy-900'
+              }`}
+            >
+              {item.pairLabel}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onOpen(item)}
