@@ -22,6 +22,7 @@ const AdminJobDetailPage = lazy(() => import('./pages/AdminJobDetailPage'))
 const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const ServiceCityPage = lazy(() => import('./pages/ServiceCityPage'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/book-online" element={<LazyPage><BookOnlinePage /></LazyPage>} />
           <Route path="/projects" element={<LazyPage><ProjectsPage /></LazyPage>} />
           <Route path="/projects/:slug" element={<LazyPage><ProjectDetailPage /></LazyPage>} />
+          <Route path="/privacy-policy" element={<LazyPage><PrivacyPolicyPage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
           <Route path="/admin/reports" element={<LazyPage><AdminReportsPage /></LazyPage>} />
           <Route path="/admin/leads" element={<LazyPage><AdminLeadsPage /></LazyPage>} />
