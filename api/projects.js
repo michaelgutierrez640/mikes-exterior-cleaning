@@ -3,6 +3,10 @@ import {
   isPublicProjectsConfigured,
   listPublicProjects,
 } from '../lib/projectsPublic.mjs'
+import {
+  getHiddenOurWorkSrcs,
+  isOurWorkGalleryStorageConfigured,
+} from '../lib/ourWorkGalleryStore.mjs'
 
 function jsonPublic(res, status, payload, { cacheable = false } = {}) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8')
@@ -17,6 +21,7 @@ function jsonPublic(res, status, payload, { cacheable = false } = {}) {
  * Public read-only projects API (published jobs only).
  * - GET /api/projects?limit=&service=&city=
  * - GET /api/projects?slug=
+ * - GET /api/projects?resource=our-work-gallery  (hidden static Our Work srcs)
  *
  * Never returns drafts, admin IDs, Blob paths, or Redis credentials.
  */
@@ -24,6 +29,21 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')
     return jsonPublic(res, 405, { error: 'Method not allowed' })
+  }
+
+  const resource = String(req.query?.resource || '').trim()
+  if (resource === 'our-work-gallery') {
+    try {
+      if (!isOurWorkGalleryStorageConfigured()) {
+        return jsonPublic(res, 200, { hiddenSrcs: [] }, { cacheable: true })
+      }
+      const hiddenSrcs = await getHiddenOurWorkSrcs()
+      res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120')
+      return jsonPublic(res, 200, { hiddenSrcs }, { cacheable: true })
+    } catch (err) {
+      console.error('[api/projects our-work-gallery]', err?.message || err)
+      return jsonPublic(res, 200, { hiddenSrcs: [] })
+    }
   }
 
   if (!isPublicProjectsConfigured()) {

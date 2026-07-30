@@ -23,6 +23,7 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const ServiceCityPage = lazy(() => import('./pages/ServiceCityPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const AdminOurWorkGalleryPage = lazy(() => import('./pages/AdminOurWorkGalleryPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function PageLoader() {
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="/admin/completed-jobs/draft" element={<Navigate to="/admin/completed-jobs/drafts" replace />} />
           <Route path="/admin/completed-jobs/published" element={<LazyPage><AdminCompletedJobsPage /></LazyPage>} />
           <Route path="/admin/completed-jobs/:id" element={<LazyPage><AdminJobDetailPage /></LazyPage>} />
+          <Route path="/admin/our-work-gallery" element={<LazyPage><AdminOurWorkGalleryPage /></LazyPage>} />
           <Route path="*" element={<LazyPage><NotFoundPage /></LazyPage>} />
         </Route>
       </Routes>

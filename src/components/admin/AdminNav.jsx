@@ -11,6 +11,13 @@ const PRIMARY = [
     matchPrefix: '/admin/completed-jobs',
     area: 'jobs',
   },
+  {
+    to: '/admin/our-work-gallery',
+    label: 'Our Work Gallery',
+    end: false,
+    matchPrefix: '/admin/our-work-gallery',
+    area: 'gallery',
+  },
 ]
 
 const JOB_TABS = [
