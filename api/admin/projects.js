@@ -1,5 +1,5 @@
-import { del } from '@vercel/blob'
 import { json, requireAdmin } from '../../lib/adminAuth.mjs'
+import { cleanupRemovedProjectPhotos, deleteBlobUrls } from '../../lib/projectBlobCleanup.mjs'
 import {
   createProject,
   deleteProject,
@@ -9,23 +9,6 @@ import {
   normalizeProjectId,
   updateProject,
 } from '../../lib/projectsStore.mjs'
-
-async function deleteBlobUrls(project) {
-  const urls = (project?.photos || []).map((p) => p.url).filter(Boolean)
-  if (!urls.length || !process.env.BLOB_READ_WRITE_TOKEN) return { deleted: 0, errors: [] }
-
-  const errors = []
-  let deleted = 0
-  for (const url of urls) {
-    try {
-      await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN })
-      deleted += 1
-    } catch (err) {
-      errors.push({ url, error: err?.message || 'delete failed' })
-    }
-  }
-  return { deleted, errors }
-}
 
 /**
  * Collection + item operations on one stable path:
@@ -84,14 +67,30 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       if (!itemId) return json(res, 400, { error: 'Missing job id' })
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+      const existing = await getProject(itemId)
+      if (!existing) return json(res, 404, { error: 'Job not found', requestedId: itemId })
+
       const project = await updateProject(itemId, body)
-      return json(res, 200, { project })
+
+      let blob = null
+      if (Array.isArray(body.photos)) {
+        const before = new Set((existing.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
+        const after = new Set((project.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
+        const removed = [...before].filter((url) => !after.has(url))
+        if (removed.length) {
+          // After update, removed URLs are gone from this project. Delete Blob
+          // objects only when no other project still references them.
+          blob = await cleanupRemovedProjectPhotos(removed)
+        }
+      }
+
+      return json(res, 200, { project, blob })
     }
 
     if (req.method === 'DELETE') {
       if (!itemId) return json(res, 400, { error: 'Missing job id' })
       const existing = await deleteProject(itemId)
-      const blobResult = await deleteBlobUrls(existing)
+      const blobResult = await deleteBlobUrls((existing?.photos || []).map((p) => p.url).filter(Boolean))
       return json(res, 200, { ok: true, blob: blobResult })
     }
 

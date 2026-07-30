@@ -50,6 +50,17 @@ function cityLabel(slug) {
   return SERVICE_CITIES.find((c) => c.slug === slug)?.name || slug
 }
 
+function toPersistedPhoto(photo) {
+  return {
+    url: photo.url,
+    pathname: photo.pathname || null,
+    label: photo.label,
+    alt: photo.alt,
+    contentType: photo.contentType || null,
+    size: photo.size ?? null,
+  }
+}
+
 export default function JobForm({
   mode = 'create',
   initialProject = null,
@@ -60,8 +71,13 @@ export default function JobForm({
 }) {
   const [form, setForm] = useState(() => (initialProject ? formFromProject(initialProject) : emptyForm()))
   const [error, setError] = useState('')
+  const [photoStatus, setPhotoStatus] = useState({ type: '', message: '' })
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
+  const [deletingKey, setDeletingKey] = useState('')
+
+  const isPublishedEdit = mode === 'edit' && initialProject?.status === 'published'
+  const showEmptyPhotoWarning = isPublishedEdit && form.photos.length === 0
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -74,12 +90,59 @@ export default function JobForm({
     }))
   }
 
-  function removePhoto(key) {
+  function dropPhotoFromForm(key) {
     setForm((prev) => {
       const target = prev.photos.find((p) => p.key === key)
       if (target?.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(target.previewUrl)
       return { ...prev, photos: prev.photos.filter((p) => p.key !== key) }
     })
+  }
+
+  async function confirmAndRemovePhoto(key) {
+    if (busy || deletingKey) return
+    const target = form.photos.find((p) => p.key === key)
+    if (!target) return
+
+    const confirmed = window.confirm('Remove this photo from this project? This cannot be undone.')
+    if (!confirmed) return
+
+    setError('')
+    setPhotoStatus({ type: '', message: '' })
+    setDeletingKey(key)
+
+    try {
+      // New local picks are not in Redis/Blob yet — remove from the form only.
+      if (!(mode === 'edit' && initialProject?.id && target.uploaded && target.url)) {
+        dropPhotoFromForm(key)
+        setPhotoStatus({ type: 'success', message: 'Photo removed from this job.' })
+        return
+      }
+
+      setBusy(true)
+      setBusyLabel('Removing photo…')
+
+      const remaining = form.photos.filter((p) => p.key !== key)
+      const persisted = remaining.filter((p) => p.uploaded && p.url).map(toPersistedPhoto)
+      const project = await updateProject(initialProject.id, { photos: persisted })
+
+      dropPhotoFromForm(key)
+      setPhotoStatus({
+        type: 'success',
+        message:
+          remaining.length === 0
+            ? 'Photo removed. This project has no photos left — a placeholder will show on the public site until you add more.'
+            : 'Photo removed from this project.',
+      })
+      onSaved?.(project, { closeEditor: false })
+    } catch (err) {
+      const message = err.message || 'Could not remove photo'
+      setError(message)
+      setPhotoStatus({ type: 'error', message })
+    } finally {
+      setDeletingKey('')
+      setBusy(false)
+      setBusyLabel('')
+    }
   }
 
   async function onPickFiles(e) {
@@ -190,7 +253,7 @@ export default function JobForm({
       } else {
         project = await createProject(payload)
       }
-      onSaved?.(project)
+      onSaved?.(project, { closeEditor: true })
     } catch (err) {
       setError(err.message || 'Save failed')
     } finally {
@@ -290,8 +353,26 @@ export default function JobForm({
           Photos ({form.photos.length}/{MAX_PHOTOS})
         </p>
         <p className="mt-1 text-[0.75rem] text-gray-500">
-          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos
+          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos. The first photo is the cover image.
         </p>
+
+        {showEmptyPhotoWarning && (
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[0.875rem] text-amber-900" role="status">
+            Warning: this published project has no photos. A professional placeholder is shown on the public site until you upload a new photo.
+          </p>
+        )}
+
+        {photoStatus.message && (
+          <p
+            className={[
+              'mt-3 rounded-xl px-4 py-3 text-[0.875rem]',
+              photoStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-800',
+            ].join(' ')}
+            role={photoStatus.type === 'error' ? 'alert' : 'status'}
+          >
+            {photoStatus.message}
+          </p>
+        )}
 
         {/*
           Visible upload control for mobile + desktop.
@@ -339,61 +420,94 @@ export default function JobForm({
 
         {form.photos.length > 0 && (
           <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {form.photos.map((photo) => (
-              <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-sm">
-                <div className="relative aspect-[4/3] bg-navy-950/5">
-                  {photo.heic && !photo.uploaded ? (
-                    <div className="flex h-full items-center justify-center p-4 text-center text-[0.8125rem] text-gray-500">
-                      HEIC selected — preview may be limited on this device. It will still upload.
-                    </div>
-                  ) : (
-                    <img
-                      src={photo.previewUrl || photo.url}
-                      alt={photo.alt || 'Selected job photo'}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                  {!photo.uploaded && photo.progress > 0 && photo.progress < 100 && (
-                    <div className="absolute inset-x-0 bottom-0 bg-navy-950/80 px-2 py-2 text-center text-[0.75rem] font-medium text-white">
-                      Uploading {photo.progress}%
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2 p-3">
-                  <label className="block text-[0.75rem] font-medium text-gray-600">
-                    Label
-                    <select
-                      className="input-light mt-1 !py-2.5 text-[0.875rem]"
-                      value={photo.label}
-                      onChange={(e) => updatePhoto(photo.key, { label: e.target.value })}
-                      disabled={busy}
+            {form.photos.map((photo, index) => {
+              const isDeleting = deletingKey === photo.key
+              const controlsDisabled = busy || Boolean(deletingKey)
+              return (
+                <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-sm">
+                  <div className="relative aspect-[4/3] bg-navy-950/5">
+                    {photo.heic && !photo.uploaded ? (
+                      <div className="flex h-full items-center justify-center p-4 text-center text-[0.8125rem] text-gray-500">
+                        HEIC selected — preview may be limited on this device. It will still upload.
+                      </div>
+                    ) : (
+                      <img
+                        src={photo.previewUrl || photo.url}
+                        alt={photo.alt || 'Selected job photo'}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                    {index === 0 && (
+                      <span className="absolute top-2 left-2 rounded-full bg-navy-950/80 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-white uppercase">
+                        Cover
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 z-[1] flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-white/95 text-red-700 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => confirmAndRemovePhoto(photo.key)}
+                      disabled={controlsDisabled}
+                      aria-label="Delete photo"
+                      title="Delete photo"
                     >
-                      {LABEL_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <input
-                    className="input-light !py-2.5 text-[0.875rem]"
-                    placeholder="Alt text (optional)"
-                    value={photo.alt}
-                    onChange={(e) => updatePhoto(photo.key, { alt: e.target.value })}
-                    disabled={busy}
-                    maxLength={200}
-                  />
-                  <button
-                    type="button"
-                    className="min-h-11 w-full rounded-xl border border-red-200 bg-red-50 text-[0.875rem] font-semibold text-red-700"
-                    onClick={() => removePhoto(photo.key)}
-                    disabled={busy}
-                  >
-                    Remove photo
-                  </button>
-                </div>
-              </li>
-            ))}
+                      {isDeleting ? (
+                        <span className="h-5 w-5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" aria-hidden="true" />
+                      ) : (
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                          <path d="M3 6h18" strokeLinecap="round" />
+                          <path d="M8 6V4h8v2" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M19 6l-1 14H6L5 6" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M10 11v6M14 11v6" strokeLinecap="round" />
+                        </svg>
+                      )}
+                    </button>
+                    {!photo.uploaded && photo.progress > 0 && photo.progress < 100 && (
+                      <div className="absolute inset-x-0 bottom-0 bg-navy-950/80 px-2 py-2 text-center text-[0.75rem] font-medium text-white">
+                        Uploading {photo.progress}%
+                      </div>
+                    )}
+                    {isDeleting && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-navy-950/45 text-[0.8125rem] font-semibold text-white">
+                        Removing…
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2 p-3">
+                    <label className="block text-[0.75rem] font-medium text-gray-600">
+                      Label
+                      <select
+                        className="input-light mt-1 !py-2.5 text-[0.875rem]"
+                        value={photo.label}
+                        onChange={(e) => updatePhoto(photo.key, { label: e.target.value })}
+                        disabled={controlsDisabled}
+                      >
+                        {LABEL_OPTIONS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <input
+                      className="input-light !py-2.5 text-[0.875rem]"
+                      placeholder="Alt text (optional)"
+                      value={photo.alt}
+                      onChange={(e) => updatePhoto(photo.key, { alt: e.target.value })}
+                      disabled={controlsDisabled}
+                      maxLength={200}
+                    />
+                    <button
+                      type="button"
+                      className="min-h-11 w-full rounded-xl border border-red-200 bg-red-50 text-[0.875rem] font-semibold text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => confirmAndRemovePhoto(photo.key)}
+                      disabled={controlsDisabled}
+                    >
+                      {isDeleting ? 'Removing…' : 'Delete photo'}
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

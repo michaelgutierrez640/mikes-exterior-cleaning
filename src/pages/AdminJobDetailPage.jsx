@@ -98,10 +98,10 @@ function DetailBody({
           }}
           updateProject={async (jobId, payload) => updateAdminProject(jobId, payload)}
           onCancel={() => setEditing(false)}
-          onSaved={(updated) => {
+          onSaved={(updated, opts = {}) => {
             setProject(updated)
-            setEditing(false)
-            setMessage('Job updated.')
+            if (opts.closeEditor !== false) setEditing(false)
+            setMessage(opts.closeEditor === false ? 'Photo updated.' : 'Job updated.')
           }}
         />
       )}
