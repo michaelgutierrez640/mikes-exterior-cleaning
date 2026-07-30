@@ -1,6 +1,8 @@
 /**
  * Facebook Page posting unit tests (no Redis / live Graph API required).
  * Run: npm run test:facebook
+ *
+ * These tests never create a real Facebook post.
  */
 import assert from 'assert'
 import {
@@ -9,9 +11,11 @@ import {
   getFacebookConfigStatus,
   getFeaturedPhotoUrl,
   hasSuccessfulFacebookPost,
+  isAmbiguousFacebookError,
   maybePostProjectToFacebook,
   postPhotoToFacebookPage,
   sanitizeFacebookCaption,
+  shortFacebookBlurb,
   shouldAttemptFacebookOnSave,
   validateFacebookImageUrl,
   validateFacebookProjectUrl,
@@ -29,7 +33,8 @@ function sampleProject(overrides = {}) {
     status: 'published',
     service: 'window-cleaning',
     city: 'modesto',
-    notes: 'Patio doors sparkling after a full clean.',
+    notes:
+      'Professional window cleaning, screen cleaning, and hard water removal completed for a Modesto, CA home. We restored clearer glass, cleaner screens, and a brighter interior view throughout the property after a full interior and exterior service.',
     photos: [{ url: 'https://blob.example.com/cover.jpg', label: 'after', sortOrder: 0 }],
     facebookPostStatus: 'not_posted',
     facebookPostId: null,
@@ -54,9 +59,11 @@ function memoryState(initial) {
 {
   const caption = buildDefaultFacebookCaption(sampleProject())
   assert.match(caption, /Window Cleaning in Modesto, CA/)
-  assert.match(caption, /Patio doors/)
   assert.match(caption, /https:\/\/www\.mikesexteriorcleaning\.com\/projects\//)
-  ok('default caption includes service, city, notes, canonical URL')
+  assert.match(caption, /Mike's Exterior Cleaning Services/)
+  assert.ok(!caption.includes('brighter interior view throughout the property'))
+  assert.ok(shortFacebookBlurb(sampleProject().notes).length <= 100)
+  ok('default caption is concise and includes service, city, canonical URL')
 }
 
 {
@@ -93,6 +100,14 @@ function memoryState(initial) {
   assert.equal(facebookStatusLabel('failed'), 'Facebook posting failed')
   assert.equal(facebookStatusLabel('not_posted'), 'Not posted to Facebook')
   ok('status labels')
+}
+
+{
+  const timeoutErr = new Error('Facebook request timed out')
+  timeoutErr.code = 'FACEBOOK_TIMEOUT'
+  assert.equal(isAmbiguousFacebookError(timeoutErr), true)
+  assert.equal(isAmbiguousFacebookError(new Error('Graph down')), false)
+  ok('timeout errors are treated as ambiguous')
 }
 
 {
@@ -148,6 +163,9 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      async findPagePostByProjectUrl() {
+        return null
+      },
       async postPhotoToFacebookPage() {
         posts += 1
         return { postId: 'fb_post_1' }
@@ -170,6 +188,9 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      async findPagePostByProjectUrl() {
+        return null
+      },
       async postPhotoToFacebookPage() {
         throw new Error('Graph down')
       },
@@ -183,6 +204,68 @@ function memoryState(initial) {
 }
 
 {
+  const project = sampleProject()
+  const mem = memoryState(project)
+  let posts = 0
+  const timeoutErr = new Error('Facebook request timed out')
+  timeoutErr.code = 'FACEBOOK_TIMEOUT'
+  const result = await maybePostProjectToFacebook(
+    project,
+    { caption: buildDefaultFacebookCaption(project) },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      async findPagePostByProjectUrl() {
+        // First call (pre-post) finds nothing; second call (after timeout) finds the accepted post.
+        if (posts === 0) return null
+        return { postId: 'page_timeout_reconciled', source: 'feed' }
+      },
+      async postPhotoToFacebookPage() {
+        posts += 1
+        throw timeoutErr
+      },
+    },
+  )
+  assert.equal(posts, 1)
+  assert.equal(result.status, 'posted')
+  assert.equal(result.reason, 'reconciled_after_timeout')
+  assert.equal(result.project.facebookPostId, 'page_timeout_reconciled')
+  assert.equal(result.project.facebookPostStatus, 'posted')
+  assert.equal(result.project.facebookPostError, null)
+  ok('ambiguous timeout reconciles to Posted when Facebook already accepted the post')
+}
+
+{
+  const project = sampleProject({
+    facebookPostStatus: 'failed',
+    facebookPostError: 'Facebook request timed out',
+  })
+  const mem = memoryState(project)
+  let posts = 0
+  const result = await maybePostProjectToFacebook(
+    project,
+    { forceRetry: true, caption: buildDefaultFacebookCaption(project) },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      async findPagePostByProjectUrl() {
+        return { postId: 'existing_from_timeout', source: 'published_posts' }
+      },
+      async postPhotoToFacebookPage() {
+        posts += 1
+        return { postId: 'should_not_create' }
+      },
+    },
+  )
+  assert.equal(posts, 0)
+  assert.equal(result.skipped, true)
+  assert.equal(result.reason, 'reconciled_existing')
+  assert.equal(result.status, 'posted')
+  assert.equal(result.facebookPostId, 'existing_from_timeout')
+  ok('Retry adopts existing Facebook post instead of creating a duplicate')
+}
+
+{
   const project = sampleProject({
     facebookPostId: 'already_there',
     facebookPostStatus: 'posted',
@@ -192,6 +275,9 @@ function memoryState(initial) {
   const first = await maybePostProjectToFacebook(project, { forceRetry: true }, {
     updateProjectFacebookState: mem.updateProjectFacebookState,
     isFacebookConfigured: () => true,
+    async findPagePostByProjectUrl() {
+      return { postId: 'already_there', source: 'feed' }
+    },
     async postPhotoToFacebookPage() {
       posts += 1
       return { postId: 'dup' }
@@ -200,6 +286,9 @@ function memoryState(initial) {
   const second = await maybePostProjectToFacebook(first.project, { forceRetry: true }, {
     updateProjectFacebookState: mem.updateProjectFacebookState,
     isFacebookConfigured: () => true,
+    async findPagePostByProjectUrl() {
+      return { postId: 'already_there', source: 'feed' }
+    },
     async postPhotoToFacebookPage() {
       posts += 1
       return { postId: 'dup2' }
@@ -222,6 +311,9 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      async findPagePostByProjectUrl() {
+        return null
+      },
       async postPhotoToFacebookPage() {
         posts += 1
         return { postId: 'retry_ok' }
@@ -231,7 +323,7 @@ function memoryState(initial) {
   assert.equal(posts, 1)
   assert.equal(result.status, 'posted')
   assert.equal(result.facebookPostId, 'retry_ok')
-  ok('retry works after failure')
+  ok('retry works after a real failure when no existing post is found')
 }
 
 {
