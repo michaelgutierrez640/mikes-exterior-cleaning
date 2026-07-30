@@ -6,7 +6,9 @@ import GalleryImage from '../gallery/GalleryImage'
 
 async function fetchHiddenOurWorkSrcs() {
   try {
-    const res = await fetch('/api/our-work-gallery', { headers: { Accept: 'application/json' } })
+    const res = await fetch('/api/projects?resource=our-work-gallery', {
+      headers: { Accept: 'application/json' },
+    })
     if (!res.ok) return []
     const data = await res.json()
     return Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : []

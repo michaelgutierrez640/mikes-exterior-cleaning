@@ -1,6 +1,13 @@
 import { json, requireAdmin } from '../../lib/adminAuth.mjs'
 import { cleanupRemovedProjectPhotos, deleteBlobUrls } from '../../lib/projectBlobCleanup.mjs'
 import {
+  getHiddenOurWorkSrcs,
+  hideStaticOurWorkPhoto,
+  isOurWorkGalleryStorageConfigured,
+  listPublishedJobPhotos,
+  listStaticOurWorkPhotos,
+} from '../../lib/ourWorkGalleryStore.mjs'
+import {
   createProject,
   deleteProject,
   getProject,
@@ -17,12 +24,60 @@ import {
  * - POST /api/admin/projects
  * - PATCH /api/admin/projects?id=<projectId>
  * - DELETE /api/admin/projects?id=<projectId>
+ * - GET /api/admin/projects?resource=our-work-gallery
+ * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
  *
  * Query-param item routes avoid brittle dynamic /api/.../[id] matching behind the SPA rewrite.
+ * Our Work gallery is folded into this function to stay within Vercel Hobby function limits.
  */
+async function handleOurWorkGallery(req, res) {
+  if (!isOurWorkGalleryStorageConfigured()) {
+    return json(res, 503, {
+      error: 'Gallery storage not configured',
+      hint: 'Connect Upstash Redis (KV_REST_API_URL + KV_REST_API_TOKEN)',
+    })
+  }
+
+  if (req.method === 'GET') {
+    const hiddenSrcs = await getHiddenOurWorkSrcs()
+    const staticPhotos = listStaticOurWorkPhotos({ hiddenSrcs }).filter((p) => !p.hidden)
+    const publishedJobPhotos = await listPublishedJobPhotos()
+    return json(res, 200, {
+      photos: [...staticPhotos, ...publishedJobPhotos],
+      hiddenSrcs,
+      counts: {
+        staticVisible: staticPhotos.length,
+        publishedJob: publishedJobPhotos.length,
+        hidden: hiddenSrcs.length,
+      },
+    })
+  }
+
+  if (req.method === 'DELETE') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+    const src = String(body.src || req.query?.src || '').trim()
+    const result = await hideStaticOurWorkPhoto(src)
+    return json(res, 200, { ok: true, ...result })
+  }
+
+  res.setHeader('Allow', 'GET, DELETE')
+  return json(res, 405, { error: 'Method not allowed' })
+}
+
 export default async function handler(req, res) {
   const auth = requireAdmin(req)
   if (!auth.ok) return json(res, auth.status, { error: auth.error })
+
+  const resource = String(req.query?.resource || '').trim()
+  if (resource === 'our-work-gallery') {
+    try {
+      return await handleOurWorkGallery(req, res)
+    } catch (err) {
+      console.error('[admin/projects our-work-gallery]', err?.message || err)
+      const status = err?.status || 500
+      return json(res, status, { error: err?.message || 'Our Work gallery request failed' })
+    }
+  }
 
   if (!isProjectsStorageConfigured()) {
     return json(res, 503, {

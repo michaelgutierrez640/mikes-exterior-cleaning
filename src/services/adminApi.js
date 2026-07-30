@@ -171,7 +171,7 @@ export async function deleteAdminProject(id) {
 }
 
 export async function fetchAdminOurWorkGallery() {
-  const res = await fetch('/api/admin/our-work-gallery', {
+  const res = await fetch('/api/admin/projects?resource=our-work-gallery', {
     headers: { Accept: 'application/json' },
   })
   const data = await parseJson(res)
@@ -185,7 +185,7 @@ export async function fetchAdminOurWorkGallery() {
 }
 
 export async function removeAdminOurWorkStaticPhoto(src) {
-  const res = await fetch('/api/admin/our-work-gallery', {
+  const res = await fetch('/api/admin/projects?resource=our-work-gallery', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({ src }),

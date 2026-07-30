@@ -16,6 +16,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/our-work-gallery",
+      "destination": "/api/projects?resource=our-work-gallery"
+    },
+    {
+      "source": "/api/admin/our-work-gallery",
+      "destination": "/api/admin/projects?resource=our-work-gallery"
+    },
+    {
       "source": "/((?!api/|sitemap\\.xml$|robots\\.txt$|assets/).*)",
       "destination": "/index.html"
     }
