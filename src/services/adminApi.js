@@ -155,6 +155,36 @@ export async function updateAdminProject(id, payload) {
   return data.project
 }
 
+export async function fetchAdminFacebookStatus() {
+  const res = await fetch('/api/admin/projects?resource=facebook', {
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to check Facebook connection')
+  return data
+}
+
+export async function retryAdminFacebookPost(id, { caption } = {}) {
+  const res = await fetch(`/api/admin/projects?resource=facebook&id=${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ action: 'retry', caption: caption || '' }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Facebook retry failed')
+  return data
+}
+
 export async function deleteAdminProject(id) {
   const res = await fetch(`/api/admin/projects?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',

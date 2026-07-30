@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SERVICES } from '../../config/content'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
+import { fetchAdminFacebookStatus } from '../../services/adminApi'
+import {
+  buildFacebookCaptionPreview,
+  canShowFacebookPublishCheckbox,
+} from '../../utils/facebookCaption'
 import { MAX_PHOTOS, prepareImageForUpload, uploadPreparedFile } from '../../utils/projectPhotos'
 
 const LABEL_OPTIONS = [
@@ -75,9 +80,55 @@ export default function JobForm({
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
   const [deletingKey, setDeletingKey] = useState('')
+  const [facebookConfigured, setFacebookConfigured] = useState(false)
+  const [facebookConfigLoaded, setFacebookConfigLoaded] = useState(false)
+  const [postToFacebook, setPostToFacebook] = useState(false)
+  const [facebookCaption, setFacebookCaption] = useState('')
+  const [captionTouched, setCaptionTouched] = useState(false)
 
   const isPublishedEdit = mode === 'edit' && initialProject?.status === 'published'
   const showEmptyPhotoWarning = isPublishedEdit && form.photos.length === 0
+  const showFacebookCheckbox = canShowFacebookPublishCheckbox(initialProject) && !isPublishedEdit
+
+  const defaultCaption = useMemo(
+    () =>
+      buildFacebookCaptionPreview({
+        service: form.service,
+        city: form.city,
+        notes: form.notes,
+        slug: initialProject?.slug || '',
+      }),
+    [form.service, form.city, form.notes, initialProject?.slug],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await fetchAdminFacebookStatus()
+        if (!cancelled) {
+          setFacebookConfigured(Boolean(data.configured))
+          setFacebookConfigLoaded(true)
+        }
+      } catch {
+        if (!cancelled) {
+          setFacebookConfigured(false)
+          setFacebookConfigLoaded(true)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!captionTouched) setFacebookCaption(defaultCaption)
+  }, [defaultCaption, captionTouched])
+
+  useEffect(() => {
+    if (!facebookConfigured || !showFacebookCheckbox) setPostToFacebook(false)
+  }, [facebookConfigured, showFacebookCheckbox])
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -245,6 +296,11 @@ export default function JobForm({
         notes: form.notes.trim(),
         photos,
         status,
+      }
+
+      if (status === 'published' && showFacebookCheckbox && postToFacebook && facebookConfigured) {
+        payload.postToFacebook = true
+        payload.facebookCaption = (facebookCaption || defaultCaption).trim()
       }
 
       let project
@@ -516,6 +572,47 @@ export default function JobForm({
         <p className="mt-6 text-[0.8125rem] text-gray-500">
           Preview: {serviceLabel(form.service)} · {cityLabel(form.city)} · {form.propertyType} · {form.completedAt}
         </p>
+      )}
+
+      {showFacebookCheckbox && (
+        <div className="mt-6 rounded-2xl border border-black/[0.08] bg-gray-50/80 p-4 sm:p-5">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-5 w-5 rounded border-gray-300 text-royal-600 focus:ring-royal-500 disabled:cursor-not-allowed disabled:opacity-50"
+              checked={postToFacebook && facebookConfigured}
+              disabled={busy || !facebookConfigured || !facebookConfigLoaded}
+              onChange={(e) => setPostToFacebook(e.target.checked)}
+            />
+            <span className="min-w-0">
+              <span className="block text-[0.9375rem] font-semibold text-navy-900">Post this project to Facebook</span>
+              <span className="mt-1 block text-[0.8125rem] leading-relaxed text-gray-600">
+                {facebookConfigLoaded && !facebookConfigured
+                  ? 'Connect Facebook to enable automatic posting.'
+                  : "Uses the cover photo and posts to the Mike's Exterior Cleaning Services Facebook Page after the website job publishes."}
+              </span>
+            </span>
+          </label>
+
+          {postToFacebook && facebookConfigured && (
+            <label className="mt-4 block">
+              <span className="mb-2 block text-[0.8125rem] font-medium text-gray-600">Facebook caption preview</span>
+              <textarea
+                className="input-light min-h-[9rem] resize-y font-mono text-[0.8125rem] leading-relaxed"
+                value={facebookCaption}
+                onChange={(e) => {
+                  setCaptionTouched(true)
+                  setFacebookCaption(e.target.value)
+                }}
+                disabled={busy}
+                maxLength={2000}
+              />
+              <span className="mt-1 block text-[0.75rem] text-gray-500">
+                Include service, city, a short description, and the project page link. The cover photo is used for the post.
+              </span>
+            </label>
+          )}
+        </div>
       )}
 
       <div className="mt-8 mb-4 flex flex-col gap-3 sm:mb-0 sm:flex-row sm:flex-wrap">

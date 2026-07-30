@@ -1,6 +1,14 @@
 import { json, requireAdmin } from '../../lib/adminAuth.mjs'
 import { cleanupRemovedProjectPhotos, deleteBlobUrls } from '../../lib/projectBlobCleanup.mjs'
 import {
+  facebookStatusLabel,
+  getFacebookConfigStatus,
+  hasSuccessfulFacebookPost,
+  maybePostProjectToFacebook,
+  sanitizeFacebookCaption,
+  shouldAttemptFacebookOnSave,
+} from '../../lib/facebookPagePost.mjs'
+import {
   getHiddenOurWorkSrcs,
   hideStaticOurWorkPhoto,
   isOurWorkGalleryStorageConfigured,
@@ -26,10 +34,73 @@ import {
  * - DELETE /api/admin/projects?id=<projectId>
  * - GET /api/admin/projects?resource=our-work-gallery
  * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
+ * - GET /api/admin/projects?resource=facebook
+ * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry', caption? }
  *
  * Query-param item routes avoid brittle dynamic /api/.../[id] matching behind the SPA rewrite.
- * Our Work gallery is folded into this function to stay within Vercel Hobby function limits.
+ * Extra resources are folded into this function to stay within Vercel Hobby function limits.
  */
+
+function stripFacebookRequestFields(body = {}) {
+  const {
+    postToFacebook: _postToFacebook,
+    facebookCaption: _facebookCaption,
+    facebookPostStatus: _facebookPostStatus,
+    facebookPostId: _facebookPostId,
+    facebookPostedAt: _facebookPostedAt,
+    facebookPostError: _facebookPostError,
+    ...projectBody
+  } = body || {}
+  return {
+    projectBody,
+    postToFacebook: Boolean(body?.postToFacebook),
+    facebookCaption: sanitizeFacebookCaption(body?.facebookCaption || ''),
+  }
+}
+
+function facebookResponseMeta(project, attempt = null) {
+  const status = project?.facebookPostStatus || 'not_posted'
+  return {
+    configured: getFacebookConfigStatus().configured,
+    status,
+    label: facebookStatusLabel(status),
+    facebookPostId: project?.facebookPostId || null,
+    facebookPostedAt: project?.facebookPostedAt || null,
+    facebookPostError: project?.facebookPostError || null,
+    skipped: attempt?.skipped ?? null,
+    reason: attempt?.reason || null,
+  }
+}
+
+async function maybePublishToFacebook({ project, previous, postToFacebook, facebookCaption }) {
+  if (!shouldAttemptFacebookOnSave({ previous, project, postToFacebook })) {
+    const reason = !postToFacebook
+      ? 'not_requested'
+      : project?.status !== 'published'
+        ? 'not_published'
+        : hasSuccessfulFacebookPost(project)
+          ? 'already_posted'
+          : previous?.status === 'published'
+            ? 'edit_existing_published'
+            : 'skipped'
+    return {
+      project,
+      attempt: {
+        skipped: true,
+        reason,
+        status: project?.facebookPostStatus || (hasSuccessfulFacebookPost(project) ? 'posted' : 'not_posted'),
+        facebookPostId: project?.facebookPostId || null,
+      },
+    }
+  }
+
+  const attempt = await maybePostProjectToFacebook(project, {
+    caption: facebookCaption,
+    forceRetry: false,
+  })
+  return { project: attempt.project || project, attempt }
+}
+
 async function handleOurWorkGallery(req, res) {
   if (!isOurWorkGalleryStorageConfigured()) {
     return json(res, 503, {
@@ -64,6 +135,67 @@ async function handleOurWorkGallery(req, res) {
   return json(res, 405, { error: 'Method not allowed' })
 }
 
+async function handleFacebookResource(req, res) {
+  if (req.method === 'GET') {
+    const config = getFacebookConfigStatus()
+    return json(res, 200, {
+      configured: config.configured,
+      message: config.configured
+        ? 'Facebook Page posting is connected.'
+        : 'Connect Facebook to enable automatic posting.',
+    })
+  }
+
+  if (req.method === 'POST') {
+    if (!isProjectsStorageConfigured()) {
+      return json(res, 503, {
+        error: 'Projects storage not configured',
+        hint: 'Connect Upstash Redis (KV_REST_API_URL + KV_REST_API_TOKEN)',
+      })
+    }
+
+    const itemId = normalizeProjectId(req.query?.id)
+    if (!itemId) return json(res, 400, { error: 'Missing job id' })
+
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+    const action = String(body.action || '').trim()
+    if (action !== 'retry') {
+      return json(res, 400, { error: 'Unsupported Facebook action' })
+    }
+
+    const existing = await getProject(itemId)
+    if (!existing) return json(res, 404, { error: 'Job not found', requestedId: itemId })
+    if (existing.status !== 'published') {
+      return json(res, 400, { error: 'Publish the job on the website before posting to Facebook' })
+    }
+    if (hasSuccessfulFacebookPost(existing)) {
+      return json(res, 200, {
+        ok: true,
+        project: existing,
+        facebook: facebookResponseMeta(existing, { skipped: true, reason: 'already_posted' }),
+        message: 'Already posted to Facebook',
+      })
+    }
+
+    const attempt = await maybePostProjectToFacebook(existing, {
+      caption: sanitizeFacebookCaption(body.caption || existing.facebookCaption || ''),
+      forceRetry: true,
+    })
+    return json(res, 200, {
+      ok: attempt.status === 'posted',
+      project: attempt.project,
+      facebook: facebookResponseMeta(attempt.project, attempt),
+      message:
+        attempt.status === 'posted'
+          ? 'Posted to Facebook'
+          : attempt.error || 'Facebook posting failed',
+    })
+  }
+
+  res.setHeader('Allow', 'GET, POST')
+  return json(res, 405, { error: 'Method not allowed' })
+}
+
 export default async function handler(req, res) {
   const auth = requireAdmin(req)
   if (!auth.ok) return json(res, auth.status, { error: auth.error })
@@ -76,6 +208,16 @@ export default async function handler(req, res) {
       console.error('[admin/projects our-work-gallery]', err?.message || err)
       const status = err?.status || 500
       return json(res, status, { error: err?.message || 'Our Work gallery request failed' })
+    }
+  }
+
+  if (resource === 'facebook') {
+    try {
+      return await handleFacebookResource(req, res)
+    } catch (err) {
+      console.error('[admin/projects facebook]', err?.message || err)
+      const status = err?.status || 500
+      return json(res, status, { error: err?.message || 'Facebook request failed' })
     }
   }
 
@@ -100,7 +242,10 @@ export default async function handler(req, res) {
             redisKey: `project:${itemId}`,
           })
         }
-        return json(res, 200, { project })
+        return json(res, 200, {
+          project,
+          facebook: facebookResponseMeta(project),
+        })
       }
 
       const status = String(req.query?.status || 'all')
@@ -109,14 +254,29 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'status must be all, draft, or published' })
       }
       const projects = await listProjects(status)
-      return json(res, 200, { projects })
+      return json(res, 200, {
+        projects,
+        facebook: { configured: getFacebookConfigStatus().configured },
+      })
     }
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
-      const project = await createProject(body)
+      const { projectBody, postToFacebook, facebookCaption } = stripFacebookRequestFields(body)
+      let project = await createProject(projectBody)
       console.info('[admin/projects] created', { id: project.id, redisKey: `project:${project.id}` })
-      return json(res, 201, { project })
+
+      const fb = await maybePublishToFacebook({
+        project,
+        previous: null,
+        postToFacebook,
+        facebookCaption,
+      })
+      project = fb.project
+      return json(res, 201, {
+        project,
+        facebook: facebookResponseMeta(project, fb.attempt),
+      })
     }
 
     if (req.method === 'PATCH') {
@@ -125,21 +285,32 @@ export default async function handler(req, res) {
       const existing = await getProject(itemId)
       if (!existing) return json(res, 404, { error: 'Job not found', requestedId: itemId })
 
-      const project = await updateProject(itemId, body)
+      const { projectBody, postToFacebook, facebookCaption } = stripFacebookRequestFields(body)
+      let project = await updateProject(itemId, projectBody)
 
       let blob = null
-      if (Array.isArray(body.photos)) {
+      if (Array.isArray(projectBody.photos)) {
         const before = new Set((existing.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
         const after = new Set((project.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
         const removed = [...before].filter((url) => !after.has(url))
         if (removed.length) {
-          // After update, removed URLs are gone from this project. Delete Blob
-          // objects only when no other project still references them.
           blob = await cleanupRemovedProjectPhotos(removed)
         }
       }
 
-      return json(res, 200, { project, blob })
+      const fb = await maybePublishToFacebook({
+        project,
+        previous: existing,
+        postToFacebook,
+        facebookCaption,
+      })
+      project = fb.project
+
+      return json(res, 200, {
+        project,
+        blob,
+        facebook: facebookResponseMeta(project, fb.attempt),
+      })
     }
 
     if (req.method === 'DELETE') {

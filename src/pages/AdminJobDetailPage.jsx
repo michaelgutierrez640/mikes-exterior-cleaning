@@ -10,9 +10,12 @@ import JobPhotoGallery from '../components/admin/JobPhotoGallery'
 import SeoHead from '../components/seo/SeoHead'
 import {
   deleteAdminProject,
+  fetchAdminFacebookStatus,
   fetchAdminProject,
+  retryAdminFacebookPost,
   updateAdminProject,
 } from '../services/adminApi'
+import { facebookStatusLabel } from '../utils/facebookCaption'
 
 function serviceLabel(slug) {
   return SERVICES.find((s) => s.slug === slug)?.title || slug
@@ -25,6 +28,19 @@ function cityLabel(slug) {
 function jobTitle(project) {
   if (!project) return 'Job'
   return `${serviceLabel(project.service)} in ${cityLabel(project.city)}`
+}
+
+function facebookBadgeClass(status) {
+  switch (String(status || 'not_posted')) {
+    case 'posted':
+      return 'bg-emerald-50 text-emerald-700'
+    case 'pending':
+      return 'bg-amber-50 text-amber-800'
+    case 'failed':
+      return 'bg-red-50 text-red-700'
+    default:
+      return 'bg-gray-100 text-gray-700'
+  }
 }
 
 function DetailBody({
@@ -41,13 +57,54 @@ function DetailBody({
   setUnauthorized,
   setEditing,
   setMessage,
+  setError,
   setProject,
+  setBusy,
   publishOrUnpublish,
   remove,
 }) {
+  const [facebookConfigured, setFacebookConfigured] = useState(false)
+
   useEffect(() => {
     if (error === 'Unauthorized') setUnauthorized()
   }, [error, setUnauthorized])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await fetchAdminFacebookStatus()
+        if (!cancelled) setFacebookConfigured(Boolean(data.configured))
+      } catch (err) {
+        if (err?.unauthorized) setUnauthorized()
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [setUnauthorized])
+
+  async function retryFacebook() {
+    if (!project?.id || busy) return
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const data = await retryAdminFacebookPost(project.id, {
+        caption: project.facebookCaption || '',
+      })
+      if (data.project) setProject(data.project)
+      setMessage(data.message || facebookStatusLabel(data.project?.facebookPostStatus))
+    } catch (err) {
+      if (err.unauthorized) {
+        setUnauthorized()
+        return
+      }
+      setError(err.message || 'Facebook retry failed')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -117,6 +174,9 @@ function DetailBody({
               >
                 {project.status}
               </span>
+              <span className={`rounded-full px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide ${facebookBadgeClass(project.facebookPostStatus)}`}>
+                {facebookStatusLabel(project.facebookPostStatus)}
+              </span>
               <span className="text-[0.75rem] text-gray-400">{project.photos?.length || 0} photos</span>
             </div>
 
@@ -149,6 +209,26 @@ function DetailBody({
                   {project.notes?.trim() ? project.notes : '—'}
                 </dd>
               </div>
+              <div className="sm:col-span-2">
+                <dt className="text-[0.75rem] font-semibold tracking-wide text-gray-500 uppercase">Facebook</dt>
+                <dd className="mt-1 space-y-2 text-[0.9375rem] text-gray-700">
+                  <p>{facebookStatusLabel(project.facebookPostStatus)}</p>
+                  {project.facebookPostedAt && (
+                    <p className="text-[0.8125rem] text-gray-500">Posted at {project.facebookPostedAt}</p>
+                  )}
+                  {project.facebookPostId && (
+                    <p className="break-all font-mono text-[0.75rem] text-gray-500">Post ID: {project.facebookPostId}</p>
+                  )}
+                  {project.facebookPostStatus === 'failed' && project.facebookPostError && (
+                    <p className="rounded-xl bg-red-50 px-3 py-2 text-[0.8125rem] text-red-700" role="alert">
+                      {project.facebookPostError}
+                    </p>
+                  )}
+                  {!facebookConfigured && (
+                    <p className="text-[0.8125rem] text-gray-500">Connect Facebook to enable automatic posting.</p>
+                  )}
+                </dd>
+              </div>
             </dl>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -177,6 +257,19 @@ function DetailBody({
               >
                 {project.status === 'published' ? 'Unpublish' : 'Publish'}
               </button>
+              {project.status === 'published' &&
+                !project.facebookPostId &&
+                project.facebookPostStatus !== 'posted' && (
+                  <button
+                    type="button"
+                    className="min-h-12 w-full rounded-xl border border-[#1877F2]/30 bg-[#1877F2]/10 px-6 text-[0.9375rem] font-semibold text-[#1877F2] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                    disabled={busy || !facebookConfigured}
+                    onClick={retryFacebook}
+                    title={facebookConfigured ? 'Retry Facebook Post' : 'Connect Facebook to enable automatic posting.'}
+                  >
+                    Retry Facebook Post
+                  </button>
+                )}
               <button
                 type="button"
                 className="min-h-12 w-full rounded-xl border border-red-200 bg-red-50 px-6 text-[0.9375rem] font-semibold text-red-700 sm:w-auto"
@@ -325,7 +418,9 @@ export default function AdminJobDetailPage() {
               setUnauthorized={setUnauthorized}
               setEditing={setEditing}
               setMessage={setMessage}
+              setError={setError}
               setProject={setProject}
+              setBusy={setBusy}
               publishOrUnpublish={publishOrUnpublish}
               remove={remove}
             />
