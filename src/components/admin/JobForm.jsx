@@ -608,7 +608,8 @@ export default function JobForm({
                 maxLength={2000}
               />
               <span className="mt-1 block text-[0.75rem] text-gray-500">
-                Include service, city, a short description, and the project page link. The cover photo is used for the post.
+                Keep it short: service, city, a one-line teaser, and the project page link. The cover photo is used for the
+                post — avoid pasting the full job description.
               </span>
             </label>
           )}
