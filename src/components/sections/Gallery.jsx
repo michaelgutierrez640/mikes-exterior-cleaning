@@ -1,17 +1,49 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { IMAGES, getCuratedGalleryItems, getCuratedGalleryByCategory } from '../../config/images'
 import Lightbox from '../ui/Lightbox'
 import ScrollReveal from '../ScrollReveal'
 import GalleryImage from '../gallery/GalleryImage'
 
-const curatedByCategory = getCuratedGalleryByCategory(IMAGES.gallery)
-const categoryEntries = Object.entries(curatedByCategory).filter(([, items]) => items.length > 0)
+async function fetchHiddenOurWorkSrcs() {
+  try {
+    const res = await fetch('/api/our-work-gallery', { headers: { Accept: 'application/json' } })
+    if (!res.ok) return []
+    const data = await res.json()
+    return Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : []
+  } catch {
+    return []
+  }
+}
 
 export default function Gallery() {
   const [active, setActive] = useState('all')
   const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [hiddenSrcs, setHiddenSrcs] = useState([])
 
-  const allItems = useMemo(() => getCuratedGalleryItems(IMAGES.gallery), [])
+  useEffect(() => {
+    let cancelled = false
+    fetchHiddenOurWorkSrcs().then((srcs) => {
+      if (!cancelled) setHiddenSrcs(srcs)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const allItems = useMemo(
+    () => getCuratedGalleryItems(IMAGES.gallery, { hiddenSrcs }),
+    [hiddenSrcs],
+  )
+
+  const curatedByCategory = useMemo(
+    () => getCuratedGalleryByCategory(IMAGES.gallery, { hiddenSrcs }),
+    [hiddenSrcs],
+  )
+
+  const categoryEntries = useMemo(
+    () => Object.entries(curatedByCategory).filter(([, items]) => items.length > 0),
+    [curatedByCategory],
+  )
 
   const currentItems = active === 'all' ? allItems : curatedByCategory[active] || []
 

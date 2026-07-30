@@ -151,7 +151,8 @@ const CATEGORY_TITLES = {
  * Hidden from Our Work (files kept on disk): orphan dirty befores without a verified
  * matching after in this library — see gallery review notes in PR / release notes.
  */
-const IMAGE_LIBRARY = [
+/** Static Our Work gallery library (homepage Project Gallery). */
+export const OUR_WORK_IMAGE_LIBRARY = [
   // ── Featured transformations (in-frame before/after & work-in-progress) ──
   {
     src: '/images/gallery/window-cleaning/window-cleaning-06.jpg',
@@ -340,6 +341,9 @@ function makeImageItem({ src, alt, width = 4032, height = 3024 }) {
   }
 }
 
+/** @deprecated use OUR_WORK_IMAGE_LIBRARY */
+const IMAGE_LIBRARY = OUR_WORK_IMAGE_LIBRARY
+
 function findGalleryItem(gallery, src) {
   for (const cat of Object.values(gallery)) {
     const item = cat.items?.find((i) => i.src === src && i.type === 'image')
@@ -358,12 +362,20 @@ function resolveEntry(gallery, entry) {
   return base
 }
 
+function normalizeHiddenSrcs(hiddenSrcs) {
+  if (!hiddenSrcs) return new Set()
+  if (hiddenSrcs instanceof Set) return hiddenSrcs
+  return new Set([...(hiddenSrcs || [])].map((s) => String(s || '').trim()).filter(Boolean))
+}
+
 /** "All" gallery — every library image once, priority order. */
-export function getCuratedGalleryItems(gallery) {
+export function getCuratedGalleryItems(gallery, { hiddenSrcs } = {}) {
+  const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const picked = []
   const usedSrc = new Set()
 
-  for (const entry of IMAGE_LIBRARY) {
+  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
+    if (hidden.has(entry.src)) continue
     if (usedSrc.has(entry.src)) continue
     usedSrc.add(entry.src)
     const primary = entry.categories[0]
@@ -378,10 +390,12 @@ export function getCuratedGalleryItems(gallery) {
 }
 
 /** Per-tab gallery — images appear in every category they belong to. */
-export function getCuratedGalleryByCategory(gallery) {
+export function getCuratedGalleryByCategory(gallery, { hiddenSrcs } = {}) {
+  const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const byCat = {}
 
-  for (const entry of IMAGE_LIBRARY) {
+  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
+    if (hidden.has(entry.src)) continue
     const item = resolveEntry(gallery, entry)
     for (const cat of entry.categories) {
       if (!byCat[cat]) byCat[cat] = []

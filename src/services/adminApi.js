@@ -170,6 +170,36 @@ export async function deleteAdminProject(id) {
   return data
 }
 
+export async function fetchAdminOurWorkGallery() {
+  const res = await fetch('/api/admin/our-work-gallery', {
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to load Our Work gallery')
+  return data
+}
+
+export async function removeAdminOurWorkStaticPhoto(src) {
+  const res = await fetch('/api/admin/our-work-gallery', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ src }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to remove gallery photo')
+  return data
+}
+
 function buildLeadsQuery(filters = {}) {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)
