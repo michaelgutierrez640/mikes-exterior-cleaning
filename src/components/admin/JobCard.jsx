@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { SERVICES } from '../../config/content'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
+import { facebookStatusLabel } from '../../utils/facebookCaption'
 
 function serviceLabel(slug) {
   return SERVICES.find((s) => s.slug === slug)?.title || slug
@@ -44,6 +45,11 @@ export default function JobCard({ project }) {
           >
             {project.status}
           </span>
+          {project.status === 'published' && (
+            <span className="rounded-full bg-white/95 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-navy-900">
+              {facebookStatusLabel(project.facebookPostStatus)}
+            </span>
+          )}
         </div>
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-950/75 to-transparent px-4 py-3">
           <p className="text-[0.8125rem] font-semibold text-white">Tap to open · {project.photos?.length || 0} photos</p>
