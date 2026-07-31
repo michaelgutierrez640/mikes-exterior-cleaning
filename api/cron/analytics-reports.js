@@ -6,9 +6,9 @@
  * Schedule: vercel.json "0 15 * * *" (15:00 UTC ≈ 8:00 AM PDT / 7:00 AM PST).
  * Weekly send only when America/Los_Angeles weekday is Monday.
  */
-import { runScheduledReports, verifyCronSecret } from '../lib/reportSend.mjs'
-import { saveCronRunStatus } from '../lib/reportStore.mjs'
-import { json } from '../lib/adminAuth.mjs'
+import { runScheduledReports, verifyCronSecret } from '../../lib/reportSend.mjs'
+import { saveCronRunStatus } from '../../lib/reportStore.mjs'
+import { json } from '../../lib/adminAuth.mjs'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
