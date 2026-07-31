@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import AdminAuthGate from '../components/admin/AdminAuthGate'
 import AdminNav from '../components/admin/AdminNav'
 import SeoHead from '../components/seo/SeoHead'
@@ -103,6 +104,20 @@ function AnalyticsBody({ metrics, metricsError, onRefresh }) {
         <button className="btn-secondary btn-sm !rounded-xl" type="button" onClick={onRefresh}>
           Refresh
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">Weekly email report</p>
+            <p className="mt-2 text-[0.9375rem] text-navy-900">
+              Delivery status, next Pacific schedule, and Send Test Report live on the Reports page.
+            </p>
+          </div>
+          <Link to="/admin/reports" className="btn-royal btn-sm !rounded-xl">
+            Open reports · Send Test Report
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

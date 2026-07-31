@@ -156,6 +156,45 @@ export default async function handler(req, res) {
         })
       }
 
+      // Catch up a missed scheduled weekly/monthly period (not a test). Duplicate-protected unless force.
+      if (action === 'send-overdue') {
+        const type = body.type === 'monthly' ? 'monthly' : 'weekly'
+        const range = type === 'weekly' ? getPreviousWeekRange() : getPreviousMonthRange()
+        const priorRange = type === 'weekly' ? getPriorWeekRange(range) : getPriorMonthRange(range)
+        const result = await runReport(type, {
+          send: true,
+          isTest: false,
+          force: Boolean(body.force),
+          range,
+          priorRange,
+        })
+        if (result.skipped) {
+          return json(res, 200, {
+            ok: true,
+            skipped: true,
+            reason: result.reason,
+            periodKey: result.periodKey,
+            delivery: result.delivery,
+          })
+        }
+        if (!result.ok) {
+          return json(res, 502, {
+            ok: false,
+            error: result.error || 'Overdue send failed',
+            diagnostics: result.diagnostics,
+            delivery: result.delivery,
+          })
+        }
+        return json(res, 200, {
+          ok: true,
+          sent: true,
+          periodKey: result.periodKey,
+          providerMessageId: result.providerMessageId,
+          diagnostics: result.diagnostics,
+          delivery: result.delivery,
+        })
+      }
+
       if (action === 'resend') {
         const type = body.type === 'monthly' ? 'monthly' : 'weekly'
         const periodKey = String(body.periodKey || '').trim()

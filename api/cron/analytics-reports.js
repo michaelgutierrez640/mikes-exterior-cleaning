@@ -3,8 +3,11 @@
  * Replaces unused debug analytics slot to stay within Hobby 12-function limit.
  *
  * Auth: Authorization: Bearer CRON_SECRET (Vercel Cron) or x-cron-secret header.
+ * Schedule: vercel.json "0 15 * * *" (15:00 UTC ≈ 8:00 AM PDT / 7:00 AM PST).
+ * Weekly send only when America/Los_Angeles weekday is Monday.
  */
 import { runScheduledReports, verifyCronSecret } from '../lib/reportSend.mjs'
+import { saveCronRunStatus } from '../lib/reportStore.mjs'
 import { json } from '../lib/adminAuth.mjs'
 
 export default async function handler(req, res) {
@@ -14,7 +17,11 @@ export default async function handler(req, res) {
   }
 
   const auth = verifyCronSecret(req)
-  if (!auth.ok) return json(res, auth.status, { error: auth.error })
+  if (!auth.ok) {
+    // Do not write Redis on auth failure (avoid abuse). Log only — no secrets.
+    console.error('[cron/analytics-reports] auth failed', { status: auth.status })
+    return json(res, auth.status, { error: auth.error })
+  }
 
   try {
     const result = await runScheduledReports()
@@ -38,6 +45,13 @@ export default async function handler(req, res) {
     return json(res, 200, result)
   } catch (err) {
     console.error('[cron/analytics-reports] error:', err?.message || err)
+    await saveCronRunStatus({
+      lastRunAt: new Date().toISOString(),
+      lastOk: false,
+      lastError: err?.message || 'Report cron failed',
+      weekly: { outcome: 'error' },
+      monthly: { outcome: 'error' },
+    }).catch(() => {})
     return json(res, 500, { error: 'Report cron failed' })
   }
 }
