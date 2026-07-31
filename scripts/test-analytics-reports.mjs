@@ -8,6 +8,7 @@ import { readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 import {
+  describeNextWeeklySchedule,
   getDueReportPeriods,
   getPreviousMonthRange,
   getPreviousWeekRange,
@@ -16,6 +17,7 @@ import {
   pacificDateKey,
   pacificDayBoundMs,
   pacificWeekday,
+  REPORT_TZ,
 } from '../lib/reportTime.mjs'
 import { compareValues } from '../lib/reportCompare.mjs'
 import { buildPlainLanguageSummary } from '../lib/reportSummary.mjs'
@@ -114,6 +116,26 @@ test('due periods: mid-week neither', () => {
   const due = getDueReportPeriods(new Date('2026-07-22T16:00:00.000Z'))
   assert.strictEqual(due.weekly, null)
   assert.strictEqual(due.monthly, null)
+})
+
+test('next weekly schedule uses America/Los_Angeles Monday morning', () => {
+  // Thursday Jul 30, 2026 PT → next Monday Aug 3
+  const schedule = describeNextWeeklySchedule(new Date('2026-07-30T20:00:00.000Z'))
+  assert.strictEqual(schedule.timeZone, REPORT_TZ)
+  assert.strictEqual(schedule.dateKey, '2026-08-03')
+  assert.strictEqual(schedule.weekdayLabel, 'Monday')
+  assert.match(schedule.localLabel, /August 3, 2026/)
+  assert.match(schedule.summary, /Monday/)
+  assert.ok(schedule.timeOfDayLabel)
+})
+
+test('report email includes weekly KPI labels', () => {
+  const src = readSrc('lib/reportEmail.mjs')
+  assert.match(src, /Total visitors \(sessions\)/)
+  assert.match(src, /Unique visitors/)
+  assert.match(src, /Page views/)
+  assert.match(src, /Completed jobs published/)
+  assert.match(src, /Quote \/ CRM leads/)
 })
 
 test('day bounds do not spill into adjacent PT days', () => {

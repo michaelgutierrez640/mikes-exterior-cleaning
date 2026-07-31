@@ -160,6 +160,11 @@ function ReportsBody({ signOut }) {
   }
 
   const env = data.envConfigured || {}
+  const schedule = data.weeklySchedule || {}
+  const cron = data.cronStatus
+  const lastSuccess = data.lastSuccessfulWeeklyReport
+  const lastError = data.lastError
+  const overdue = data.overdueWeekly
 
   return (
     <div className="space-y-6">
@@ -174,9 +179,9 @@ function ReportsBody({ signOut }) {
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-semibold text-navy-900">Email report settings</h2>
+            <h2 className="font-display text-xl font-semibold text-navy-900">Weekly report delivery status</h2>
             <p className="mt-2 text-[0.875rem] text-gray-600">
-              Private weekly and monthly analytics emails. Secrets stay in Vercel environment variables.
+              Secure admin status only — no API keys, cron secrets, or private analytics payloads.
             </p>
           </div>
           <Link to="/admin/dashboard" className="text-[0.8125rem] font-semibold text-royal-600 hover:text-royal-700">
@@ -184,21 +189,113 @@ function ReportsBody({ signOut }) {
           </Link>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl bg-gray-50 p-4">
             <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Recipient</p>
             <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">{data.recipientDisplay || 'Not configured'}</p>
-            <p className="mt-1 text-[0.75rem] text-gray-500">From ANALYTICS_REPORT_TO_EMAIL</p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              {data.recipientMatchesExpected === true
+                ? `Matches ${data.expectedRecipientHint}`
+                : data.recipientMatchesExpected === false
+                  ? `Does not match ${data.expectedRecipientHint} — update ANALYTICS_REPORT_TO_EMAIL in Vercel`
+                  : 'Set ANALYTICS_REPORT_TO_EMAIL in Vercel'}
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4 sm:col-span-2 xl:col-span-2">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Next scheduled report</p>
+            <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">
+              {schedule.localLabel || data.nextWeeklySendDate || '—'}
+            </p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              {schedule.summary || 'Mondays · America/Los_Angeles'}
+            </p>
+            {schedule.windowNote ? <p className="mt-1 text-[0.75rem] text-gray-500">{schedule.windowNote}</p> : null}
           </div>
           <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Next weekly send</p>
-            <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">{data.nextWeeklySendDate}</p>
-            <p className="mt-1 text-[0.75rem] text-gray-500">Pacific · Mondays</p>
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last successful report</p>
+            <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">
+              {lastSuccess
+                ? `${lastSuccess.label || lastSuccess.periodKey}`
+                : 'None yet (scheduled)'}
+            </p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              {lastSuccess?.sentAt
+                ? new Date(lastSuccess.sentAt).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+                : 'Tests do not count as the scheduled weekly send'}
+            </p>
           </div>
           <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Next monthly send</p>
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last cron run</p>
+            <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">
+              {cron?.lastRunAt
+                ? new Date(cron.lastRunAt).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+                : 'No authenticated cron run recorded yet'}
+            </p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              Weekly: {cron?.weekly?.outcome || '—'}
+              {cron?.weekly?.reason ? ` (${cron.weekly.reason})` : ''}
+              {' · '}
+              Monthly: {cron?.monthly?.outcome || '—'}
+              {cron?.monthly?.reason ? ` (${cron.monthly.reason})` : ''}
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4 sm:col-span-2">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last error</p>
+            <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">
+              {lastError?.message || 'None recorded'}
+            </p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              {lastError?.at
+                ? `${new Date(lastError.at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}${
+                    lastError.periodKey ? ` · ${lastError.periodKey}` : ''
+                  }`
+                : 'Delivery failures and cron errors appear here'}
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Next monthly</p>
             <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">{data.nextMonthlySendDate}</p>
-            <p className="mt-1 text-[0.75rem] text-gray-500">Pacific · 1st of month</p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">1st of month · Pacific morning window</p>
+          </div>
+        </div>
+
+        {overdue && (
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-[0.875rem] font-semibold text-amber-950">
+              Missed weekly report: {overdue.label} ({overdue.periodKey})
+            </p>
+            <p className="mt-1 text-[0.8125rem] text-amber-900">
+              No successful scheduled send is on file for the previous complete Pacific week. You can send it once from
+              here (duplicate-protected).
+            </p>
+            <button
+              type="button"
+              className="btn-primary btn-sm mt-3 !rounded-xl"
+              disabled={Boolean(busy)}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    `Send the missed weekly report for ${overdue.label}? This is a real (non-test) email.`,
+                  )
+                ) {
+                  return
+                }
+                runAction('send-overdue', 'weekly')
+              }}
+            >
+              {busy === 'send-overdue-weekly' ? 'Sending…' : 'Send missed weekly report'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-navy-900">Email report settings</h2>
+            <p className="mt-2 text-[0.875rem] text-gray-600">
+              Private weekly and monthly analytics emails. Secrets stay in Vercel environment variables.
+            </p>
           </div>
         </div>
 
@@ -208,6 +305,16 @@ function ReportsBody({ signOut }) {
           <StatusPill ok={env.toEmail} label={env.toEmail ? 'To email set' : 'To email missing'} />
           <StatusPill ok={env.fromEmail} label={env.fromEmail ? 'From email set' : 'From email missing'} />
           <StatusPill ok={env.cronSecret} label={env.cronSecret ? 'Cron secret set' : 'Cron secret missing'} />
+          <StatusPill
+            ok={data.recipientMatchesExpected !== false}
+            label={
+              data.recipientMatchesExpected === true
+                ? 'Recipient matches expected'
+                : data.recipientMatchesExpected === false
+                  ? 'Recipient mismatch'
+                  : 'Recipient unchecked'
+            }
+          />
         </div>
 
         <div className="mt-6 space-y-3">
@@ -247,11 +354,11 @@ function ReportsBody({ signOut }) {
             disabled={Boolean(busy)}
             onClick={() => runAction('send-test', 'weekly')}
           >
-            {busy === 'send-test-weekly' ? 'Sending…' : 'Send test weekly email'}
+            {busy === 'send-test-weekly' ? 'Sending…' : 'Send Test Report'}
           </button>
           <button
             type="button"
-            className="btn-royal btn-sm !rounded-xl"
+            className="btn-secondary btn-sm !rounded-xl"
             disabled={Boolean(busy)}
             onClick={() => runAction('send-test', 'monthly')}
           >
@@ -310,28 +417,6 @@ function ReportsBody({ signOut }) {
           </div>
         )}
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-black/[0.06] p-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last weekly sent</p>
-            <p className="mt-2 text-[0.875rem] text-navy-900">
-              {data.lastWeeklyReport
-                ? `${data.lastWeeklyReport.label || data.lastWeeklyReport.periodKey} · ${data.lastWeeklyReport.status}${
-                    data.lastWeeklyReport.sentAt ? ` · ${new Date(data.lastWeeklyReport.sentAt).toLocaleString()}` : ''
-                  }`
-                : 'None yet'}
-            </p>
-          </div>
-          <div className="rounded-xl border border-black/[0.06] p-4">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">Last monthly sent</p>
-            <p className="mt-2 text-[0.875rem] text-navy-900">
-              {data.lastMonthlyReport
-                ? `${data.lastMonthlyReport.label || data.lastMonthlyReport.periodKey} · ${data.lastMonthlyReport.status}${
-                    data.lastMonthlyReport.sentAt ? ` · ${new Date(data.lastMonthlyReport.sentAt).toLocaleString()}` : ''
-                  }`
-                : 'None yet'}
-            </p>
-          </div>
-        </div>
       </div>
 
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
@@ -365,7 +450,13 @@ function ReportsBody({ signOut }) {
                   <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">
                     {row.sentAt ? new Date(row.sentAt).toLocaleString() : '—'}
                   </td>
-                  <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">{row.recipient || '—'}</td>
+                  <td className="py-3 pr-3 text-[0.8125rem] text-gray-600">
+                    {row.recipient
+                      ? String(row.recipient).includes('@')
+                        ? `${String(row.recipient).slice(0, 2)}***@${String(row.recipient).split('@')[1]}`
+                        : '—'
+                      : '—'}
+                  </td>
                   <td className="py-3 pr-3">
                     <div className="flex flex-wrap gap-2">
                       <button
