@@ -20,17 +20,22 @@ function escapeHtml(value = '') {
     .replace(/"/g, '&quot;')
 }
 
+function metaTagPattern(attr, key) {
+  return new RegExp(`<meta\\s[^>]*?${attr}\\s*=\\s*["']${key}["'][^>]*?/?>\\s*`, 'is')
+}
+
 function upsertMetaTag(html, attr, key, content) {
   if (!content) return html
   const escaped = escapeHtml(content)
   // Match single-line or multi-line <meta ...> (index.html uses wrapped attributes).
-  const pattern = new RegExp(
-    `<meta\\s[^>]*?${attr}\\s*=\\s*["']${key}["'][^>]*?/?>`,
-    'is',
-  )
+  const pattern = metaTagPattern(attr, key)
   const tag = `<meta ${attr}="${key}" content="${escaped}" />`
   if (pattern.test(html)) return html.replace(pattern, tag)
   return html.replace('</head>', `    ${tag}\n  </head>`)
+}
+
+function removeMetaTag(html, attr, key) {
+  return html.replace(metaTagPattern(attr, key), '')
 }
 
 function upsertLink(html, rel, href) {
@@ -42,7 +47,23 @@ function upsertLink(html, rel, href) {
   return html.replace('</head>', `    ${tag}\n  </head>`)
 }
 
-function injectRouteHtml(baseHtml, { title, description, keywords, canonical, ogImage, schemas = [], noindex = false, h1 = '', crawlLinks = [] }) {
+function injectRouteHtml(
+  baseHtml,
+  {
+    title,
+    description,
+    keywords,
+    canonical,
+    ogImage,
+    ogImageWidth,
+    ogImageHeight,
+    ogImageAlt,
+    schemas = [],
+    noindex = false,
+    h1 = '',
+    crawlLinks = [],
+  },
+) {
   let html = baseHtml
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`)
   html = upsertMetaTag(html, 'name', 'description', description)
@@ -51,6 +72,23 @@ function injectRouteHtml(baseHtml, { title, description, keywords, canonical, og
   html = upsertMetaTag(html, 'property', 'og:title', title)
   html = upsertMetaTag(html, 'property', 'og:description', description)
   html = upsertMetaTag(html, 'property', 'og:image', ogImage)
+  html = upsertMetaTag(html, 'property', 'og:image:secure_url', ogImage)
+  if (ogImageWidth != null) {
+    html = upsertMetaTag(html, 'property', 'og:image:width', String(ogImageWidth))
+  } else {
+    html = removeMetaTag(html, 'property', 'og:image:width')
+  }
+  if (ogImageHeight != null) {
+    html = upsertMetaTag(html, 'property', 'og:image:height', String(ogImageHeight))
+  } else {
+    html = removeMetaTag(html, 'property', 'og:image:height')
+  }
+  if (ogImageAlt) {
+    html = upsertMetaTag(html, 'property', 'og:image:alt', ogImageAlt)
+  } else {
+    html = removeMetaTag(html, 'property', 'og:image:alt')
+  }
+  html = upsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image')
   html = upsertMetaTag(html, 'name', 'twitter:title', title)
   html = upsertMetaTag(html, 'name', 'twitter:description', description)
   html = upsertMetaTag(html, 'name', 'twitter:image', ogImage)
@@ -119,7 +157,14 @@ async function loadModules() {
 
 async function collectRoutes(modules, publishedProjects = []) {
   const { seo, site, content, services, articles, wcCities, locations, serviceAreas } = modules
-  const { DEFAULT_OG_IMAGE, absoluteUrl } = site
+  const {
+    DEFAULT_OG_IMAGE,
+    HOME_OG_IMAGE,
+    HOME_OG_IMAGE_WIDTH,
+    HOME_OG_IMAGE_HEIGHT,
+    HOME_OG_IMAGE_ALT,
+    absoluteUrl,
+  } = site
 
   const routes = []
 
@@ -127,7 +172,10 @@ async function collectRoutes(modules, publishedProjects = []) {
     path: '/',
     seo: seo.SEO,
     schemas: seo.getHomePageSchemas(content.FAQS),
-    ogImage: DEFAULT_OG_IMAGE,
+    ogImage: HOME_OG_IMAGE,
+    ogImageWidth: HOME_OG_IMAGE_WIDTH,
+    ogImageHeight: HOME_OG_IMAGE_HEIGHT,
+    ogImageAlt: HOME_OG_IMAGE_ALT,
     h1: "Mike's Exterior Cleaning Services",
     crawlLinks: [
       { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
@@ -354,6 +402,9 @@ async function main() {
       keywords: route.seo.keywords,
       canonical: route.seo.canonical,
       ogImage: route.ogImage,
+      ogImageWidth: route.ogImageWidth,
+      ogImageHeight: route.ogImageHeight,
+      ogImageAlt: route.ogImageAlt,
       schemas: route.schemas,
       noindex: route.noindex,
       h1: route.h1,

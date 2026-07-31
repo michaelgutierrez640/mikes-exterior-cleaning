@@ -20,7 +20,12 @@ import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import { SEO, getHomePageSchemas } from '../config/seo'
 import { FAQS } from '../config/content'
-import { DEFAULT_OG_IMAGE } from '../config/site'
+import {
+  HOME_OG_IMAGE,
+  HOME_OG_IMAGE_ALT,
+  HOME_OG_IMAGE_HEIGHT,
+  HOME_OG_IMAGE_WIDTH,
+} from '../config/site'
 import { useGoogleReviews } from '../context/GoogleReviewsContext'
 
 import { scrollToHash } from '../utils/scroll'
@@ -57,7 +62,10 @@ export default function HomePage() {
         description={SEO.description}
         keywords={SEO.keywords}
         canonical={SEO.canonical}
-        ogImage={DEFAULT_OG_IMAGE}
+        ogImage={HOME_OG_IMAGE}
+        ogImageWidth={HOME_OG_IMAGE_WIDTH}
+        ogImageHeight={HOME_OG_IMAGE_HEIGHT}
+        ogImageAlt={HOME_OG_IMAGE_ALT}
       />
       <JsonLd data={homeSchemas} id="home-schema" />
       <Particles />

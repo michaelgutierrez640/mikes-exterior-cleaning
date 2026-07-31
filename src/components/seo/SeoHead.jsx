@@ -2,14 +2,14 @@ import { useEffect } from 'react'
 import { DEFAULT_OG_IMAGE } from '../../config/site'
 
 function upsertMeta(attr, key, content) {
-  if (!content) return
+  if (content == null || content === '') return
   let el = document.querySelector(`meta[${attr}="${key}"]`)
   if (!el) {
     el = document.createElement('meta')
     el.setAttribute(attr, key)
     document.head.appendChild(el)
   }
-  el.setAttribute('content', content)
+  el.setAttribute('content', String(content))
 }
 
 function upsertLink(rel, href) {
@@ -34,6 +34,9 @@ export default function SeoHead({
   canonical,
   ogType = 'website',
   ogImage,
+  ogImageWidth,
+  ogImageHeight,
+  ogImageAlt,
   noindex = false,
 }) {
   useEffect(() => {
@@ -46,6 +49,10 @@ export default function SeoHead({
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:type', ogType)
     upsertMeta('property', 'og:image', image)
+    upsertMeta('property', 'og:image:secure_url', image)
+    if (ogImageWidth != null) upsertMeta('property', 'og:image:width', ogImageWidth)
+    if (ogImageHeight != null) upsertMeta('property', 'og:image:height', ogImageHeight)
+    if (ogImageAlt) upsertMeta('property', 'og:image:alt', ogImageAlt)
     upsertMeta('name', 'twitter:card', 'summary_large_image')
     upsertMeta('name', 'twitter:title', title)
     upsertMeta('name', 'twitter:description', description)
@@ -54,7 +61,7 @@ export default function SeoHead({
       upsertLink('canonical', canonical)
       upsertMeta('property', 'og:url', canonical)
     }
-  }, [title, description, keywords, canonical, ogType, ogImage, noindex])
+  }, [title, description, keywords, canonical, ogType, ogImage, ogImageWidth, ogImageHeight, ogImageAlt, noindex])
 
   return null
 }
