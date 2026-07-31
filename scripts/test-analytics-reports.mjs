@@ -138,6 +138,14 @@ test('report email includes weekly KPI labels', () => {
   assert.match(src, /Quote \/ CRM leads/)
 })
 
+test('cron route imports root lib (not api/lib)', () => {
+  const src = readSrc('api/cron/analytics-reports.js')
+  assert.match(src, /from ['"]\.\.\/\.\.\/lib\/reportSend\.mjs['"]/)
+  assert.match(src, /from ['"]\.\.\/\.\.\/lib\/reportStore\.mjs['"]/)
+  assert.match(src, /from ['"]\.\.\/\.\.\/lib\/adminAuth\.mjs['"]/)
+  assert.doesNotMatch(src, /from ['"]\.\.\/lib\//)
+})
+
 test('day bounds do not spill into adjacent PT days', () => {
   const start = pacificDayBoundMs('2026-03-08', 'start')
   const end = pacificDayBoundMs('2026-03-08', 'end')
