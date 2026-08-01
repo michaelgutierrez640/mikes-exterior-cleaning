@@ -1,5 +1,9 @@
 import { json, requireAdmin } from '../../lib/adminAuth.mjs'
-import { cleanupRemovedProjectPhotos, deleteBlobUrls } from '../../lib/projectBlobCleanup.mjs'
+import {
+  cleanupRemovedProjectPhotos,
+  deleteBlobUrls,
+  findUnusedPhotoUrls,
+} from '../../lib/projectBlobCleanup.mjs'
 import {
   facebookStatusLabel,
   getFacebookConfigStatus,
@@ -36,6 +40,7 @@ import {
  * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
  * - GET /api/admin/projects?resource=facebook
  * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry', caption? }
+ * - POST /api/admin/projects?resource=cleanup-blobs  body: { urls: string[] }
  *
  * Query-param item routes avoid brittle dynamic /api/.../[id] matching behind the SPA rewrite.
  * Extra resources are folded into this function to stay within Vercel Hobby function limits.
@@ -135,6 +140,37 @@ async function handleOurWorkGallery(req, res) {
   return json(res, 405, { error: 'Method not allowed' })
 }
 
+async function handleCleanupBlobs(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
+    return json(res, 405, { error: 'Method not allowed' })
+  }
+
+  const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+  const urls = Array.isArray(body.urls) ? body.urls : []
+  const candidates = [...new Set(urls.map((u) => String(u || '').trim()).filter(Boolean))]
+    .filter((url) => /^https:\/\//i.test(url) && url.includes('completed-jobs/'))
+    .slice(0, 24)
+
+  if (!candidates.length) {
+    return json(res, 400, { error: 'No valid completed-jobs blob URLs to clean up' })
+  }
+
+  // Only delete blobs that are not referenced by any project (failed / incomplete uploads).
+  const unused = await findUnusedPhotoUrls(candidates)
+  if (!unused.length) {
+    return json(res, 200, { ok: true, deleted: 0, skippedInUse: candidates.length, errors: [] })
+  }
+
+  const result = await deleteBlobUrls(unused)
+  return json(res, 200, {
+    ok: true,
+    deleted: result.deleted,
+    skippedInUse: Math.max(0, candidates.length - unused.length),
+    errors: result.errors,
+  })
+}
+
 async function handleFacebookResource(req, res) {
   if (req.method === 'GET') {
     const config = getFacebookConfigStatus()
@@ -218,6 +254,16 @@ export default async function handler(req, res) {
       console.error('[admin/projects facebook]', err?.message || err)
       const status = err?.status || 500
       return json(res, status, { error: err?.message || 'Facebook request failed' })
+    }
+  }
+
+  if (resource === 'cleanup-blobs') {
+    try {
+      return await handleCleanupBlobs(req, res)
+    } catch (err) {
+      console.error('[admin/projects cleanup-blobs]', err?.message || err)
+      const status = err?.status || 500
+      return json(res, status, { error: err?.message || 'Blob cleanup failed' })
     }
   }
 

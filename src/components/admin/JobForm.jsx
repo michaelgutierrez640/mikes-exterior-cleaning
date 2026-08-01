@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { SERVICES } from '../../config/content'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
-import { fetchAdminFacebookStatus } from '../../services/adminApi'
+import { cleanupAdminOrphanBlobs, fetchAdminFacebookStatus } from '../../services/adminApi'
 import {
   buildFacebookCaptionPreview,
   canShowFacebookPublishCheckbox,
@@ -80,6 +80,8 @@ export default function JobForm({
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState('')
   const [deletingKey, setDeletingKey] = useState('')
+  const [addingPhotos, setAddingPhotos] = useState(false)
+  const pickInFlightRef = useRef(false)
   const [facebookConfigured, setFacebookConfigured] = useState(false)
   const [facebookConfigLoaded, setFacebookConfigLoaded] = useState(false)
   const [postToFacebook, setPostToFacebook] = useState(false)
@@ -141,6 +143,21 @@ export default function JobForm({
     }))
   }
 
+  /** Like updatePhoto, but inserts `fallback` if the key is not in state yet (avoids race after staging). */
+  function upsertPhoto(key, patch, fallback = null) {
+    setForm((prev) => {
+      const exists = prev.photos.some((p) => p.key === key)
+      if (!exists) {
+        if (!fallback) return prev
+        return { ...prev, photos: [...prev.photos, { ...fallback, ...patch }] }
+      }
+      return {
+        ...prev,
+        photos: prev.photos.map((p) => (p.key === key ? { ...p, ...patch } : p)),
+      }
+    })
+  }
+
   function dropPhotoFromForm(key) {
     setForm((prev) => {
       const target = prev.photos.find((p) => p.key === key)
@@ -196,24 +213,91 @@ export default function JobForm({
     }
   }
 
+  async function cleanupFailedUploadUrls(urls) {
+    const list = [...new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean))]
+    if (!list.length) return
+    try {
+      await cleanupAdminOrphanBlobs(list)
+    } catch (cleanupErr) {
+      console.warn('[JobForm] orphan blob cleanup failed', cleanupErr?.message || cleanupErr)
+    }
+  }
+
   async function onPickFiles(e) {
+    // Prevent double-tap / overlapping pick handlers from starting duplicate uploads.
+    if (busy || deletingKey || addingPhotos || pickInFlightRef.current) {
+      e.target.value = ''
+      return
+    }
+
     setError('')
+    setPhotoStatus({ type: '', message: '' })
     const files = [...(e.target.files || [])]
     e.target.value = ''
     if (!files.length) return
 
+    pickInFlightRef.current = true
+
     const remaining = MAX_PHOTOS - form.photos.length
     if (remaining <= 0) {
-      setError(`Maximum ${MAX_PHOTOS} photos per job`)
+      const message = `Maximum ${MAX_PHOTOS} photos per job`
+      setError(message)
+      setPhotoStatus({ type: 'error', message })
+      pickInFlightRef.current = false
       return
     }
 
     const selected = files.slice(0, remaining)
-    const next = []
+    const truncated = files.length > remaining
+
+    // Create flow: stage locally until Save / Publish (same as before).
+    if (!(mode === 'edit' && initialProject?.id && typeof updateProject === 'function')) {
+      const next = []
+      for (const file of selected) {
+        try {
+          const prepared = await prepareImageForUpload(file)
+          next.push({
+            key: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            file: prepared.file,
+            previewUrl: prepared.previewUrl,
+            label: 'general',
+            alt: '',
+            contentType: prepared.contentType,
+            stripped: prepared.stripped,
+            heic: prepared.heic,
+            uploaded: false,
+            progress: 0,
+          })
+        } catch (err) {
+          const message = err.message || 'Could not prepare photo'
+          setError(message)
+          setPhotoStatus({ type: 'error', message })
+        }
+      }
+      if (next.length) {
+        setForm((prev) => ({ ...prev, photos: [...prev.photos, ...next] }))
+        setPhotoStatus({
+          type: 'success',
+          message: truncated
+            ? `Added ${next.length} photo${next.length === 1 ? '' : 's'} (max ${MAX_PHOTOS}). Save or publish to upload.`
+            : `Added ${next.length} photo${next.length === 1 ? '' : 's'}. Save or publish to upload.`,
+        })
+      }
+      pickInFlightRef.current = false
+      return
+    }
+
+    // Edit flow: optimize → upload → persist immediately (append; cover stays photos[0]).
+    setAddingPhotos(true)
+    setBusy(true)
+    setBusyLabel(`Preparing ${selected.length} photo${selected.length === 1 ? '' : 's'}…`)
+
+    const staged = []
+    const prepareErrors = []
     for (const file of selected) {
       try {
         const prepared = await prepareImageForUpload(file)
-        next.push({
+        staged.push({
           key: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           file: prepared.file,
           previewUrl: prepared.previewUrl,
@@ -226,10 +310,105 @@ export default function JobForm({
           progress: 0,
         })
       } catch (err) {
-        setError(err.message || 'Could not prepare photo')
+        prepareErrors.push(err.message || `Could not prepare ${file.name || 'photo'}`)
       }
     }
-    if (next.length) setForm((prev) => ({ ...prev, photos: [...prev.photos, ...next] }))
+
+    if (!staged.length) {
+      const message = prepareErrors[0] || 'Could not prepare photos'
+      setError(message)
+      setPhotoStatus({ type: 'error', message })
+      setAddingPhotos(false)
+      setBusy(false)
+      setBusyLabel('')
+      pickInFlightRef.current = false
+      return
+    }
+
+    setForm((prev) => ({ ...prev, photos: [...prev.photos, ...staged] }))
+
+    const uploadedNew = []
+    const uploadedUrls = []
+    try {
+      for (let i = 0; i < staged.length; i += 1) {
+        const photo = staged[i]
+        setBusyLabel(`Uploading ${i + 1} of ${staged.length}…`)
+        upsertPhoto(photo.key, { progress: 1 }, photo)
+        try {
+          const blobMeta = await uploadPreparedFile(
+            { file: photo.file, contentType: photo.contentType },
+            { onProgress: (pct) => upsertPhoto(photo.key, { progress: pct }, photo) },
+          )
+          uploadedUrls.push(blobMeta.url)
+          const persisted = {
+            key: photo.key,
+            url: blobMeta.url,
+            pathname: blobMeta.pathname,
+            label: photo.label,
+            alt: photo.alt,
+            contentType: blobMeta.contentType,
+            size: blobMeta.size,
+            previewUrl: blobMeta.url,
+            uploaded: true,
+            progress: 100,
+            heic: false,
+          }
+          uploadedNew.push(persisted)
+          upsertPhoto(
+            photo.key,
+            {
+              uploaded: true,
+              progress: 100,
+              url: blobMeta.url,
+              pathname: blobMeta.pathname,
+              contentType: blobMeta.contentType,
+              size: blobMeta.size,
+              previewUrl: blobMeta.url,
+              file: undefined,
+            },
+            photo,
+          )
+          if (photo.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(photo.previewUrl)
+        } catch (uploadErr) {
+          dropPhotoFromForm(photo.key)
+          throw new Error(uploadErr.message || `Upload failed for photo ${i + 1}`)
+        }
+      }
+
+      setBusyLabel('Saving photos to this project…')
+      const existingPersisted = form.photos.filter((p) => p.uploaded && p.url).map(toPersistedPhoto)
+      const newPersisted = uploadedNew.map(toPersistedPhoto)
+      // Append only — do not reorder, so the existing cover (first photo) is preserved.
+      const project = await updateProject(initialProject.id, {
+        photos: [...existingPersisted, ...newPersisted],
+      })
+
+      setForm(formFromProject(project))
+      const count = uploadedNew.length
+      const parts = [
+        `Added ${count} photo${count === 1 ? '' : 's'} to this project.`,
+      ]
+      if (truncated) parts.push(`Only the first ${remaining} fit within the ${MAX_PHOTOS}-photo limit.`)
+      if (prepareErrors.length) parts.push(`${prepareErrors.length} file${prepareErrors.length === 1 ? '' : 's'} could not be prepared.`)
+      setPhotoStatus({ type: 'success', message: parts.join(' ') })
+      onSaved?.(project, { closeEditor: false })
+    } catch (err) {
+      await cleanupFailedUploadUrls(uploadedUrls)
+      for (const photo of staged) {
+        dropPhotoFromForm(photo.key)
+      }
+      const message = err.message || 'Could not add photos'
+      setError(message)
+      setPhotoStatus({
+        type: 'error',
+        message: `${message} Incomplete uploads were cleaned up when possible.`,
+      })
+    } finally {
+      setAddingPhotos(false)
+      setBusy(false)
+      setBusyLabel('')
+      pickInFlightRef.current = false
+    }
   }
 
   async function ensureUploadedPhotos() {
@@ -409,7 +588,11 @@ export default function JobForm({
           Photos ({form.photos.length}/{MAX_PHOTOS})
         </p>
         <p className="mt-1 text-[0.75rem] text-gray-500">
-          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos. The first photo is the cover image.
+          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos. The first photo is the cover
+          image
+          {mode === 'edit'
+            ? ' and stays the cover when you add more. New photos upload immediately to this project.'
+            : '.'}
         </p>
 
         {showEmptyPhotoWarning && (
@@ -431,7 +614,7 @@ export default function JobForm({
         )}
 
         {/*
-          Visible upload control for mobile + desktop.
+          Visible Add Photos control for mobile + desktop.
           Do not use btn-secondary here — that style is white-on-glass for dark headers and is invisible on this light form.
         */}
         <div className="mt-3">
@@ -442,35 +625,40 @@ export default function JobForm({
             multiple
             className="sr-only"
             onChange={onPickFiles}
-            disabled={busy || form.photos.length >= MAX_PHOTOS}
-            aria-label="Choose photos from library or camera"
+            disabled={busy || addingPhotos || Boolean(deletingKey) || form.photos.length >= MAX_PHOTOS}
+            aria-label="Add photos from library or camera"
           />
           <label
             htmlFor="job-photos-input"
             className={[
               'flex w-full min-h-[3.5rem] cursor-pointer items-center justify-center gap-3 rounded-2xl px-4 py-4 text-base font-semibold shadow-sm transition active:scale-[0.99]',
-              busy || form.photos.length >= MAX_PHOTOS
+              busy || addingPhotos || Boolean(deletingKey) || form.photos.length >= MAX_PHOTOS
                 ? 'pointer-events-none bg-gray-200 text-gray-500'
                 : 'bg-royal-600 text-white hover:bg-royal-700',
             ].join(' ')}
           >
-            <svg
-              className="h-6 w-6 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            Choose Photos
+            {addingPhotos ? (
+              <span className="h-6 w-6 shrink-0 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />
+            ) : (
+              <svg
+                className="h-6 w-6 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            )}
+            {addingPhotos ? 'Adding Photos…' : 'Add Photos'}
           </label>
           <p className="mt-2 text-center text-[0.75rem] text-gray-500 sm:text-left">
-            Opens your photo library and camera options on your phone.
+            {mode === 'edit'
+              ? 'Select one or more photos from your phone or computer. They upload right away — no republish or Facebook post.'
+              : 'Opens your photo library and camera options. Photos upload when you save or publish.'}
           </p>
         </div>
 
@@ -478,7 +666,7 @@ export default function JobForm({
           <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {form.photos.map((photo, index) => {
               const isDeleting = deletingKey === photo.key
-              const controlsDisabled = busy || Boolean(deletingKey)
+              const controlsDisabled = busy || addingPhotos || Boolean(deletingKey)
               return (
                 <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-sm">
                   <div className="relative aspect-[4/3] bg-navy-950/5">
@@ -565,6 +753,25 @@ export default function JobForm({
               )
             })}
           </ul>
+        )}
+
+        {form.photos.length > 0 && form.photos.length < MAX_PHOTOS && (
+          <div className="mt-4">
+            <label
+              htmlFor="job-photos-input"
+              className={[
+                'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-[0.875rem] font-semibold transition',
+                busy || addingPhotos || Boolean(deletingKey)
+                  ? 'pointer-events-none border-gray-200 bg-gray-100 text-gray-400'
+                  : 'border-royal-200 bg-royal-50 text-royal-800 hover:bg-royal-100',
+              ].join(' ')}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              </svg>
+              {addingPhotos ? 'Adding Photos…' : 'Add Photos'}
+            </label>
+          </div>
         )}
       </div>
 

@@ -155,6 +155,26 @@ export async function updateAdminProject(id, payload) {
   return data.project
 }
 
+/** Delete orphaned completed-jobs Blob URLs after a failed photo add (unused by any project). */
+export async function cleanupAdminOrphanBlobs(urls = []) {
+  const list = [...new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean))]
+  if (!list.length) return { ok: true, deleted: 0, errors: [] }
+
+  const res = await fetch('/api/admin/projects?resource=cleanup-blobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ urls: list }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to clean up incomplete uploads')
+  return data
+}
+
 export async function fetchAdminFacebookStatus() {
   const res = await fetch('/api/admin/projects?resource=facebook', {
     headers: { Accept: 'application/json' },

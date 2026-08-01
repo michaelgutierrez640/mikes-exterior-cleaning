@@ -158,7 +158,7 @@ function DetailBody({
           onSaved={(updated, opts = {}) => {
             setProject(updated)
             if (opts.closeEditor !== false) setEditing(false)
-            setMessage(opts.closeEditor === false ? 'Photo updated.' : 'Job updated.')
+            setMessage(opts.closeEditor === false ? 'Photos updated.' : 'Job updated.')
           }}
         />
       )}
