@@ -6,6 +6,8 @@ import {
 import {
   getHiddenOurWorkSrcs,
   isOurWorkGalleryStorageConfigured,
+  listUploadedOurWorkPhotos,
+  toPublicUploadedGalleryEntry,
 } from '../lib/ourWorkGalleryStore.mjs'
 
 function jsonPublic(res, status, payload, { cacheable = false } = {}) {
@@ -21,7 +23,7 @@ function jsonPublic(res, status, payload, { cacheable = false } = {}) {
  * Public read-only projects API (published jobs only).
  * - GET /api/projects?limit=&service=&city=
  * - GET /api/projects?slug=
- * - GET /api/projects?resource=our-work-gallery  (hidden static Our Work srcs)
+ * - GET /api/projects?resource=our-work-gallery  (hidden static srcs + uploaded gallery photos)
  *
  * Never returns drafts, admin IDs, Blob paths, or Redis credentials.
  */
@@ -35,14 +37,18 @@ export default async function handler(req, res) {
   if (resource === 'our-work-gallery') {
     try {
       if (!isOurWorkGalleryStorageConfigured()) {
-        return jsonPublic(res, 200, { hiddenSrcs: [] }, { cacheable: true })
+        return jsonPublic(res, 200, { hiddenSrcs: [], uploadedPhotos: [] }, { cacheable: true })
       }
-      const hiddenSrcs = await getHiddenOurWorkSrcs()
+      const [hiddenSrcs, uploaded] = await Promise.all([
+        getHiddenOurWorkSrcs(),
+        listUploadedOurWorkPhotos(),
+      ])
+      const uploadedPhotos = uploaded.map(toPublicUploadedGalleryEntry).filter(Boolean)
       res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120')
-      return jsonPublic(res, 200, { hiddenSrcs }, { cacheable: true })
+      return jsonPublic(res, 200, { hiddenSrcs, uploadedPhotos }, { cacheable: true })
     } catch (err) {
       console.error('[api/projects our-work-gallery]', err?.message || err)
-      return jsonPublic(res, 200, { hiddenSrcs: [] })
+      return jsonPublic(res, 200, { hiddenSrcs: [], uploadedPhotos: [] })
     }
   }
 

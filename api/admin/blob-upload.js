@@ -38,14 +38,18 @@ export default async function handler(req, res) {
         const safePath = String(pathname || '')
           .replace(/[^a-zA-Z0-9._/-]/g, '-')
           .slice(0, 180)
-        if (!safePath.startsWith('completed-jobs/')) {
+        const isJob = safePath.startsWith('completed-jobs/')
+        const isGallery = safePath.startsWith('gallery/our-work/')
+        if (!isJob && !isGallery) {
           throw new Error('Invalid upload path')
         }
         return {
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
           maximumSizeInBytes: MAX_SIZE_BYTES,
           addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ purpose: 'completed-job' }),
+          tokenPayload: JSON.stringify({
+            purpose: isGallery ? 'our-work-gallery' : 'completed-job',
+          }),
         }
       },
       onUploadCompleted: async () => {

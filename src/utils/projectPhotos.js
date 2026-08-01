@@ -104,9 +104,10 @@ export async function prepareImageForUpload(file) {
   }
 }
 
-export async function uploadPreparedFile(prepared, { onProgress } = {}) {
+async function uploadToBlob(prepared, { onProgress, pathPrefix = 'completed-jobs' } = {}) {
   const { upload } = await import('@vercel/blob/client')
-  const pathname = `completed-jobs/${Date.now()}-${prepared.file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`
+  const prefix = String(pathPrefix || 'completed-jobs').replace(/[^a-zA-Z0-9/_-]/g, '')
+  const pathname = `${prefix}/${Date.now()}-${prepared.file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`
 
   const blob = await upload(pathname, prepared.file, {
     access: 'public',
@@ -126,4 +127,13 @@ export async function uploadPreparedFile(prepared, { onProgress } = {}) {
     contentType: blob.contentType || prepared.contentType,
     size: prepared.file.size,
   }
+}
+
+export async function uploadPreparedFile(prepared, { onProgress } = {}) {
+  return uploadToBlob(prepared, { onProgress, pathPrefix: 'completed-jobs' })
+}
+
+/** Standalone Our Work gallery uploads (never creates a Completed Job). */
+export async function uploadPreparedGalleryFile(prepared, { onProgress } = {}) {
+  return uploadToBlob(prepared, { onProgress, pathPrefix: 'gallery/our-work' })
 }

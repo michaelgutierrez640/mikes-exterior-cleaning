@@ -2,10 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AdminAuthGate from '../components/admin/AdminAuthGate'
 import AdminNav from '../components/admin/AdminNav'
+import OurWorkGalleryUpload from '../components/admin/OurWorkGalleryUpload'
 import SeoHead from '../components/seo/SeoHead'
+import { CATEGORY_TITLES } from '../config/imagePlacement'
 import { absoluteUrl } from '../config/site'
 import { fetchAdminOurWorkGallery, removeAdminOurWorkStaticPhoto } from '../services/adminApi'
 import { cityLabel, serviceLabel } from '../utils/projectLabels'
+
+function kindBadgeClass(kind) {
+  if (kind === 'uploaded') return 'bg-royal-600 text-white'
+  if (kind === 'published-job') return 'bg-emerald-600 text-white'
+  return 'bg-navy-900 text-white'
+}
 
 function PhotoCard({ photo, busyKey, onDelete }) {
   const isBusy = busyKey === photo.id
@@ -16,7 +24,7 @@ function PhotoCard({ photo, busyKey, onDelete }) {
       <div className="relative aspect-[4/3] bg-navy-950/5">
         <img
           src={photo.src}
-          alt={photo.alt || 'Our Work gallery photo'}
+          alt={photo.alt || photo.caption || 'Our Work gallery photo'}
           className="h-full w-full object-cover"
           loading="lazy"
           decoding="async"
@@ -24,7 +32,7 @@ function PhotoCard({ photo, busyKey, onDelete }) {
         <span
           className={[
             'absolute top-2 left-2 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide uppercase',
-            photo.kind === 'published-job' ? 'bg-emerald-600 text-white' : 'bg-navy-900 text-white',
+            kindBadgeClass(photo.kind),
           ].join(' ')}
         >
           {photo.label}
@@ -57,11 +65,20 @@ function PhotoCard({ photo, busyKey, onDelete }) {
         )}
       </div>
       <div className="space-y-2 p-4">
-        <p className="line-clamp-2 text-[0.875rem] text-gray-700">{photo.alt || photo.src}</p>
+        <p className="line-clamp-2 text-[0.875rem] text-gray-700">
+          {photo.caption || photo.alt || photo.src}
+        </p>
         {photo.kind === 'published-job' ? (
           <p className="text-[0.75rem] text-gray-500">
             {serviceLabel(photo.service)} · {cityLabel(photo.city)}
             {photo.photoLabel ? ` · ${photo.photoLabel}` : ''}
+          </p>
+        ) : photo.kind === 'uploaded' ? (
+          <p className="text-[0.75rem] text-gray-500">
+            {CATEGORY_TITLES[photo.category] || photo.category || 'Our Work'}
+            {photo.city ? ` · ${cityLabel(photo.city)}` : ''}
+            {photo.photoLabel ? ` · ${photo.photoLabel}` : ''}
+            {photo.pairLabel ? ` · ${photo.pairLabel}` : ''}
           </p>
         ) : (
           <p className="text-[0.75rem] text-gray-500">
@@ -124,7 +141,9 @@ function GalleryBody({ setUnauthorized }) {
   async function onDelete(photo) {
     if (!photo?.canDelete || busyKey) return
     const confirmed = window.confirm(
-      'Remove this photo from Our Work? This does not delete any Published Job. If the image is used elsewhere on the site, the file will be kept.',
+      photo.kind === 'uploaded'
+        ? 'Remove this uploaded photo from Our Work? The file will be deleted if it is not used elsewhere. This does not affect Completed Jobs.'
+        : 'Remove this photo from Our Work? This does not delete any Published Job. If the image is used elsewhere on the site, the file will be kept.',
     )
     if (!confirmed) return
 
@@ -132,7 +151,10 @@ function GalleryBody({ setUnauthorized }) {
     setStatus({ type: '', message: '' })
     setError('')
     try {
-      const result = await removeAdminOurWorkStaticPhoto(photo.src)
+      const result = await removeAdminOurWorkStaticPhoto(photo.src, {
+        id: photo.id,
+        kind: photo.kind,
+      })
       setStatus({
         type: 'success',
         message: result.message || 'Photo removed from Our Work.',
@@ -155,15 +177,28 @@ function GalleryBody({ setUnauthorized }) {
     <div className="space-y-6">
       <AdminNav activeArea="gallery" />
 
+      <OurWorkGalleryUpload
+        disabled={Boolean(busyKey)}
+        onUnauthorized={() => setUnauthorized?.(true)}
+        onUploaded={async (result) => {
+          setStatus({
+            type: 'success',
+            message: result.message || 'Photos added to Our Work.',
+          })
+          await load()
+        }}
+      />
+
       <div className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-sm sm:p-7">
         <h2 className="font-display text-xl font-semibold text-navy-900">Manage Our Work Gallery</h2>
         <p className="mt-2 text-[0.875rem] leading-relaxed text-gray-600">
-          Review every photo that appears in the homepage Our Work gallery. Static gallery photos can be removed here.
-          Published Job photos are listed for reference — delete those from the job editor so the project stays intact.
+          Uploaded gallery photos appear only on the public Our Work page. Static gallery photos can still be
+          removed here. Published Job photos are listed for reference — manage those in Completed Jobs.
         </p>
         {counts && (
           <p className="mt-3 text-[0.8125rem] text-gray-500">
-            Visible static: {counts.staticVisible} · Published Job photos: {counts.publishedJob}
+            Uploaded: {counts.uploaded ?? 0} · Visible static: {counts.staticVisible} · Published Job photos:{' '}
+            {counts.publishedJob}
             {typeof counts.hidden === 'number' ? ` · Hidden static: ${counts.hidden}` : ''}
           </p>
         )}

@@ -4,16 +4,19 @@ import Lightbox from '../ui/Lightbox'
 import ScrollReveal from '../ScrollReveal'
 import GalleryImage from '../gallery/GalleryImage'
 
-async function fetchHiddenOurWorkSrcs() {
+async function fetchOurWorkGalleryData() {
   try {
     const res = await fetch('/api/projects?resource=our-work-gallery', {
       headers: { Accept: 'application/json' },
     })
-    if (!res.ok) return []
+    if (!res.ok) return { hiddenSrcs: [], uploadedPhotos: [] }
     const data = await res.json()
-    return Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : []
+    return {
+      hiddenSrcs: Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : [],
+      uploadedPhotos: Array.isArray(data.uploadedPhotos) ? data.uploadedPhotos : [],
+    }
   } catch {
-    return []
+    return { hiddenSrcs: [], uploadedPhotos: [] }
   }
 }
 
@@ -21,11 +24,15 @@ export default function Gallery() {
   const [active, setActive] = useState('all')
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [hiddenSrcs, setHiddenSrcs] = useState([])
+  const [uploadedPhotos, setUploadedPhotos] = useState([])
 
   useEffect(() => {
     let cancelled = false
-    fetchHiddenOurWorkSrcs().then((srcs) => {
-      if (!cancelled) setHiddenSrcs(srcs)
+    fetchOurWorkGalleryData().then((data) => {
+      if (!cancelled) {
+        setHiddenSrcs(data.hiddenSrcs)
+        setUploadedPhotos(data.uploadedPhotos)
+      }
     })
     return () => {
       cancelled = true
@@ -33,13 +40,13 @@ export default function Gallery() {
   }, [])
 
   const allItems = useMemo(
-    () => getCuratedGalleryItems(IMAGES.gallery, { hiddenSrcs }),
-    [hiddenSrcs],
+    () => getCuratedGalleryItems(IMAGES.gallery, { hiddenSrcs, uploadedPhotos }),
+    [hiddenSrcs, uploadedPhotos],
   )
 
   const curatedByCategory = useMemo(
-    () => getCuratedGalleryByCategory(IMAGES.gallery, { hiddenSrcs }),
-    [hiddenSrcs],
+    () => getCuratedGalleryByCategory(IMAGES.gallery, { hiddenSrcs, uploadedPhotos }),
+    [hiddenSrcs, uploadedPhotos],
   )
 
   const categoryEntries = useMemo(
