@@ -103,7 +103,7 @@ export default function Hero() {
                 </svg>
               </div>
               <div>
-                <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">Call for a Free Estimate</p>
+                <p className="text-[10px] font-medium tracking-[0.18em] text-white/40 uppercase">Speak With Mike.</p>
                 <p className="mt-0.5 text-lg font-semibold text-white sm:text-xl">{BUSINESS.phone}</p>
               </div>
             </PhoneLink>
