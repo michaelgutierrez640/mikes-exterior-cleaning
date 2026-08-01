@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
-import { BookOnlineButton, InstantQuoteButton, PhoneLink, QuoteButton } from '../ui/Button'
+import { BookOnlineButton, CallButton, InstantQuoteButton, PhoneLink } from '../ui/Button'
 
 const BRAND_LOGO_SRC = '/images/brand/mikes-exterior-logo.png'
 
@@ -143,7 +143,7 @@ export default function Header() {
         <div
           id="mobile-menu"
           className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-7 py-8 backdrop-blur-3xl lg:hidden"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          style={{ paddingBottom: 'max(6.5rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
             {NAV_LINKS.map((link) => (
@@ -152,14 +152,37 @@ export default function Header() {
               </NavLink>
             ))}
             <div className="mt-8 flex flex-col gap-3">
-              <PhoneLink sourceHint="header_mobile_menu" className="btn-secondary btn-md rounded-2xl text-center">
-                Call {BUSINESS.phone}
-              </PhoneLink>
-              <BookOnlineButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
-              <InstantQuoteButton variant="royal" size="md" className="rounded-2xl text-center justify-center" showIcon={false} />
-              <QuoteButton variant="secondary" size="md" className="rounded-2xl text-center justify-center" showIcon={false}>
-                Free Estimate
-              </QuoteButton>
+              <InstantQuoteButton
+                variant="royal"
+                size="md"
+                className="w-full rounded-2xl justify-center text-center"
+                showIcon={false}
+              >
+                Get Instant Quote
+              </InstantQuoteButton>
+              <BookOnlineButton
+                variant="royal"
+                size="md"
+                className="w-full rounded-2xl justify-center text-center"
+                showIcon={false}
+              >
+                Book Online
+              </BookOnlineButton>
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3.5">
+                <p className="text-center text-[10px] font-medium tracking-[0.18em] text-white/45 uppercase">
+                  Speak With Mike.
+                </p>
+                <CallButton
+                  sourceHint="header_mobile_menu"
+                  variant="secondary"
+                  size="md"
+                  className="mt-2.5 w-full !rounded-xl justify-center"
+                  showIcon={false}
+                >
+                  Call Now
+                </CallButton>
+                <p className="mt-2 text-center text-[0.8125rem] text-white/55">{BUSINESS.phone}</p>
+              </div>
             </div>
           </nav>
         </div>
