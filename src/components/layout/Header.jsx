@@ -143,7 +143,7 @@ export default function Header() {
         <div
           id="mobile-menu"
           className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-7 py-8 backdrop-blur-3xl lg:hidden"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+          style={{ paddingBottom: 'max(6.5rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">
             {NAV_LINKS.map((link) => (
