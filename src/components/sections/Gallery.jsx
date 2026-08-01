@@ -1,19 +1,23 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { IMAGES, getCuratedGalleryItems, getCuratedGalleryByCategory } from '../../config/images'
+import { CATEGORY_TITLES, GALLERY_CATEGORY_ORDER } from '../../config/imagePlacement'
 import Lightbox from '../ui/Lightbox'
 import ScrollReveal from '../ScrollReveal'
 import GalleryImage from '../gallery/GalleryImage'
 
-async function fetchHiddenOurWorkSrcs() {
+async function fetchOurWorkGalleryData() {
   try {
     const res = await fetch('/api/projects?resource=our-work-gallery', {
       headers: { Accept: 'application/json' },
     })
-    if (!res.ok) return []
+    if (!res.ok) return { hiddenSrcs: [], jobPhotos: [] }
     const data = await res.json()
-    return Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : []
+    return {
+      hiddenSrcs: Array.isArray(data.hiddenSrcs) ? data.hiddenSrcs : [],
+      jobPhotos: Array.isArray(data.jobPhotos) ? data.jobPhotos : [],
+    }
   } catch {
-    return []
+    return { hiddenSrcs: [], jobPhotos: [] }
   }
 }
 
@@ -21,11 +25,15 @@ export default function Gallery() {
   const [active, setActive] = useState('all')
   const [lightboxIndex, setLightboxIndex] = useState(null)
   const [hiddenSrcs, setHiddenSrcs] = useState([])
+  const [jobPhotos, setJobPhotos] = useState([])
 
   useEffect(() => {
     let cancelled = false
-    fetchHiddenOurWorkSrcs().then((srcs) => {
-      if (!cancelled) setHiddenSrcs(srcs)
+    fetchOurWorkGalleryData().then((data) => {
+      if (!cancelled) {
+        setHiddenSrcs(data.hiddenSrcs)
+        setJobPhotos(data.jobPhotos)
+      }
     })
     return () => {
       cancelled = true
@@ -33,19 +41,24 @@ export default function Gallery() {
   }, [])
 
   const allItems = useMemo(
-    () => getCuratedGalleryItems(IMAGES.gallery, { hiddenSrcs }),
-    [hiddenSrcs],
+    () => getCuratedGalleryItems(IMAGES.gallery, { hiddenSrcs, jobPhotos }),
+    [hiddenSrcs, jobPhotos],
   )
 
   const curatedByCategory = useMemo(
-    () => getCuratedGalleryByCategory(IMAGES.gallery, { hiddenSrcs }),
-    [hiddenSrcs],
+    () => getCuratedGalleryByCategory(IMAGES.gallery, { hiddenSrcs, jobPhotos }),
+    [hiddenSrcs, jobPhotos],
   )
 
-  const categoryEntries = useMemo(
-    () => Object.entries(curatedByCategory).filter(([, items]) => items.length > 0),
-    [curatedByCategory],
-  )
+  const categoryEntries = useMemo(() => {
+    const keys = [
+      ...GALLERY_CATEGORY_ORDER.filter((key) => (curatedByCategory[key] || []).length > 0),
+      ...Object.keys(curatedByCategory).filter(
+        (key) => !GALLERY_CATEGORY_ORDER.includes(key) && (curatedByCategory[key] || []).length > 0,
+      ),
+    ]
+    return keys.map((key) => [key, curatedByCategory[key]])
+  }, [curatedByCategory])
 
   const currentItems = active === 'all' ? allItems : curatedByCategory[active] || []
 
@@ -83,8 +96,9 @@ export default function Gallery() {
             Project Gallery
           </h2>
           <p className="section-subtitle">
-            Real results from window cleaning, solar panel cleaning, pressure washing, roof cleaning,
-            and more across the Central Valley.
+            Portfolio photos and published jobs from window cleaning, solar panel cleaning, pressure washing,
+            gutter cleaning, and more across the Central Valley. Filter by service — project photos open with a
+            link to the full job page.
           </p>
         </ScrollReveal>
 
@@ -93,7 +107,7 @@ export default function Gallery() {
             <div
               className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:gap-2.5 [&::-webkit-scrollbar]:hidden"
               role="tablist"
-              aria-label="Gallery categories"
+              aria-label="Gallery service filters"
             >
               <button
                 type="button"
@@ -108,7 +122,7 @@ export default function Gallery() {
               >
                 All
               </button>
-              {categoryEntries.map(([key, items]) => (
+              {categoryEntries.map(([key]) => (
                 <button
                   key={key}
                   type="button"
@@ -121,7 +135,7 @@ export default function Gallery() {
                       : 'border border-gray-200/80 bg-white text-gray-600 hover:border-gray-300 hover:text-navy-900'
                   }`}
                 >
-                  {key === 'transformations' ? 'Transformations' : IMAGES.gallery[key]?.title || key}
+                  {CATEGORY_TITLES[key] || IMAGES.gallery[key]?.title || key}
                 </button>
               ))}
             </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { OUR_WORK_HREF } from '../../config/business'
 import { fetchPublicProjects } from '../../services/projectsApi'
 import { cityLabel, serviceLabel } from '../../utils/projectLabels'
 import PlacementProjectCard from './PlacementProjectCard'
@@ -84,9 +84,9 @@ export default function PublishedProjectsSection({
         {loaded && error && projects.length === 0 && (
           <p className="mt-10 text-center text-[0.875rem] text-amber-800" role="status">
             Projects are temporarily unavailable. Please check back shortly or visit{' '}
-            <Link to="/projects" className="font-semibold underline">
-              all projects
-            </Link>
+            <a href={OUR_WORK_HREF} className="font-semibold underline">
+              Our Work
+            </a>
             .
           </p>
         )}
@@ -107,9 +107,9 @@ export default function PublishedProjectsSection({
 
         {showViewAll && (
           <div className="mt-8 text-center">
-            <Link to="/projects" className="btn-ghost btn-md inline-flex !rounded-xl">
-              View All Projects
-            </Link>
+            <a href={OUR_WORK_HREF} className="btn-ghost btn-md inline-flex !rounded-xl">
+              View Our Work
+            </a>
           </div>
         )}
       </div>

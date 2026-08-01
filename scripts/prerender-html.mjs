@@ -133,7 +133,7 @@ async function collectRoutes(modules, publishedProjects = []) {
       { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
       { href: '/window-cleaning/modesto', label: 'Window cleaning in Modesto' },
       { href: '/services/window-cleaning', label: 'Window Cleaning' },
-      { href: '/projects', label: 'Completed projects' },
+      { href: '/#gallery', label: 'Our Work' },
     ],
   })
 
@@ -179,11 +179,11 @@ async function collectRoutes(modules, publishedProjects = []) {
         ? [
             { href: '/window-cleaning/modesto', label: 'Window cleaning in Modesto' },
             { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
-            { href: '/projects', label: 'Completed projects' },
+            { href: '/#gallery', label: 'Our Work' },
           ]
         : [
             { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
-            { href: '/projects', label: 'Completed projects' },
+            { href: '/#gallery', label: 'Our Work' },
           ],
     })
 
@@ -238,7 +238,7 @@ async function collectRoutes(modules, publishedProjects = []) {
       crawlLinks: [
         { href: '/services/window-cleaning', label: 'Window Cleaning service' },
         { href: `/service-areas/${city.citySlug}`, label: `Exterior cleaning in ${city.cityName}` },
-        { href: '/projects', label: 'Completed projects' },
+        { href: '/#gallery', label: 'Our Work' },
         { href: '/instant-quote', label: 'Instant Quote' },
       ],
     })
@@ -269,7 +269,7 @@ async function collectRoutes(modules, publishedProjects = []) {
           : []),
         { href: '/services/window-cleaning', label: 'Window Cleaning' },
         { href: '/service-areas', label: 'All service areas' },
-        { href: '/projects', label: 'Completed projects' },
+        { href: '/#gallery', label: 'Our Work' },
       ],
     })
   }

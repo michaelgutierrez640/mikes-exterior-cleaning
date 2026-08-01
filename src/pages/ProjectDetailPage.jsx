@@ -5,6 +5,7 @@ import JsonLd from '../components/seo/JsonLd'
 import ProjectPhotoGallery from '../components/projects/ProjectPhotoGallery'
 import NotFoundPage from './NotFoundPage'
 import { InstantQuoteButton, BookOnlineButton } from '../components/ui/Button'
+import { OUR_WORK_HREF } from '../config/business'
 import { getProjectDetailSeo, getProjectDetailSchemas } from '../config/seo'
 import { fetchPublicProject } from '../services/projectsApi'
 import {
@@ -92,9 +93,9 @@ export default function ProjectDetailPage() {
             <p className="text-[0.875rem] text-red-700" role="alert">
               {loadError}
             </p>
-            <Link to="/projects" className="btn-royal btn-sm mt-4 inline-flex !rounded-xl">
-              Back to Projects
-            </Link>
+            <a href={OUR_WORK_HREF} className="btn-royal btn-sm mt-4 inline-flex !rounded-xl">
+              Back to Our Work
+            </a>
           </div>
         )}
 
@@ -163,9 +164,9 @@ export default function ProjectDetailPage() {
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <InstantQuoteButton variant="royal" size="md" className="!rounded-xl" />
                 <BookOnlineButton variant="secondary" size="md" className="!rounded-xl" />
-                <Link to="/projects" className="btn-ghost btn-md !rounded-xl !text-white/80">
-                  All projects
-                </Link>
+                <a href={OUR_WORK_HREF} className="btn-ghost btn-md !rounded-xl !text-white/80">
+                  Our Work
+                </a>
               </div>
             </div>
           </>

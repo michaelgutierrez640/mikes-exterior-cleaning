@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { OUR_WORK_HREF } from '../../config/business'
 import { fetchPublicProjects } from '../../services/projectsApi'
 import ProjectCard from './ProjectCard'
 import PublishedProjectsSection from './PublishedProjectsSection'
@@ -72,9 +72,9 @@ export default function RelatedProjects({
         </div>
         {showViewAll && (
           <div className="mt-8 text-center">
-            <Link to="/projects" className="btn-ghost btn-md inline-flex !rounded-xl">
-              View All Projects
-            </Link>
+            <a href={OUR_WORK_HREF} className="btn-ghost btn-md inline-flex !rounded-xl">
+              View Our Work
+            </a>
           </div>
         )}
       </div>

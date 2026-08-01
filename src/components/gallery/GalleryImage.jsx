@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ResponsiveImage from '../ui/ResponsiveImage'
+import { cityLabel, projectPath } from '../../utils/projectLabels'
 
 function GalleryImage({ item, onOpen }) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const projectHref = item.projectSlug ? projectPath(item.projectSlug) : null
 
   useEffect(() => {
     setLoaded(false)
@@ -63,6 +66,21 @@ function GalleryImage({ item, onOpen }) {
             >
               {item.pairLabel}
             </span>
+          )}
+          {projectHref && (
+            <Link
+              to={projectHref}
+              className="absolute bottom-3 left-3 z-[1] inline-flex max-w-[calc(100%-4.5rem)] items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[0.6875rem] font-semibold tracking-wide text-navy-900 uppercase shadow-[0_2px_12px_rgba(0,0,0,0.14)] transition hover:bg-white"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="truncate">
+                View Project
+                {item.city ? ` · ${cityLabel(item.city)}` : ''}
+              </span>
+              <svg className="h-3 w-3 shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
           )}
           <button
             type="button"

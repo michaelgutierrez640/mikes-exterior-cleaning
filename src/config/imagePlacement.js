@@ -137,7 +137,7 @@ export const BEFORE_AFTER_SETS = [
   },
 ]
 
-const CATEGORY_TITLES = {
+export const CATEGORY_TITLES = {
   transformations: 'Transformations',
   'window-cleaning': 'Window Cleaning',
   'solar-panel-cleaning': 'Solar Panel Cleaning',
@@ -145,6 +145,7 @@ const CATEGORY_TITLES = {
   'roof-cleaning': 'Roof Cleaning',
   'gutter-cleaning': 'Gutter Cleaning',
   'luxury-homes': 'Luxury Homes',
+  'pigeon-guard': 'Pigeon Guard',
 }
 
 export const GALLERY_CATEGORY_ORDER = [
@@ -154,13 +155,16 @@ export const GALLERY_CATEGORY_ORDER = [
   'roof-cleaning',
   'gutter-cleaning',
   'luxury-homes',
+  'pigeon-guard',
+  'transformations',
 ]
 
 function makeImageItem({ src, alt, width = 4032, height = 3024 }) {
+  const isRemote = /^https:\/\//i.test(src)
   return {
     type: 'image',
     src,
-    webp: src.replace('.jpg', '.webp'),
+    webp: isRemote ? src : src.replace(/\.jpg$/i, '.webp'),
     alt,
     width,
     height,
@@ -185,6 +189,12 @@ function resolveEntry(gallery, entry) {
     base.pairLabel = entry.pairLabel
     base.pairId = entry.pairId
   }
+  if (entry.projectSlug) {
+    base.projectSlug = entry.projectSlug
+    base.city = entry.city || null
+    base.service = entry.service || null
+    base.fromPublishedJob = Boolean(entry.fromPublishedJob)
+  }
   return base
 }
 
@@ -194,43 +204,69 @@ function normalizeHiddenSrcs(hiddenSrcs) {
   return new Set([...(hiddenSrcs || [])].map((s) => String(s || '').trim()).filter(Boolean))
 }
 
-/** "All" gallery — every library image once, priority order. */
-export function getCuratedGalleryItems(gallery, { hiddenSrcs } = {}) {
+function pushGalleryItem(picked, usedSrc, gallery, entry) {
+  if (!entry?.src || usedSrc.has(entry.src)) return
+  usedSrc.add(entry.src)
+  const primary = entry.categories?.[0] || entry.category || 'window-cleaning'
+  picked.push({
+    ...resolveEntry(gallery, entry),
+    category: primary,
+    categoryTitle: CATEGORY_TITLES[primary] || primary,
+  })
+}
+
+/**
+ * "All" gallery — curated static photos, then published job photos.
+ * Dedupes by exact image URL so the same photo is never shown twice.
+ */
+export function getCuratedGalleryItems(gallery, { hiddenSrcs, jobPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const picked = []
   const usedSrc = new Set()
 
   for (const entry of OUR_WORK_IMAGE_LIBRARY) {
     if (hidden.has(entry.src)) continue
-    if (usedSrc.has(entry.src)) continue
-    usedSrc.add(entry.src)
-    const primary = entry.categories[0]
-    picked.push({
-      ...resolveEntry(gallery, entry),
-      category: primary,
-      categoryTitle: CATEGORY_TITLES[primary] || primary,
-    })
+    pushGalleryItem(picked, usedSrc, gallery, entry)
+  }
+
+  for (const entry of jobPhotos || []) {
+    pushGalleryItem(picked, usedSrc, gallery, entry)
   }
 
   return picked
 }
 
 /** Per-tab gallery — images appear in every category they belong to. */
-export function getCuratedGalleryByCategory(gallery, { hiddenSrcs } = {}) {
+export function getCuratedGalleryByCategory(gallery, { hiddenSrcs, jobPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const byCat = {}
+  const usedInCat = new Map()
 
-  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
-    if (hidden.has(entry.src)) continue
+  const addToCategories = (entry) => {
+    if (!entry?.src) return
     const item = resolveEntry(gallery, entry)
-    for (const cat of entry.categories) {
+    const cats = entry.categories?.length ? entry.categories : [entry.category].filter(Boolean)
+    for (const cat of cats) {
       if (!byCat[cat]) byCat[cat] = []
+      if (!usedInCat.has(cat)) usedInCat.set(cat, new Set())
+      const seen = usedInCat.get(cat)
+      if (seen.has(entry.src)) continue
+      seen.add(entry.src)
       byCat[cat].push({
         ...item,
         category: cat,
         categoryTitle: CATEGORY_TITLES[cat] || cat,
       })
     }
+  }
+
+  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
+    if (hidden.has(entry.src)) continue
+    addToCategories(entry)
+  }
+
+  for (const entry of jobPhotos || []) {
+    addToCategories(entry)
   }
 
   return byCat

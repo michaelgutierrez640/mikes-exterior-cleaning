@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react'
-
+import { Link } from 'react-router-dom'
 import ResponsiveImage from './ResponsiveImage'
+import { cityLabel, projectPath } from '../../utils/projectLabels'
 
 export default function Lightbox({ items, index, onClose, onNavigate }) {
   const current = items[index]
@@ -79,8 +80,18 @@ export default function Lightbox({ items, index, onClose, onNavigate }) {
           loading="eager"
           sizes="90vw"
         />
-        <figcaption className="mt-4 text-center text-sm text-white/60">
-          {current.pairLabel ? `${current.pairLabel} — ${current.alt}` : current.alt}
+        <figcaption className="mt-4 space-y-3 text-center text-sm text-white/60">
+          <p>{current.pairLabel ? `${current.pairLabel} — ${current.alt}` : current.alt}</p>
+          {current.projectSlug ? (
+            <Link
+              to={projectPath(current.projectSlug)}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[0.8125rem] font-semibold tracking-wide text-white uppercase transition hover:bg-white/15"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View Project
+              {current.city ? ` · ${cityLabel(current.city)}` : ''}
+            </Link>
+          ) : null}
         </figcaption>
       </figure>
     </div>
