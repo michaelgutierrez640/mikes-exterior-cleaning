@@ -52,7 +52,13 @@ export default function Header() {
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    // Hide page content under the drawer so hero CTAs cannot show through
+    // and look like they belong in the menu.
+    document.documentElement.classList.toggle('mobile-nav-open', menuOpen)
+    return () => {
+      document.body.style.overflow = ''
+      document.documentElement.classList.remove('mobile-nav-open')
+    }
   }, [menuOpen])
 
   const closeMenu = () => setMenuOpen(false)
@@ -142,7 +148,7 @@ export default function Header() {
       {menuOpen && (
         <div
           id="mobile-menu"
-          className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950/96 px-7 py-8 backdrop-blur-3xl lg:hidden"
+          className="fixed inset-0 top-[calc(5.25rem+env(safe-area-inset-top))] z-40 overflow-y-auto bg-navy-950 px-7 py-8 lg:hidden"
           style={{ paddingBottom: 'max(6.5rem, calc(5.5rem + env(safe-area-inset-bottom)))' }}
         >
           <nav className="mx-auto flex max-w-md flex-col" aria-label="Mobile navigation">

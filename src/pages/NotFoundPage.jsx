@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { getNotFoundPageSeo } from '../config/seo'
 import SeoHead from '../components/seo/SeoHead'
-import { InstantQuoteButton, QuoteButton } from '../components/ui/Button'
+import { InstantQuoteButton } from '../components/ui/Button'
 
 const pageSeo = getNotFoundPageSeo()
 
@@ -16,9 +16,6 @@ export default function NotFoundPage() {
         <div className="mt-8 flex flex-wrap justify-center gap-4">
           <Link to="/" className="btn-secondary btn-md rounded-2xl">Go Home</Link>
           <InstantQuoteButton variant="royal" size="md" className="rounded-2xl" showIcon={false} />
-          <QuoteButton variant="secondary" size="md" className="rounded-2xl" showIcon={false}>
-            Free Estimate
-          </QuoteButton>
         </div>
       </section>
     </>
