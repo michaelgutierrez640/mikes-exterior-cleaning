@@ -3,7 +3,7 @@ import { getHeroImage } from '../../config/images'
 import { useCountUp } from '../../hooks/useCountUp'
 import ScrollReveal from '../ScrollReveal'
 import TrustBar from '../ui/TrustBar'
-import { CallButton, InstantQuoteButton, BookOnlineButton, PhoneLink, QuoteButton } from '../ui/Button'
+import { CallButton, InstantQuoteButton, BookOnlineButton, PhoneLink } from '../ui/Button'
 import ResponsiveImage from '../ui/ResponsiveImage'
 import { useEffect, useState } from 'react'
 
@@ -86,9 +86,6 @@ export default function Hero() {
               <InstantQuoteButton className="w-full sm:w-auto" />
               <BookOnlineButton variant="secondary" className="w-full sm:w-auto" />
               <CallButton variant="secondary" className="w-full sm:w-auto" />
-              <QuoteButton variant="secondary" size="sm" className="w-full sm:w-auto !px-6 !py-3 text-[0.9375rem]" showIcon={false}>
-                Free Estimate
-              </QuoteButton>
             </div>
           </ScrollReveal>
 

@@ -52,8 +52,8 @@ export default function Header() {
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
-    // Hide page content under the drawer so hero CTAs (e.g. Free Estimate) cannot
-    // show through a translucent overlay and look like they belong in the menu.
+    // Hide page content under the drawer so hero CTAs cannot show through
+    // and look like they belong in the menu.
     document.documentElement.classList.toggle('mobile-nav-open', menuOpen)
     return () => {
       document.body.style.overflow = ''
