@@ -137,7 +137,7 @@ export const BEFORE_AFTER_SETS = [
   },
 ]
 
-const CATEGORY_TITLES = {
+export const CATEGORY_TITLES = {
   transformations: 'Transformations',
   'window-cleaning': 'Window Cleaning',
   'solar-panel-cleaning': 'Solar Panel Cleaning',
@@ -145,6 +145,7 @@ const CATEGORY_TITLES = {
   'roof-cleaning': 'Roof Cleaning',
   'gutter-cleaning': 'Gutter Cleaning',
   'luxury-homes': 'Luxury Homes',
+  'pigeon-guard': 'Pigeon Guard',
 }
 
 export const GALLERY_CATEGORY_ORDER = [
@@ -157,10 +158,12 @@ export const GALLERY_CATEGORY_ORDER = [
 ]
 
 function makeImageItem({ src, alt, width = 4032, height = 3024 }) {
+  const isRemote = /^https:\/\//i.test(src)
   return {
     type: 'image',
     src,
-    webp: src.replace('.jpg', '.webp'),
+    // Remote Blob uploads are already the display file — do not invent a .webp sibling.
+    webp: isRemote ? src : src.replace(/\.jpg$/i, '.webp'),
     alt,
     width,
     height,
@@ -194,36 +197,45 @@ function normalizeHiddenSrcs(hiddenSrcs) {
   return new Set([...(hiddenSrcs || [])].map((s) => String(s || '').trim()).filter(Boolean))
 }
 
-/** "All" gallery — every library image once, priority order. */
-export function getCuratedGalleryItems(gallery, { hiddenSrcs } = {}) {
+function pushGalleryEntry(gallery, picked, usedSrc, entry) {
+  if (!entry?.src || usedSrc.has(entry.src)) return
+  usedSrc.add(entry.src)
+  const primary = entry.categories?.[0] || entry.category || 'window-cleaning'
+  picked.push({
+    ...resolveEntry(gallery, entry),
+    category: primary,
+    categoryTitle: CATEGORY_TITLES[primary] || primary,
+  })
+}
+
+/** "All" gallery — uploaded photos first, then curated static library. */
+export function getCuratedGalleryItems(gallery, { hiddenSrcs, uploadedPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const picked = []
   const usedSrc = new Set()
 
+  for (const entry of uploadedPhotos || []) {
+    pushGalleryEntry(gallery, picked, usedSrc, entry)
+  }
+
   for (const entry of OUR_WORK_IMAGE_LIBRARY) {
     if (hidden.has(entry.src)) continue
-    if (usedSrc.has(entry.src)) continue
-    usedSrc.add(entry.src)
-    const primary = entry.categories[0]
-    picked.push({
-      ...resolveEntry(gallery, entry),
-      category: primary,
-      categoryTitle: CATEGORY_TITLES[primary] || primary,
-    })
+    pushGalleryEntry(gallery, picked, usedSrc, entry)
   }
 
   return picked
 }
 
 /** Per-tab gallery — images appear in every category they belong to. */
-export function getCuratedGalleryByCategory(gallery, { hiddenSrcs } = {}) {
+export function getCuratedGalleryByCategory(gallery, { hiddenSrcs, uploadedPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
   const byCat = {}
 
-  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
-    if (hidden.has(entry.src)) continue
+  const addToCategories = (entry) => {
+    if (!entry?.src) return
     const item = resolveEntry(gallery, entry)
-    for (const cat of entry.categories) {
+    const cats = entry.categories?.length ? entry.categories : [entry.category].filter(Boolean)
+    for (const cat of cats) {
       if (!byCat[cat]) byCat[cat] = []
       byCat[cat].push({
         ...item,
@@ -231,6 +243,15 @@ export function getCuratedGalleryByCategory(gallery, { hiddenSrcs } = {}) {
         categoryTitle: CATEGORY_TITLES[cat] || cat,
       })
     }
+  }
+
+  for (const entry of uploadedPhotos || []) {
+    addToCategories(entry)
+  }
+
+  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
+    if (hidden.has(entry.src)) continue
+    addToCategories(entry)
   }
 
   return byCat

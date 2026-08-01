@@ -214,11 +214,11 @@ export async function fetchAdminOurWorkGallery() {
   return data
 }
 
-export async function removeAdminOurWorkStaticPhoto(src) {
+export async function removeAdminOurWorkStaticPhoto(src, { id = '', kind = '' } = {}) {
   const res = await fetch('/api/admin/projects?resource=our-work-gallery', {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ src }),
+    body: JSON.stringify({ src, id, kind }),
   })
   const data = await parseJson(res)
   if (res.status === 401) {
@@ -227,6 +227,40 @@ export async function removeAdminOurWorkStaticPhoto(src) {
     throw err
   }
   if (!res.ok) throw new Error(data.error || 'Failed to remove gallery photo')
+  return data
+}
+
+export async function addAdminOurWorkGalleryPhotos(photos = []) {
+  const res = await fetch('/api/admin/projects?resource=our-work-gallery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ photos }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to add gallery photos')
+  return data
+}
+
+export async function cleanupAdminOurWorkGalleryOrphans(urls = []) {
+  const list = [...new Set((urls || []).map((u) => String(u || '').trim()).filter(Boolean))]
+  if (!list.length) return { ok: true, deleted: 0 }
+  const res = await fetch('/api/admin/projects?resource=our-work-gallery', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ action: 'cleanup-orphans', urls: list }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to clean up incomplete uploads')
   return data
 }
 

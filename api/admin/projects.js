@@ -9,12 +9,17 @@ import {
   shouldAttemptFacebookOnSave,
 } from '../../lib/facebookPagePost.mjs'
 import {
+  addUploadedOurWorkPhotos,
   getHiddenOurWorkSrcs,
   hideStaticOurWorkPhoto,
   isOurWorkGalleryStorageConfigured,
   listPublishedJobPhotos,
   listStaticOurWorkPhotos,
+  listUploadedOurWorkPhotos,
+  listUploadedOurWorkPhotosForAdmin,
+  removeUploadedOurWorkPhoto,
 } from '../../lib/ourWorkGalleryStore.mjs'
+import { OUR_WORK_IMAGE_LIBRARY } from '../../lib/ourWorkImageLibrary.mjs'
 import {
   createProject,
   deleteProject,
@@ -33,7 +38,8 @@ import {
  * - PATCH /api/admin/projects?id=<projectId>
  * - DELETE /api/admin/projects?id=<projectId>
  * - GET /api/admin/projects?resource=our-work-gallery
- * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
+ * - POST /api/admin/projects?resource=our-work-gallery  body: { photos: [...] }
+ * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src, id?, kind? }
  * - GET /api/admin/projects?resource=facebook
  * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry', caption? }
  *
@@ -111,12 +117,14 @@ async function handleOurWorkGallery(req, res) {
 
   if (req.method === 'GET') {
     const hiddenSrcs = await getHiddenOurWorkSrcs()
+    const uploaded = listUploadedOurWorkPhotosForAdmin(await listUploadedOurWorkPhotos())
     const staticPhotos = listStaticOurWorkPhotos({ hiddenSrcs }).filter((p) => !p.hidden)
     const publishedJobPhotos = await listPublishedJobPhotos()
     return json(res, 200, {
-      photos: [...staticPhotos, ...publishedJobPhotos],
+      photos: [...uploaded, ...staticPhotos, ...publishedJobPhotos],
       hiddenSrcs,
       counts: {
+        uploaded: uploaded.length,
         staticVisible: staticPhotos.length,
         publishedJob: publishedJobPhotos.length,
         hidden: hiddenSrcs.length,
@@ -124,14 +132,63 @@ async function handleOurWorkGallery(req, res) {
     })
   }
 
+  if (req.method === 'POST') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
+    const action = String(body.action || '').trim()
+
+    if (action === 'cleanup-orphans') {
+      const urls = Array.isArray(body.urls) ? body.urls : []
+      const existing = await listUploadedOurWorkPhotos()
+      const kept = new Set(existing.map((p) => p.src))
+      const orphans = [...new Set(urls.map((u) => String(u || '').trim()).filter(Boolean))]
+        .filter((url) => /^https:\/\//i.test(url) && url.includes('gallery/our-work/') && !kept.has(url))
+        .slice(0, 24)
+      const result = orphans.length ? await deleteBlobUrls(orphans) : { deleted: 0, errors: [] }
+      return json(res, 200, { ok: true, ...result })
+    }
+
+    const photos = Array.isArray(body.photos) ? body.photos : []
+    try {
+      const result = await addUploadedOurWorkPhotos(photos)
+      return json(res, 201, {
+        ok: true,
+        added: result.added,
+        photos: listUploadedOurWorkPhotosForAdmin(result.photos),
+        message: `Added ${result.added.length} photo${result.added.length === 1 ? '' : 's'} to Our Work.`,
+      })
+    } catch (err) {
+      // Best-effort cleanup of Blob objects that never made it into Redis.
+      try {
+        const existing = await listUploadedOurWorkPhotos()
+        const kept = new Set(existing.map((p) => p.src))
+        const orphanUrls = photos
+          .map((p) => String(p?.src || p?.url || '').trim())
+          .filter((url) => /^https:\/\//i.test(url) && url.includes('gallery/our-work/') && !kept.has(url))
+        if (orphanUrls.length) await deleteBlobUrls(orphanUrls)
+      } catch {
+        /* ignore cleanup errors */
+      }
+      throw err
+    }
+  }
+
   if (req.method === 'DELETE') {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {}
     const src = String(body.src || req.query?.src || '').trim()
+    const id = String(body.id || '').trim()
+    const kind = String(body.kind || '').trim()
+
+    const isStaticLibrary = OUR_WORK_IMAGE_LIBRARY.some((entry) => entry.src === src)
+    if (kind === 'uploaded' || id.startsWith('upl_') || (!isStaticLibrary && (id || src))) {
+      const result = await removeUploadedOurWorkPhoto({ id, src })
+      return json(res, 200, { ok: true, ...result })
+    }
+
     const result = await hideStaticOurWorkPhoto(src)
     return json(res, 200, { ok: true, ...result })
   }
 
-  res.setHeader('Allow', 'GET, DELETE')
+  res.setHeader('Allow', 'GET, POST, DELETE')
   return json(res, 405, { error: 'Method not allowed' })
 }
 
