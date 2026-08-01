@@ -195,6 +195,8 @@ function resolveEntry(gallery, entry) {
     base.service = entry.service || null
     base.fromPublishedJob = Boolean(entry.fromPublishedJob)
   }
+  if (entry.publishedAt) base.publishedAt = entry.publishedAt
+  if (entry.sortOrder !== undefined && entry.sortOrder !== null) base.sortOrder = entry.sortOrder
   return base
 }
 
@@ -202,6 +204,57 @@ function normalizeHiddenSrcs(hiddenSrcs) {
   if (!hiddenSrcs) return new Set()
   if (hiddenSrcs instanceof Set) return hiddenSrcs
   return new Set([...(hiddenSrcs || [])].map((s) => String(s || '').trim()).filter(Boolean))
+}
+
+function entryPublishMs(entry) {
+  const raw = entry?.publishedAt || entry?.createdAt || entry?.completedAt || ''
+  const ms = Date.parse(raw)
+  return Number.isFinite(ms) ? ms : 0
+}
+
+function galleryGroupKey(entry) {
+  if (entry?.projectSlug) return `job:${entry.projectSlug}`
+  return `static:${entry.src}`
+}
+
+/**
+ * Newest published jobs first. Photos from the same job stay together in sortOrder.
+ * Undated/static library photos use ms=0 so they settle below dated jobs, in stable order.
+ */
+function sortEntriesNewestFirst(entries) {
+  const groups = new Map()
+
+  for (const entry of entries) {
+    if (!entry?.src) continue
+    const key = galleryGroupKey(entry)
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        sortMs: entryPublishMs(entry),
+        firstIndex: groups.size,
+        items: [],
+      })
+    }
+    const group = groups.get(key)
+    group.sortMs = Math.max(group.sortMs, entryPublishMs(entry))
+    group.items.push(entry)
+  }
+
+  for (const group of groups.values()) {
+    if (!group.key.startsWith('job:')) continue
+    group.items.sort((a, b) => {
+      const order = (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+      if (order !== 0) return order
+      return String(a.src).localeCompare(String(b.src))
+    })
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => {
+      if (b.sortMs !== a.sortMs) return b.sortMs - a.sortMs
+      return a.firstIndex - b.firstIndex
+    })
+    .flatMap((group) => group.items)
 }
 
 function pushGalleryItem(picked, usedSrc, gallery, entry) {
@@ -212,61 +265,69 @@ function pushGalleryItem(picked, usedSrc, gallery, entry) {
     ...resolveEntry(gallery, entry),
     category: primary,
     categoryTitle: CATEGORY_TITLES[primary] || primary,
+    publishedAt: entry.publishedAt || null,
+    sortOrder: entry.sortOrder ?? null,
   })
 }
 
 /**
- * "All" gallery — curated static photos, then published job photos.
+ * "All" gallery — published jobs + curated static photos, newest publish time first.
  * Dedupes by exact image URL so the same photo is never shown twice.
  */
 export function getCuratedGalleryItems(gallery, { hiddenSrcs, jobPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
-  const picked = []
   const usedSrc = new Set()
-
-  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
-    if (hidden.has(entry.src)) continue
-    pushGalleryItem(picked, usedSrc, gallery, entry)
-  }
+  const entries = []
 
   for (const entry of jobPhotos || []) {
-    pushGalleryItem(picked, usedSrc, gallery, entry)
+    if (!entry?.src || hidden.has(entry.src) || usedSrc.has(entry.src)) continue
+    usedSrc.add(entry.src)
+    entries.push(entry)
   }
 
+  OUR_WORK_IMAGE_LIBRARY.forEach((entry, libraryIndex) => {
+    if (hidden.has(entry.src) || usedSrc.has(entry.src)) return
+    usedSrc.add(entry.src)
+    entries.push({ ...entry, sortOrder: libraryIndex })
+  })
+
+  const picked = []
+  const seen = new Set()
+  for (const entry of sortEntriesNewestFirst(entries)) {
+    pushGalleryItem(picked, seen, gallery, entry)
+  }
   return picked
 }
 
-/** Per-tab gallery — images appear in every category they belong to. */
+/** Per-tab gallery — newest matching photos first; same-job photos stay grouped. */
 export function getCuratedGalleryByCategory(gallery, { hiddenSrcs, jobPhotos = [] } = {}) {
   const hidden = normalizeHiddenSrcs(hiddenSrcs)
-  const byCat = {}
-  const usedInCat = new Map()
+  const byCatEntries = {}
 
-  const addToCategories = (entry) => {
-    if (!entry?.src) return
-    const item = resolveEntry(gallery, entry)
+  const collect = (entry) => {
+    if (!entry?.src || hidden.has(entry.src)) return
     const cats = entry.categories?.length ? entry.categories : [entry.category].filter(Boolean)
     for (const cat of cats) {
-      if (!byCat[cat]) byCat[cat] = []
-      if (!usedInCat.has(cat)) usedInCat.set(cat, new Set())
-      const seen = usedInCat.get(cat)
-      if (seen.has(entry.src)) continue
-      seen.add(entry.src)
-      byCat[cat].push({
-        ...item,
-        category: cat,
-        categoryTitle: CATEGORY_TITLES[cat] || cat,
-      })
+      if (!byCatEntries[cat]) byCatEntries[cat] = []
+      if (byCatEntries[cat].some((item) => item.src === entry.src)) continue
+      byCatEntries[cat].push(entry)
     }
   }
 
-  for (const entry of OUR_WORK_IMAGE_LIBRARY) {
-    if (hidden.has(entry.src)) continue
-    addToCategories(entry)
-  }
+  for (const entry of jobPhotos || []) collect(entry)
+  OUR_WORK_IMAGE_LIBRARY.forEach((entry, libraryIndex) => {
+    collect({ ...entry, sortOrder: libraryIndex })
+  })
 
-  for (const entry of jobPhotos || []) {
-    addToCategories(entry)
+  const byCat = {}
+  for (const [cat, entries] of Object.entries(byCatEntries)) {
+    byCat[cat] = sortEntriesNewestFirst(entries).map((entry) => ({
+      ...resolveEntry(gallery, entry),
+      category: cat,
+      categoryTitle: CATEGORY_TITLES[cat] || cat,
+      publishedAt: entry.publishedAt || null,
+      sortOrder: entry.sortOrder ?? null,
+    }))
   }
 
   return byCat
