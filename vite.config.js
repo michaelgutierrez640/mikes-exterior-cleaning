@@ -28,4 +28,16 @@ function cssBeforeModules() {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), cssBeforeModules()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('react-dom') || id.includes('/react/')) return 'vendor-react'
+          if (id.includes('react-router')) return 'vendor-router'
+          return undefined
+        },
+      },
+    },
+  },
 })

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { optimizedImageUrl } from '../../utils/optimizedImageUrl'
 
 const LABEL_TEXT = {
   before: 'Before',
@@ -73,9 +74,11 @@ export default function ProjectPhotoGallery({ photos = [] }) {
             aria-label="Enlarge photo"
           />
           <img
-            src={current.url}
+            src={optimizedImageUrl(current.url, 1200)}
             alt={current.alt || ''}
             className="h-full w-full object-cover"
+            width={1200}
+            height={900}
             loading={index === 0 ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={index === 0 ? 'high' : 'auto'}
@@ -121,7 +124,15 @@ export default function ProjectPhotoGallery({ photos = [] }) {
                 aria-label={`Show photo ${i + 1}`}
                 aria-current={i === index}
               >
-                <img src={photo.url} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                <img
+                  src={optimizedImageUrl(photo.url, 240)}
+                  alt=""
+                  width={160}
+                  height={128}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
               </button>
             ))}
           </div>

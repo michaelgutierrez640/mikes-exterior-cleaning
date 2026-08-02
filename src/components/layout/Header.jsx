@@ -88,6 +88,8 @@ export default function Header() {
               width={364}
               height={216}
               decoding="async"
+              fetchPriority="high"
+              loading="eager"
               className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
             />
           </Link>

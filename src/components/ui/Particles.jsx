@@ -18,7 +18,11 @@ export default function Particles() {
     }
 
     const init = () => {
-      const count = Math.min(35, Math.floor(window.innerWidth / 45))
+      // Fewer particles on narrow viewports to cut main-thread cost in mobile browsers.
+      const count = Math.min(
+        window.innerWidth < 768 ? 14 : 35,
+        Math.floor(window.innerWidth / (window.innerWidth < 768 ? 70 : 45)),
+      )
       particles = Array.from({ length: count }, () => ({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,

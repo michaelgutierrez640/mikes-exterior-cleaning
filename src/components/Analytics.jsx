@@ -70,14 +70,28 @@ export default function Analytics() {
           '[Analytics] Set VITE_GA_MEASUREMENT_ID and VITE_META_PIXEL_ID in Vercel, then redeploy.',
         )
       }
-      return
+      return undefined
     }
-    initGoogleAnalytics()
-    initMetaPixel()
+
+    // Defer third-party tags until after first paint / idle so they don't compete with LCP.
+    const boot = () => {
+      initGoogleAnalytics()
+      initMetaPixel()
+    }
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(boot, { timeout: 3500 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const timer = window.setTimeout(boot, 1800)
+    return () => window.clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    trackPageView(location.pathname + location.search)
+    // Small delay keeps the first route paint clear of analytics network work.
+    const timer = window.setTimeout(() => {
+      trackPageView(location.pathname + location.search)
+    }, ANALYTICS_ENABLED ? 500 : 0)
+    return () => window.clearTimeout(timer)
   }, [location.pathname, location.search])
 
   return null

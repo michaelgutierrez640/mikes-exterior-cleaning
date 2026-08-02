@@ -1,36 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import ResponsiveImage from './ui/ResponsiveImage'
 
-function useImageStatus(src, webp) {
-  const [status, setStatus] = useState(() => (src || webp ? 'loading' : 'error'))
-
-  useEffect(() => {
-    const target = webp || src
-    if (!target) {
-      setStatus('error')
-      return
-    }
-
-    let cancelled = false
-    setStatus('loading')
-    const img = new Image()
-    img.onload = () => {
-      if (!cancelled) setStatus('ready')
-    }
-    img.onerror = () => {
-      if (!cancelled) setStatus('error')
-    }
-    img.src = target
-
-    return () => {
-      cancelled = true
-    }
-  }, [src, webp])
-
-  return status
-}
-
-function SlideImage({ src, webp, srcSet, alt, clipStyle }) {
+function SlideImage({ src, webp, srcSet, alt, clipStyle, onReady, onError }) {
   const content = (
     <ResponsiveImage
       src={src}
@@ -40,7 +11,10 @@ function SlideImage({ src, webp, srcSet, alt, clipStyle }) {
       className="absolute inset-0 h-full w-full object-cover"
       draggable={false}
       loading="lazy"
+      decoding="async"
       sizes="(max-width: 1024px) 100vw, 50vw"
+      onLoad={onReady}
+      onError={onError}
     />
   )
 
@@ -68,16 +42,22 @@ export default function BeforeAfterSlider({
 }) {
   const containerRef = useRef(null)
   const [position, setPosition] = useState(50)
+  const [beforeReady, setBeforeReady] = useState(false)
+  const [afterReady, setAfterReady] = useState(false)
+  const [failed, setFailed] = useState(false)
   const targetPosition = useRef(50)
   const dragging = useRef(false)
   const rafId = useRef(null)
 
-  const beforeStatus = useImageStatus(before, beforeWebp)
-  const afterStatus = useImageStatus(after, afterWebp)
-  const bothReady = beforeStatus === 'ready' && afterStatus === 'ready'
-  const failed = beforeStatus === 'error' || afterStatus === 'error'
+  const bothReady = beforeReady && afterReady
   const onValidityChangeRef = useRef(onValidityChange)
   onValidityChangeRef.current = onValidityChange
+
+  useEffect(() => {
+    setBeforeReady(false)
+    setAfterReady(false)
+    setFailed(false)
+  }, [before, after, beforeWebp, afterWebp])
 
   useEffect(() => {
     if (failed) onValidityChangeRef.current?.(false)
@@ -144,7 +124,25 @@ export default function BeforeAfterSlider({
         )}
         <div
           className={`relative ${aspectClass} animate-pulse overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-navy-800 to-navy-700 ring-1 ring-white/[0.08]`}
-        />
+        >
+          {/* Keep images in DOM so native lazy/srcSet can load without a JS full-res Image() gate. */}
+          <SlideImage
+            src={after}
+            webp={afterWebp}
+            srcSet={afterSrcSet}
+            alt="After cleaning"
+            onReady={() => setAfterReady(true)}
+            onError={() => setFailed(true)}
+          />
+          <SlideImage
+            src={before}
+            webp={beforeWebp}
+            srcSet={beforeSrcSet}
+            alt="Before cleaning"
+            onReady={() => setBeforeReady(true)}
+            onError={() => setFailed(true)}
+          />
+        </div>
       </div>
     )
   }

@@ -33,10 +33,6 @@ export default function MediaAsset({
       return
     }
 
-    const img = new Image()
-    img.onload = () => setLoaded(true)
-    img.onerror = () => setFailed(true)
-    img.src = webp || src
   }, [src, webp, type])
 
   if (type === 'video' && loaded && !failed) {
@@ -54,20 +50,31 @@ export default function MediaAsset({
     )
   }
 
-  if (type === 'image' && loaded && !failed) {
+  if (type === 'image' && !failed && (src || webp)) {
     return (
-      <ResponsiveImage
-        src={src}
-        webp={webp}
-        srcSet={srcSet}
-        alt={alt}
-        className={`${className} ${onClick ? 'cursor-pointer' : ''}`}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        fetchPriority={priority ? 'high' : 'auto'}
-        onClick={onClick}
-        sizes={priority ? '200px' : '(max-width: 640px) 100vw, 400px'}
-      />
+      <>
+        {!loaded && (
+          <div
+            className={`animate-pulse bg-gradient-to-br from-navy-800 to-navy-700 ${className}`}
+            style={{ aspectRatio: aspectRatio || '16/9' }}
+            aria-hidden="true"
+          />
+        )}
+        <ResponsiveImage
+          src={src}
+          webp={webp}
+          srcSet={srcSet}
+          alt={alt}
+          className={`${className} ${onClick ? 'cursor-pointer' : ''} ${loaded ? '' : 'sr-only'}`}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
+          onClick={onClick}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
+          sizes={priority ? '200px' : '(max-width: 640px) 100vw, 400px'}
+        />
+      </>
     )
   }
 

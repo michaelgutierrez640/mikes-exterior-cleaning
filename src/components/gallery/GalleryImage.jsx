@@ -1,38 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import ResponsiveImage from '../ui/ResponsiveImage'
 import { cityLabel, projectPath } from '../../utils/projectLabels'
+import { isVercelBlobImageUrl, optimizedImageUrl } from '../../utils/optimizedImageUrl'
 
 function GalleryImage({ item, onOpen }) {
   const [loaded, setLoaded] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [useOriginalRemote, setUseOriginalRemote] = useState(false)
   const projectHref = item.projectSlug ? projectPath(item.projectSlug) : null
-
-  useEffect(() => {
-    setLoaded(false)
-    setFailed(false)
-
-    if (item.type === 'video') {
-      fetch(item.src, { method: 'HEAD' })
-        .then((res) => { if (res.ok) setLoaded(true); else setFailed(true) })
-        .catch(() => setFailed(true))
-      return
-    }
-
-    const img = new Image()
-    img.onload = () => setLoaded(true)
-    img.onerror = () => setFailed(true)
-    img.src = item.webp || item.src
-  }, [item.src, item.webp, item.type])
+  const isRemoteJobPhoto = isVercelBlobImageUrl(item.src)
+  const displaySrc =
+    isRemoteJobPhoto && !useOriginalRemote ? optimizedImageUrl(item.src, 900) : item.src
+  const displayWebp = isRemoteJobPhoto ? undefined : item.webp
+  const displaySrcSet = isRemoteJobPhoto ? undefined : item.srcSet
+  const width = item.width || 1200
+  const height = item.height || 900
 
   if (item.type === 'video') {
-    if (!loaded || failed) {
-      return null
-    }
-
     return (
-      <figure className="mb-5 break-inside-avoid overflow-hidden rounded-[1rem]">
-        <video src={item.src} poster={item.poster} controls playsInline preload="metadata" className="w-full" aria-label={item.alt} />
+      <figure className="mb-5 break-inside-avoid overflow-hidden rounded-[1rem] [content-visibility:auto] [contain-intrinsic-size:300px]">
+        <video
+          src={item.src}
+          poster={item.poster}
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full"
+          aria-label={item.alt}
+        />
       </figure>
     )
   }
@@ -40,22 +36,41 @@ function GalleryImage({ item, onOpen }) {
   if (failed) return null
 
   return (
-    <figure className="group relative mb-5 break-inside-avoid overflow-hidden rounded-[1rem] bg-gray-100 transition-[box-shadow] duration-500 hover:shadow-[0_12px_40px_rgba(10,22,40,0.1)]">
+    <figure className="group relative mb-5 break-inside-avoid overflow-hidden rounded-[1rem] bg-gray-100 transition-[box-shadow] duration-500 [content-visibility:auto] [contain-intrinsic-size:300px] hover:shadow-[0_12px_40px_rgba(10,22,40,0.1)]">
       {!loaded && (
-        <div className="aspect-[4/3] img-shimmer" aria-hidden="true" role="presentation" />
+        <div
+          className="img-shimmer w-full"
+          style={{ aspectRatio: `${width} / ${height}` }}
+          aria-hidden="true"
+          role="presentation"
+        />
       )}
+      <ResponsiveImage
+        src={displaySrc}
+        webp={displayWebp}
+        srcSet={displaySrcSet}
+        alt={item.alt}
+        width={width}
+        height={height}
+        loading="lazy"
+        decoding="async"
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (isRemoteJobPhoto && !useOriginalRemote) {
+            setLoaded(false)
+            setUseOriginalRemote(true)
+            return
+          }
+          setFailed(true)
+        }}
+        onClick={() => onOpen(item)}
+        className={`img-loaded w-full cursor-pointer object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02] ${
+          loaded ? '' : 'absolute inset-0 h-full opacity-0'
+        }`}
+      />
       {loaded && (
         <>
-          <ResponsiveImage
-            src={item.src}
-            webp={item.webp}
-            srcSet={item.srcSet}
-            alt={item.alt}
-            loading="lazy"
-            decoding="async"
-            onClick={() => onOpen(item)}
-            className="img-loaded w-full cursor-pointer object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-          />
           {item.pairLabel && (
             <span
               className={`pointer-events-none absolute left-3 top-3 rounded-md px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.06em] shadow-[0_2px_10px_rgba(0,0,0,0.18)] ${

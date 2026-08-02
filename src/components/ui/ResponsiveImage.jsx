@@ -9,7 +9,11 @@ export default function ResponsiveImage({
   decoding = 'async',
   fetchPriority,
   onClick,
+  onLoad,
+  onError,
   draggable,
+  width,
+  height,
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
 }) {
   const imgProps = {
@@ -21,7 +25,11 @@ export default function ResponsiveImage({
     decoding,
     fetchPriority,
     onClick,
+    onLoad,
+    onError,
     draggable,
+    width,
+    height,
     sizes: srcSet ? sizes : undefined,
   }
 

@@ -5,7 +5,6 @@ import ScrollReveal from '../ScrollReveal'
 import TrustBar from '../ui/TrustBar'
 import { CallButton, InstantQuoteButton, BookOnlineButton, PhoneLink } from '../ui/Button'
 import ResponsiveImage from '../ui/ResponsiveImage'
-import { useEffect, useState } from 'react'
 
 const heroImage = getHeroImage()
 
@@ -24,34 +23,23 @@ function HeroStat({ end, suffix, label, placeholder, delay = 0 }) {
 }
 
 function HeroBackground() {
-  const [loaded, setLoaded] = useState(false)
-
-  useEffect(() => {
-    const img = new Image()
-    img.onload = () => setLoaded(true)
-    img.onerror = () => setLoaded(false)
-    img.src = heroImage.webp || heroImage.src
-  }, [])
-
-  if (loaded) {
-    return (
-      <ResponsiveImage
-        src={heroImage.src}
-        webp={heroImage.webp}
-        srcSet={heroImage.srcSet}
-        alt={heroImage.alt || "Professional exterior cleaning on a Modesto, California home"}
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ objectPosition: heroImage.objectPosition }}
-        loading="eager"
-        decoding="async"
-        fetchPriority="high"
-        sizes="100vw"
-      />
-    )
-  }
-
-  // Never expose developer image-slot instructions or file paths on the public hero.
-  return <div className="absolute inset-0 bg-[#060d1a]" aria-hidden="true" />
+  // Render immediately so the browser can use srcSet / preload for LCP (no JS full-res gate).
+  return (
+    <ResponsiveImage
+      src={heroImage.src}
+      webp={heroImage.webp}
+      srcSet={heroImage.srcSet}
+      alt={heroImage.alt || 'Professional exterior cleaning on a Modesto, California home'}
+      className="absolute inset-0 h-full w-full object-cover"
+      style={{ objectPosition: heroImage.objectPosition }}
+      loading="eager"
+      decoding="async"
+      fetchPriority="high"
+      sizes="100vw"
+      width={1600}
+      height={1200}
+    />
+  )
 }
 
 export default function Hero() {
