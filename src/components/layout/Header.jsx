@@ -85,11 +85,12 @@ export default function Header() {
             <img
               src={BRAND_LOGO_SRC}
               alt={BUSINESS.name}
-              width={364}
-              height={216}
+              width={905}
+              height={536}
               decoding="async"
               fetchPriority="high"
               loading="eager"
+              draggable={false}
               className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
             />
           </Link>
