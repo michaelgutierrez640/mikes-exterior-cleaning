@@ -357,11 +357,11 @@ export function getNotFoundPageSeo() {
 
 export function getReviewPageSeo() {
   return {
-    title: 'Share Your Experience | Website Customer Review | Mike\'s Exterior',
+    title: "Leave a Review | Mike's Exterior Cleaning Services",
     description:
-      'Leave a simple website customer review for Mike\'s Exterior Cleaning Services. No account required — just your name and a short note about your experience.',
+      "Thank you for choosing Mike's Exterior Cleaning Services. Leave a quick website customer review — name, star rating, and a short note. No account required.",
     keywords:
-      'Mike\'s Exterior Cleaning review, website customer review Modesto, leave a review exterior cleaning',
+      "Mike's Exterior Cleaning review, leave a review exterior cleaning Modesto, website customer review",
     canonical: absoluteUrl('/review'),
   }
 }
@@ -373,13 +373,13 @@ export function getReviewPageSchemas() {
     getWebSiteSchema(),
     getBreadcrumbSchema([
       { name: 'Home', url: absoluteUrl('/') },
-      { name: 'Share Your Experience', url: absoluteUrl('/review') },
+      { name: 'Leave a Review', url: absoluteUrl('/review') },
     ]),
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
       '@id': `${absoluteUrl('/review')}#webpage`,
-      name: 'How Did We Do? — Website Customer Review',
+      name: "Leave a Review | Mike's Exterior Cleaning Services",
       description: getReviewPageSeo().description,
       url: absoluteUrl('/review'),
       isPartOf: { '@id': `${SITE_URL}/#website` },
