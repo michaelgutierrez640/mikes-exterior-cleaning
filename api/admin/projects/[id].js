@@ -1,5 +1,9 @@
 import { json, requireAdmin } from '../../../lib/adminAuth.mjs'
-import { cleanupRemovedProjectPhotos, deleteBlobUrls } from '../../../lib/projectBlobCleanup.mjs'
+import {
+  cleanupRemovedProjectPhotos,
+  collectMediaUrls,
+  deleteBlobUrls,
+} from '../../../lib/projectBlobCleanup.mjs'
 import {
   deleteProject,
   getProject,
@@ -87,8 +91,8 @@ export default async function handler(req, res) {
 
       let blob = null
       if (Array.isArray(body.photos)) {
-        const before = new Set((existing.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
-        const after = new Set((project.photos || []).map((p) => String(p?.url || '').trim()).filter(Boolean))
+        const before = new Set(collectMediaUrls(existing.photos))
+        const after = new Set(collectMediaUrls(project.photos))
         const removed = [...before].filter((url) => !after.has(url))
         if (removed.length) {
           blob = await cleanupRemovedProjectPhotos(removed)
@@ -111,7 +115,7 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const existing = await deleteProject(id)
-      const blobResult = await deleteBlobUrls((existing?.photos || []).map((p) => p.url).filter(Boolean))
+      const blobResult = await deleteBlobUrls(collectMediaUrls(existing?.photos))
       const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
         previous: existing,
         next: null,

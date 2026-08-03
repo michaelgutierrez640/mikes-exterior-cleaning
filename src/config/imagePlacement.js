@@ -183,6 +183,23 @@ function findGalleryItem(gallery, src) {
 }
 
 function resolveEntry(gallery, entry) {
+  if (entry?.type === 'video') {
+    return {
+      type: 'video',
+      src: entry.src,
+      poster: entry.poster || '',
+      contentType: entry.contentType || '',
+      alt: entry.alt || 'Project video',
+      projectSlug: entry.projectSlug || null,
+      city: entry.city || null,
+      service: entry.service || null,
+      fromPublishedJob: Boolean(entry.fromPublishedJob),
+      publishedAt: entry.publishedAt || null,
+      sortOrder: entry.sortOrder,
+      width: 1280,
+      height: 720,
+    }
+  }
   const item = findGalleryItem(gallery, entry.src)
   const base = item ? { ...item, alt: entry.alt } : makeImageItem({ src: entry.src, alt: entry.alt })
   if (entry.pairLabel) {

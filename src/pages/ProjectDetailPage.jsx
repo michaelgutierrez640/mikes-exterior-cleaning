@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
-import ProjectPhotoGallery from '../components/projects/ProjectPhotoGallery'
+import ProjectMediaGallery from '../components/projects/ProjectMediaGallery'
 import NotFoundPage from './NotFoundPage'
 import { InstantQuoteButton, BookOnlineButton } from '../components/ui/Button'
 import { OUR_WORK_HREF } from '../config/business'
@@ -101,7 +101,7 @@ export default function ProjectDetailPage() {
 
         {!loading && project && (
           <>
-            <ProjectPhotoGallery photos={project.photos} />
+            <ProjectMediaGallery photos={project.photos} />
 
             <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-sm sm:p-8">
               <dl className="grid gap-5 sm:grid-cols-2">

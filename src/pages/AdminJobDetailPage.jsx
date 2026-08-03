@@ -6,7 +6,7 @@ import { absoluteUrl } from '../config/site'
 import AdminAuthGate from '../components/admin/AdminAuthGate'
 import AdminNav from '../components/admin/AdminNav'
 import JobForm from '../components/admin/JobForm'
-import JobPhotoGallery from '../components/admin/JobPhotoGallery'
+import ProjectMediaGallery from '../components/projects/ProjectMediaGallery'
 import SeoHead from '../components/seo/SeoHead'
 import SeoDeployStatus from '../components/admin/SeoDeployStatus'
 import {
@@ -305,8 +305,14 @@ function DetailBody({
           </div>
 
           <div>
-            <h3 className="font-display mb-3 text-xl font-semibold text-navy-900">Photos</h3>
-            <JobPhotoGallery photos={project.photos || []} />
+            <h3 className="font-display mb-3 text-xl font-semibold text-navy-900">Photos &amp; videos</h3>
+            {(project.photos || []).length ? (
+              <ProjectMediaGallery photos={project.photos || []} />
+            ) : (
+              <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
+                No photos or videos on this job.
+              </div>
+            )}
           </div>
         </div>
       )}

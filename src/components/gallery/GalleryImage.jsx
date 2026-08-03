@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import LazyVideo from '../media/LazyVideo'
 import ResponsiveImage from '../ui/ResponsiveImage'
 import { cityLabel, projectPath } from '../../utils/projectLabels'
 import { isVercelBlobImageUrl, optimizedImageUrl } from '../../utils/optimizedImageUrl'
@@ -19,16 +20,22 @@ function GalleryImage({ item, onOpen }) {
 
   if (item.type === 'video') {
     return (
-      <figure className="mb-5 break-inside-avoid overflow-hidden rounded-[1rem] [content-visibility:auto] [contain-intrinsic-size:300px]">
-        <video
+      <figure className="mb-5 break-inside-avoid overflow-hidden rounded-[1rem] bg-navy-950/5 [content-visibility:auto] [contain-intrinsic-size:300px]">
+        <LazyVideo
           src={item.src}
-          poster={item.poster}
-          controls
-          playsInline
-          preload="metadata"
+          poster={item.poster || ''}
+          contentType={item.contentType || ''}
+          alt={item.alt || 'Project video'}
           className="w-full"
-          aria-label={item.alt}
+          preload="metadata"
         />
+        {projectHref ? (
+          <figcaption className="px-3 py-2 text-[0.75rem]">
+            <Link to={projectHref} className="font-semibold text-royal-700 hover:text-royal-800">
+              View project{item.city ? ` in ${cityLabel(item.city)}` : ''} →
+            </Link>
+          </figcaption>
+        ) : null}
       </figure>
     )
   }

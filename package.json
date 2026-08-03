@@ -14,7 +14,8 @@
     "test:reports": "node scripts/test-analytics-reports.mjs",
     "test:facebook": "node scripts/test-facebook-page-post.mjs",
     "test:projects": "node scripts/test-projects-store.mjs",
-    "test:seo-deploy": "node scripts/test-seo-deploy-hook.mjs"
+    "test:seo-deploy": "node scripts/test-seo-deploy-hook.mjs",
+    "test:project-media": "node scripts/test-project-media.mjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

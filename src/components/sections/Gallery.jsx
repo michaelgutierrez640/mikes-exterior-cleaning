@@ -96,9 +96,9 @@ export default function Gallery() {
             Project Gallery
           </h2>
           <p className="section-subtitle">
-            Portfolio photos and published jobs from window cleaning, solar panel cleaning, pressure washing,
-            gutter cleaning, and more across the Central Valley. Filter by service — project photos open with a
-            link to the full job page.
+            Portfolio photos, videos, and published jobs from window cleaning, solar panel cleaning, pressure
+            washing, gutter cleaning, and more across the Central Valley. Filter by service — project media links
+            to the full job page.
           </p>
         </ScrollReveal>
 

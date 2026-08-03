@@ -6,7 +6,15 @@ import {
   buildFacebookCaptionPreview,
   canShowFacebookPublishCheckbox,
 } from '../../utils/facebookCaption'
-import { MAX_PHOTOS, prepareImageForUpload, uploadPreparedFile } from '../../utils/projectPhotos'
+import {
+  ACCEPTED_ACCEPT_ATTR,
+  MAX_MEDIA_ITEMS,
+  prepareMediaForUpload,
+  RECOMMENDED_VIDEO_LENGTH,
+  RECOMMENDED_VIDEO_SIZE,
+  uploadPreparedFile,
+} from '../../utils/projectPhotos'
+import { inferMediaKind, isVideoMedia } from '../../../lib/projectMedia.mjs'
 
 const LABEL_OPTIONS = [
   { value: 'before', label: 'Before' },
@@ -32,18 +40,25 @@ function formFromProject(project) {
     propertyType: project.propertyType,
     completedAt: project.completedAt,
     notes: project.notes || '',
-    photos: (project.photos || []).map((p, i) => ({
-      key: `existing-${i}-${p.url}`,
-      url: p.url,
-      pathname: p.pathname,
-      label: p.label || 'general',
-      alt: p.alt || '',
-      contentType: p.contentType,
-      size: p.size,
-      previewUrl: p.url,
-      uploaded: true,
-      progress: 100,
-    })),
+    photos: (project.photos || []).map((p, i) => {
+      const kind = inferMediaKind(p)
+      return {
+        key: `existing-${i}-${p.url}`,
+        url: p.url,
+        pathname: p.pathname,
+        label: p.label || 'general',
+        alt: p.alt || '',
+        contentType: p.contentType,
+        size: p.size,
+        kind,
+        posterUrl: p.posterUrl || null,
+        durationSeconds: p.durationSeconds ?? null,
+        previewUrl: kind === 'video' ? p.posterUrl || p.url : p.url,
+        uploaded: true,
+        progress: 100,
+        movWarning: kind === 'video' && /quicktime|\.mov/i.test(`${p.contentType || ''} ${p.url || ''}`),
+      }
+    }),
   }
 }
 
@@ -56,6 +71,7 @@ function cityLabel(slug) {
 }
 
 function toPersistedPhoto(photo) {
+  const kind = photo.kind || inferMediaKind(photo)
   return {
     url: photo.url,
     pathname: photo.pathname || null,
@@ -63,7 +79,17 @@ function toPersistedPhoto(photo) {
     alt: photo.alt,
     contentType: photo.contentType || null,
     size: photo.size ?? null,
+    kind,
+    posterUrl: kind === 'video' ? photo.posterUrl || null : null,
+    durationSeconds: kind === 'video' ? photo.durationSeconds ?? null : null,
   }
+}
+
+function formatBytes(size) {
+  const n = Number(size)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export default function JobForm({
@@ -89,6 +115,7 @@ export default function JobForm({
   const isPublishedEdit = mode === 'edit' && initialProject?.status === 'published'
   const showEmptyPhotoWarning = isPublishedEdit && form.photos.length === 0
   const showFacebookCheckbox = canShowFacebookPublishCheckbox(initialProject) && !isPublishedEdit
+  const hasCoverPhoto = form.photos.some((item) => !isVideoMedia(item))
 
   const defaultCaption = useMemo(
     () =>
@@ -153,8 +180,13 @@ export default function JobForm({
     if (busy || deletingKey) return
     const target = form.photos.find((p) => p.key === key)
     if (!target) return
+    const isVideo = isVideoMedia(target)
 
-    const confirmed = window.confirm('Remove this photo from this project? This cannot be undone.')
+    const confirmed = window.confirm(
+      isVideo
+        ? 'Remove this video from this project? This cannot be undone.'
+        : 'Remove this photo from this project? This cannot be undone.',
+    )
     if (!confirmed) return
 
     setError('')
@@ -165,28 +197,38 @@ export default function JobForm({
       // New local picks are not in Redis/Blob yet — remove from the form only.
       if (!(mode === 'edit' && initialProject?.id && target.uploaded && target.url)) {
         dropPhotoFromForm(key)
-        setPhotoStatus({ type: 'success', message: 'Photo removed from this job.' })
+        setPhotoStatus({
+          type: 'success',
+          message: isVideo ? 'Video removed from this job.' : 'Photo removed from this job.',
+        })
         return
       }
 
       setBusy(true)
-      setBusyLabel('Removing photo…')
+      setBusyLabel(isVideo ? 'Removing video…' : 'Removing photo…')
 
       const remaining = form.photos.filter((p) => p.key !== key)
       const persisted = remaining.filter((p) => p.uploaded && p.url).map(toPersistedPhoto)
-      const project = await updateProject(initialProject.id, { photos: persisted })
+      const result = await updateProject(initialProject.id, { photos: persisted })
+      const project = result?.project || result
 
       dropPhotoFromForm(key)
       setPhotoStatus({
         type: 'success',
         message:
           remaining.length === 0
-            ? 'Photo removed. This project has no photos left — a placeholder will show on the public site until you add more.'
-            : 'Photo removed from this project.',
+            ? 'Media removed. A placeholder will show on the public site until you add more.'
+            : isVideo
+              ? 'Video removed from this project.'
+              : 'Photo removed from this project.',
       })
-      onSaved?.(project, { closeEditor: false })
+      onSaved?.(project, {
+        closeEditor: false,
+        seo: result?.seo || null,
+        seoWarning: result?.seoWarning || null,
+      })
     } catch (err) {
-      const message = err.message || 'Could not remove photo'
+      const message = err.message || 'Could not remove media'
       setError(message)
       setPhotoStatus({ type: 'error', message })
     } finally {
@@ -202,9 +244,9 @@ export default function JobForm({
     e.target.value = ''
     if (!files.length) return
 
-    const remaining = MAX_PHOTOS - form.photos.length
+    const remaining = MAX_MEDIA_ITEMS - form.photos.length
     if (remaining <= 0) {
-      setError(`Maximum ${MAX_PHOTOS} photos per job`)
+      setError(`Maximum ${MAX_MEDIA_ITEMS} photos and videos per job`)
       return
     }
 
@@ -212,7 +254,7 @@ export default function JobForm({
     const next = []
     for (const file of selected) {
       try {
-        const prepared = await prepareImageForUpload(file)
+        const prepared = await prepareMediaForUpload(file)
         next.push({
           key: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           file: prepared.file,
@@ -220,13 +262,18 @@ export default function JobForm({
           label: 'general',
           alt: '',
           contentType: prepared.contentType,
+          kind: prepared.kind || 'photo',
           stripped: prepared.stripped,
           heic: prepared.heic,
+          durationSeconds: prepared.durationSeconds ?? null,
+          posterPrepared: prepared.posterPrepared || null,
+          movWarning: Boolean(prepared.movWarning),
+          size: prepared.file?.size ?? file.size,
           uploaded: false,
           progress: 0,
         })
       } catch (err) {
-        setError(err.message || 'Could not prepare photo')
+        setError(err.message || 'Could not prepare file')
       }
     }
     if (next.length) setForm((prev) => ({ ...prev, photos: [...prev.photos, ...next] }))
@@ -239,25 +286,36 @@ export default function JobForm({
     for (let i = 0; i < working.length; i += 1) {
       const photo = working[i]
       if (photo.uploaded && photo.url) {
-        uploaded.push({
-          url: photo.url,
-          pathname: photo.pathname || null,
-          label: photo.label,
-          alt: photo.alt,
-          contentType: photo.contentType || null,
-          size: photo.size ?? null,
-        })
+        uploaded.push(toPersistedPhoto(photo))
         continue
       }
 
+      const kind = photo.kind || inferMediaKind(photo)
       setBusyLabel(`Uploading ${i + 1} of ${working.length}…`)
       updatePhoto(photo.key, { progress: 1 })
       const blobMeta = await uploadPreparedFile(
-        { file: photo.file, contentType: photo.contentType },
+        { file: photo.file, contentType: photo.contentType, kind },
         {
           onProgress: (pct) => updatePhoto(photo.key, { progress: pct }),
         },
       )
+
+      let posterUrl = photo.posterUrl || null
+      if (kind === 'video' && photo.posterPrepared?.file) {
+        setBusyLabel(`Uploading poster ${i + 1} of ${working.length}…`)
+        const posterMeta = await uploadPreparedFile(
+          {
+            file: photo.posterPrepared.file,
+            contentType: photo.posterPrepared.contentType,
+            kind: 'photo',
+          },
+          {
+            onProgress: (pct) => updatePhoto(photo.key, { progress: Math.min(99, pct) }),
+          },
+        )
+        posterUrl = posterMeta.url
+      }
+
       updatePhoto(photo.key, {
         uploaded: true,
         progress: 100,
@@ -265,16 +323,20 @@ export default function JobForm({
         pathname: blobMeta.pathname,
         contentType: blobMeta.contentType,
         size: blobMeta.size,
+        kind,
+        posterUrl,
       })
-      working[i] = { ...photo, uploaded: true, url: blobMeta.url, pathname: blobMeta.pathname }
-      uploaded.push({
+      working[i] = {
+        ...photo,
+        uploaded: true,
         url: blobMeta.url,
         pathname: blobMeta.pathname,
-        label: photo.label,
-        alt: photo.alt,
+        kind,
+        posterUrl,
         contentType: blobMeta.contentType,
         size: blobMeta.size,
-      })
+      }
+      uploaded.push(toPersistedPhoto(working[i]))
     }
     return uploaded
   }
@@ -285,7 +347,16 @@ export default function JobForm({
     setBusyLabel(status === 'published' ? 'Publishing…' : 'Saving draft…')
     try {
       if (status === 'published' && form.photos.length === 0) {
-        throw new Error('Add at least one photo before publishing')
+        throw new Error('Add at least one photo or video before publishing')
+      }
+      if (
+        status === 'published' &&
+        showFacebookCheckbox &&
+        postToFacebook &&
+        facebookConfigured &&
+        !hasCoverPhoto
+      ) {
+        throw new Error('Facebook posting needs a cover photo. Add a photo, or turn off Facebook posting.')
       }
       const photos = await ensureUploadedPhotos()
       const payload = {
@@ -412,15 +483,20 @@ export default function JobForm({
 
       <div className="mt-6">
         <p className="text-[0.875rem] font-semibold text-navy-900">
-          Photos ({form.photos.length}/{MAX_PHOTOS})
+          Photos &amp; videos ({form.photos.length}/{MAX_MEDIA_ITEMS})
         </p>
         <p className="mt-1 text-[0.75rem] text-gray-500">
-          JPEG, PNG, WebP, or HEIC · max 10 MB each · up to {MAX_PHOTOS} photos. The first photo is the cover image.
+          Photos: JPEG, PNG, WebP, or HEIC · max 10 MB. Videos: MP4, MOV (iPhone), or WebM · max 100 MB.
+          Up to {MAX_MEDIA_ITEMS} items total. {RECOMMENDED_VIDEO_LENGTH} {RECOMMENDED_VIDEO_SIZE}
+        </p>
+        <p className="mt-1 text-[0.75rem] text-gray-500">
+          First photo is the cover image (used for Facebook). Videos keep their place in your saved order with
+          the job’s photos.
         </p>
 
         {showEmptyPhotoWarning && (
           <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[0.875rem] text-amber-900" role="status">
-            Warning: this published project has no photos. A professional placeholder is shown on the public site until you upload a new photo.
+            Warning: this published project has no media. A professional placeholder is shown on the public site until you upload a photo or video.
           </p>
         )}
 
@@ -436,47 +512,30 @@ export default function JobForm({
           </p>
         )}
 
-        {/*
-          Visible upload control for mobile + desktop.
-          Do not use btn-secondary here — that style is white-on-glass for dark headers and is invisible on this light form.
-        */}
         <div className="mt-3">
           <input
-            id="job-photos-input"
+            id="job-media-input"
             type="file"
-            accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp"
+            accept={ACCEPTED_ACCEPT_ATTR}
             multiple
             className="sr-only"
             onChange={onPickFiles}
-            disabled={busy || form.photos.length >= MAX_PHOTOS}
-            aria-label="Choose photos from library or camera"
+            disabled={busy || form.photos.length >= MAX_MEDIA_ITEMS}
+            aria-label="Choose photos or videos from library or camera"
           />
           <label
-            htmlFor="job-photos-input"
+            htmlFor="job-media-input"
             className={[
               'flex w-full min-h-[3.5rem] cursor-pointer items-center justify-center gap-3 rounded-2xl px-4 py-4 text-base font-semibold shadow-sm transition active:scale-[0.99]',
-              busy || form.photos.length >= MAX_PHOTOS
+              busy || form.photos.length >= MAX_MEDIA_ITEMS
                 ? 'pointer-events-none bg-gray-200 text-gray-500'
                 : 'bg-royal-600 text-white hover:bg-royal-700',
             ].join(' ')}
           >
-            <svg
-              className="h-6 w-6 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
-            Choose Photos
+            Choose Photos or Videos
           </label>
           <p className="mt-2 text-center text-[0.75rem] text-gray-500 sm:text-left">
-            Opens your photo library and camera options on your phone.
+            Opens your library and camera/video options on your phone. Uploads go directly to secure storage.
           </p>
         </div>
 
@@ -485,10 +544,21 @@ export default function JobForm({
             {form.photos.map((photo, index) => {
               const isDeleting = deletingKey === photo.key
               const controlsDisabled = busy || Boolean(deletingKey)
+              const isVideo = isVideoMedia(photo)
+              const isCover = !isVideo && form.photos.findIndex((item) => !isVideoMedia(item)) === index
               return (
                 <li key={photo.key} className="overflow-hidden rounded-xl border border-black/[0.08] bg-white shadow-sm">
                   <div className="relative aspect-[4/3] bg-navy-950/5">
-                    {photo.heic && !photo.uploaded ? (
+                    {isVideo ? (
+                      <video
+                        src={photo.url || photo.previewUrl}
+                        poster={photo.posterUrl || undefined}
+                        className="h-full w-full object-cover"
+                        controls
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : photo.heic && !photo.uploaded ? (
                       <div className="flex h-full items-center justify-center p-4 text-center text-[0.8125rem] text-gray-500">
                         HEIC selected — preview may be limited on this device. It will still upload.
                       </div>
@@ -499,18 +569,16 @@ export default function JobForm({
                         className="h-full w-full object-cover"
                       />
                     )}
-                    {index === 0 && (
-                      <span className="absolute top-2 left-2 rounded-full bg-navy-950/80 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-white uppercase">
-                        Cover
-                      </span>
-                    )}
+                    <span className="absolute top-2 left-2 rounded-full bg-navy-950/80 px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-white uppercase">
+                      {isCover ? 'Cover' : isVideo ? 'Video' : 'Photo'}
+                    </span>
                     <button
                       type="button"
                       className="absolute top-2 right-2 z-[1] flex h-11 w-11 items-center justify-center rounded-full border border-red-200 bg-white/95 text-red-700 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                       onClick={() => confirmAndRemovePhoto(photo.key)}
                       disabled={controlsDisabled}
-                      aria-label="Delete photo"
-                      title="Delete photo"
+                      aria-label={isVideo ? 'Delete video' : 'Delete photo'}
+                      title={isVideo ? 'Delete video' : 'Delete photo'}
                     >
                       {isDeleting ? (
                         <span className="h-5 w-5 animate-spin rounded-full border-2 border-red-200 border-t-red-600" aria-hidden="true" />
@@ -526,8 +594,17 @@ export default function JobForm({
                     {!photo.uploaded && photo.progress > 0 && photo.progress < 100 && (
                       <div className="absolute inset-x-0 bottom-0 bg-navy-950/80 px-2 py-2 text-center text-[0.75rem] font-medium text-white">
                         Uploading {photo.progress}%
+                        {photo.size ? ` · ${formatBytes(photo.size)}` : ''}
                       </div>
                     )}
+                    {photo.uploaded && photo.size ? (
+                      <div className="absolute inset-x-0 bottom-0 bg-navy-950/55 px-2 py-1 text-center text-[0.7rem] text-white">
+                        {formatBytes(photo.size)}
+                        {isVideo && photo.durationSeconds
+                          ? ` · ${Math.round(photo.durationSeconds)}s`
+                          : ''}
+                      </div>
+                    ) : null}
                     {isDeleting && (
                       <div className="absolute inset-0 flex items-center justify-center bg-navy-950/45 text-[0.8125rem] font-semibold text-white">
                         Removing…
@@ -535,6 +612,12 @@ export default function JobForm({
                     )}
                   </div>
                   <div className="space-y-2 p-3">
+                    {photo.movWarning ? (
+                      <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-[0.7rem] text-amber-900">
+                        iPhone MOV may not play in some desktop browsers. Prefer an MP4 (H.264) export for widest
+                        playback — no paid conversion is used.
+                      </p>
+                    ) : null}
                     <label className="block text-[0.75rem] font-medium text-gray-600">
                       Label
                       <select
@@ -552,7 +635,7 @@ export default function JobForm({
                     </label>
                     <input
                       className="input-light !py-2.5 text-[0.875rem]"
-                      placeholder="Alt text (optional)"
+                      placeholder={isVideo ? 'Video description (optional)' : 'Alt text (optional)'}
                       value={photo.alt}
                       onChange={(e) => updatePhoto(photo.key, { alt: e.target.value })}
                       disabled={controlsDisabled}
@@ -564,7 +647,7 @@ export default function JobForm({
                       onClick={() => confirmAndRemovePhoto(photo.key)}
                       disabled={controlsDisabled}
                     >
-                      {isDeleting ? 'Removing…' : 'Delete photo'}
+                      {isDeleting ? 'Removing…' : isVideo ? 'Delete video' : 'Delete photo'}
                     </button>
                   </div>
                 </li>

@@ -1,16 +1,15 @@
 import { handleUpload } from '@vercel/blob/client'
 import { json, requireAdmin } from '../../lib/adminAuth.mjs'
+import {
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPTED_VIDEO_TYPES,
+  isVideoContentType,
+  MAX_PHOTO_BYTES,
+  MAX_VIDEO_BYTES,
+  sanitizeUploadFilename,
+} from '../../lib/projectMedia.mjs'
 
-const ALLOWED_CONTENT_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-]
-
-/** 10 MB — keeps phone photos practical while blocking huge dumps */
-const MAX_SIZE_BYTES = 10 * 1024 * 1024
+const ALLOWED_CONTENT_TYPES = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES]
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -34,18 +33,40 @@ export default async function handler(req, res) {
       body,
       request: req,
       token: process.env.BLOB_READ_WRITE_TOKEN,
-      onBeforeGenerateToken: async (pathname) => {
-        const safePath = String(pathname || '')
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const rawPath = String(pathname || '')
+        const safePath = rawPath
+          .split('/')
+          .map((part, index) => (index === 0 ? part : sanitizeUploadFilename(part)))
+          .join('/')
           .replace(/[^a-zA-Z0-9._/-]/g, '-')
           .slice(0, 180)
+
         if (!safePath.startsWith('completed-jobs/')) {
           throw new Error('Invalid upload path')
         }
+
+        // Client may hint content type via pathname extension / payload.
+        let hintedType = ''
+        try {
+          const payload =
+            typeof clientPayload === 'string'
+              ? JSON.parse(clientPayload || '{}')
+              : clientPayload && typeof clientPayload === 'object'
+                ? clientPayload
+                : {}
+          hintedType = String(payload.contentType || '').toLowerCase()
+        } catch {
+          hintedType = ''
+        }
+
+        const maxBytes = isVideoContentType(hintedType, safePath) ? MAX_VIDEO_BYTES : MAX_PHOTO_BYTES
+
         return {
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: MAX_SIZE_BYTES,
+          maximumSizeInBytes: maxBytes,
           addRandomSuffix: true,
-          tokenPayload: JSON.stringify({ purpose: 'completed-job' }),
+          tokenPayload: JSON.stringify({ purpose: 'completed-job-media' }),
         }
       },
       onUploadCompleted: async () => {

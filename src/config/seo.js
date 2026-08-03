@@ -559,6 +559,22 @@ export function getProjectsIndexSchemas() {
 /**
  * @param {{ slug: string, service: string, city: string, propertyType: string, completedAt: string, notes?: string, photos?: Array<{url:string,alt?:string,label?:string}> }} project
  */
+function projectMediaLists(project) {
+  const media = Array.isArray(project?.photos) ? project.photos : []
+  const photos = media.filter((p) => {
+    const kind = String(p?.kind || '').toLowerCase()
+    const type = String(p?.contentType || '').toLowerCase()
+    if (kind === 'video' || type.startsWith('video/')) return false
+    return Boolean(p?.url)
+  })
+  const videos = media.filter((p) => {
+    const kind = String(p?.kind || '').toLowerCase()
+    const type = String(p?.contentType || '').toLowerCase()
+    return kind === 'video' || type.startsWith('video/') || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(String(p?.url || ''))
+  })
+  return { photos, videos }
+}
+
 export function getProjectDetailSeo(project) {
   const service = projectServiceLabel(project.service)
   const city = projectCityLabel(project.city)
@@ -568,8 +584,13 @@ export function getProjectDetailSeo(project) {
   const description =
     notes ||
     `See our ${property.toLowerCase()} ${service.toLowerCase()} project in ${city}, CA. Completed ${project.completedAt || 'recently'}.`
-  const afterPhoto = (project.photos || []).find((p) => p.label === 'after')
-  const ogImage = afterPhoto?.url || project.photos?.[0]?.url || DEFAULT_OG_IMAGE
+  const { photos, videos } = projectMediaLists(project)
+  const afterPhoto = photos.find((p) => p.label === 'after')
+  const ogImage =
+    afterPhoto?.url ||
+    photos[0]?.url ||
+    videos.find((v) => v.posterUrl)?.posterUrl ||
+    DEFAULT_OG_IMAGE
 
   return {
     title,
@@ -584,9 +605,10 @@ export function getProjectDetailSchemas(project) {
   const seo = getProjectDetailSeo(project)
   const service = projectServiceLabel(project.service)
   const city = projectCityLabel(project.city)
-  const images = (project.photos || []).map((p) => p.url).filter(Boolean)
+  const { photos, videos } = projectMediaLists(project)
+  const images = photos.map((p) => p.url).filter(Boolean)
 
-  return [
+  const schemas = [
     getOrganizationSchema(),
     {
       '@context': 'https://schema.org',
@@ -594,7 +616,7 @@ export function getProjectDetailSchemas(project) {
       name: `${service} in ${city}`,
       description: seo.description,
       url: seo.canonical,
-      image: images,
+      image: images.length ? images : [seo.ogImage],
       about: {
         '@type': 'Service',
         name: service,
@@ -608,4 +630,25 @@ export function getProjectDetailSchemas(project) {
       { name: `${service} in ${city}`, url: seo.canonical },
     ]),
   ]
+
+  for (const video of videos) {
+    if (!video?.url) continue
+    // Only emit VideoObject when we have a stable content URL + page context.
+    const videoObject = {
+      '@context': 'https://schema.org',
+      '@type': 'VideoObject',
+      name: `${service} in ${city}`,
+      description: seo.description,
+      contentUrl: video.url,
+      embedUrl: seo.canonical,
+      thumbnailUrl: video.posterUrl || seo.ogImage,
+      uploadDate: project.publishedAt || project.completedAt || undefined,
+    }
+    if (Number.isFinite(Number(video.durationSeconds)) && Number(video.durationSeconds) > 0) {
+      videoObject.duration = `PT${Math.round(Number(video.durationSeconds))}S`
+    }
+    schemas.push(videoObject)
+  }
+
+  return schemas
 }

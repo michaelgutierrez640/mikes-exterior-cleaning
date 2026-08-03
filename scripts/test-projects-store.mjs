@@ -38,7 +38,7 @@ function ok(name) {
     status: 'published',
   })
   assert.equal(r.ok, false)
-  ok('reject publish without photos')
+  ok('reject publish without media')
 }
 
 {
