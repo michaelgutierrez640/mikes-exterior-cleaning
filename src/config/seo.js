@@ -58,7 +58,8 @@ export const SEO = {
     'exterior cleaning Central Valley',
     "Mike's Exterior Cleaning Services",
   ].join(', '),
-  canonical: SITE_URL,
+  // Match sitemap <loc> for home (trailing slash) so canonical is self-referencing.
+  canonical: `${SITE_URL}/`,
 }
 
 export function getLocalBusinessSchema(overrides = {}, reviewSummary = null) {
