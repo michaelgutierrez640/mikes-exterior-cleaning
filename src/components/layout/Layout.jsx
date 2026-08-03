@@ -31,6 +31,7 @@ export default function Layout() {
       <Footer />
       {pathname !== '/instant-quote' &&
         pathname !== '/book-online' &&
+        pathname !== '/review' &&
         !pathname.startsWith('/admin') && <MobileCTA />}
       <BackToTop />
     </div>

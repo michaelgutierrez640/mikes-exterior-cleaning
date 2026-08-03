@@ -309,3 +309,57 @@ export async function updateAdminLead(id, payload) {
   if (!res.ok) throw new Error(data.error || 'Failed to update lead')
   return data.lead
 }
+
+function buildReviewsQuery(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.q) params.set('q', filters.q)
+  if (filters.status) params.set('status', filters.status)
+  if (filters.published !== undefined && filters.published !== '') {
+    params.set('published', String(filters.published))
+  }
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+export async function fetchAdminWebsiteReviews(filters = {}) {
+  const res = await fetch(`/api/reviews${buildReviewsQuery(filters)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  if (res.status === 401) return { unauthorized: true }
+  if (!res.ok) {
+    const data = await parseJson(res)
+    throw new Error(data.error || 'Failed to load customer reviews')
+  }
+  return res.json()
+}
+
+export async function updateAdminWebsiteReview(id, payload) {
+  const res = await fetch(`/api/reviews?id=${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to update review')
+  return data.review
+}
+
+export async function deleteAdminWebsiteReview(id) {
+  const res = await fetch(`/api/reviews?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to delete review')
+  return data
+}

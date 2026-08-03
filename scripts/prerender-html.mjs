@@ -175,6 +175,17 @@ async function collectRoutes(modules, publishedProjects = []) {
       ],
     },
     {
+      path: '/review',
+      seo: seo.getReviewPageSeo(),
+      schemas: seo.getReviewPageSchemas(),
+      h1: 'How Did We Do?',
+      crawlLinks: [
+        { href: '/#reviews', label: 'Reviews' },
+        { href: '/book-online', label: 'Book Online' },
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+      ],
+    },
+    {
       path: '/projects',
       seo: seo.getProjectsIndexSeo(),
       schemas: seo.getProjectsIndexSchemas(),
