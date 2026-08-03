@@ -111,14 +111,16 @@ async function loadModules() {
     const wcCities = await server.ssrLoadModule('/src/content/cities/window-cleaning/index.js')
     const locations = await server.ssrLoadModule('/src/content/cities/location/index.js')
     const serviceAreas = await server.ssrLoadModule('/src/config/serviceAreas.js')
-    return { seo, site, content, services, articles, wcCities, locations, serviceAreas }
+    const serviceCityContent = await server.ssrLoadModule('/src/utils/serviceCityContent.js')
+    return { seo, site, content, services, articles, wcCities, locations, serviceAreas, serviceCityContent }
   } finally {
     await server.close()
   }
 }
 
 async function collectRoutes(modules, publishedProjects = []) {
-  const { seo, site, content, services, articles, wcCities, locations, serviceAreas } = modules
+  const { seo, site, content, services, articles, wcCities, locations, serviceAreas, serviceCityContent } =
+    modules
   const { DEFAULT_OG_IMAGE, absoluteUrl } = site
 
   const routes = []
@@ -138,23 +140,87 @@ async function collectRoutes(modules, publishedProjects = []) {
   })
 
   const utilityPages = [
-    { path: '/service-areas', seo: seo.getServiceAreasPageSeo(), schemas: seo.getServiceAreasPageSchemas() },
-    { path: '/instant-quote', seo: seo.getInstantQuotePageSeo(), schemas: seo.getInstantQuotePageSchemas() },
-    { path: '/book-online', seo: seo.getBookOnlinePageSeo(), schemas: seo.getBookOnlinePageSchemas() },
-    { path: '/projects', seo: seo.getProjectsIndexSeo(), schemas: seo.getProjectsIndexSchemas() },
-    { path: '/privacy-policy', seo: seo.getPrivacyPolicyPageSeo(), schemas: seo.getPrivacyPolicyPageSchemas() },
-    { path: '/resources', seo: seo.getBlogIndexSeo(), schemas: [
-      seo.getOrganizationSchema(),
-      seo.getWebSiteSchema(),
-      seo.getBreadcrumbSchema([
-        { name: 'Home', url: absoluteUrl('/') },
-        { name: 'Resources', url: absoluteUrl('/resources') },
-      ]),
-    ] },
+    {
+      path: '/service-areas',
+      seo: seo.getServiceAreasPageSeo(),
+      schemas: seo.getServiceAreasPageSchemas(),
+      h1: 'Service Areas — Modesto & Central Valley',
+      crawlLinks: [
+        { href: '/service-areas/modesto', label: 'Modesto' },
+        { href: '/window-cleaning/modesto', label: 'Window cleaning in Modesto' },
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+        { href: '/#gallery', label: 'Our Work' },
+      ],
+    },
+    {
+      path: '/instant-quote',
+      seo: seo.getInstantQuotePageSeo(),
+      schemas: seo.getInstantQuotePageSchemas(),
+      h1: 'Instant Quote',
+      crawlLinks: [
+        { href: '/book-online', label: 'Book Online' },
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+        { href: '/#gallery', label: 'Our Work' },
+      ],
+    },
+    {
+      path: '/book-online',
+      seo: seo.getBookOnlinePageSeo(),
+      schemas: seo.getBookOnlinePageSchemas(),
+      h1: 'Book Online',
+      crawlLinks: [
+        { href: '/instant-quote', label: 'Instant Quote' },
+        { href: '/service-areas', label: 'Service Areas' },
+        { href: '/#gallery', label: 'Our Work' },
+      ],
+    },
+    {
+      path: '/projects',
+      seo: seo.getProjectsIndexSeo(),
+      schemas: seo.getProjectsIndexSchemas(),
+      h1: 'Completed Projects',
+      crawlLinks: [
+        { href: '/#gallery', label: 'Our Work gallery' },
+        { href: '/service-areas/modesto', label: 'Modesto service area' },
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+      ],
+    },
+    {
+      path: '/privacy-policy',
+      seo: seo.getPrivacyPolicyPageSeo(),
+      schemas: seo.getPrivacyPolicyPageSchemas(),
+      h1: 'Privacy Policy',
+      crawlLinks: [{ href: '/', label: 'Home' }],
+    },
+    {
+      path: '/resources',
+      seo: seo.getBlogIndexSeo(),
+      schemas: [
+        seo.getOrganizationSchema(),
+        seo.getWebSiteSchema(),
+        seo.getBreadcrumbSchema([
+          { name: 'Home', url: absoluteUrl('/') },
+          { name: 'Resources', url: absoluteUrl('/resources') },
+        ]),
+      ],
+      h1: 'Exterior Cleaning Resources',
+      crawlLinks: [
+        { href: '/resources/how-often-clean-windows-modesto-ca', label: 'How often to clean windows in Modesto' },
+        { href: '/services/window-cleaning', label: 'Window Cleaning' },
+        { href: '/#gallery', label: 'Our Work' },
+      ],
+    },
   ]
 
   for (const page of utilityPages) {
-    routes.push({ path: page.path, seo: page.seo, schemas: page.schemas, ogImage: DEFAULT_OG_IMAGE })
+    routes.push({
+      path: page.path,
+      seo: page.seo,
+      schemas: page.schemas,
+      ogImage: DEFAULT_OG_IMAGE,
+      h1: page.h1,
+      crawlLinks: page.crawlLinks || [],
+    })
   }
 
   for (const service of services.SERVICE_PAGES) {
@@ -189,16 +255,25 @@ async function collectRoutes(modules, publishedProjects = []) {
 
     for (const city of serviceAreas.SERVICE_CITIES) {
       const path = `/services/${service.slug}/${city.slug}`
-      const title = `${service.serviceName} in ${city.name} CA | Mike's Exterior`
-      const description =
-        service.meta?.description ||
-        `Professional ${service.serviceName.toLowerCase()} in ${city.name}, CA. See recent completed projects and get a free Instant Quote.`
+      const local = serviceCityContent.buildServiceCityContent(service.slug, city, service)
+      const crawlLinks = [
+        { href: `/services/${service.slug}`, label: `${service.serviceName} service` },
+        { href: `/service-areas/${city.slug}`, label: `Exterior cleaning in ${city.name}` },
+        { href: '/#gallery', label: 'Our Work' },
+        { href: '/instant-quote', label: 'Instant Quote' },
+      ]
+      if (service.slug === 'window-cleaning' || service.slug === 'residential-window-cleaning') {
+        crawlLinks.splice(1, 0, {
+          href: `/window-cleaning/${city.slug}`,
+          label: `Window cleaning in ${city.name}`,
+        })
+      }
       routes.push({
         path,
         seo: {
-          title,
-          description,
-          keywords: `${service.serviceName}, ${city.name}, completed projects`,
+          title: local.title,
+          description: local.description,
+          keywords: Array.isArray(local.keywords) ? local.keywords.join(', ') : local.keywords,
           canonical: absoluteUrl(path),
         },
         schemas: [
@@ -211,8 +286,11 @@ async function collectRoutes(modules, publishedProjects = []) {
             { name: service.serviceName, url: absoluteUrl(`/services/${service.slug}`) },
             { name: `${service.serviceName} in ${city.name}`, url: absoluteUrl(path) },
           ]),
+          seo.getFaqPageSchema(local.faqs),
         ],
         ogImage: service.hero?.image ? absoluteUrl(service.hero.image) : DEFAULT_OG_IMAGE,
+        h1: local.h1,
+        crawlLinks,
       })
     }
   }
@@ -296,6 +374,23 @@ async function collectRoutes(modules, publishedProjects = []) {
   }
 
   for (const article of articles.default) {
+    const crawlLinks = [
+      { href: '/resources', label: 'All resources' },
+      { href: '/#gallery', label: 'Our Work' },
+      { href: '/instant-quote', label: 'Instant Quote' },
+    ]
+    if (article.relatedServiceSlug) {
+      crawlLinks.unshift({
+        href: `/services/${article.relatedServiceSlug}`,
+        label: 'Related service',
+      })
+    }
+    if (article.relatedCitySlug) {
+      crawlLinks.splice(1, 0, {
+        href: `/service-areas/${article.relatedCitySlug}`,
+        label: 'Related service area',
+      })
+    }
     routes.push({
       path: `/resources/${article.slug}`,
       seo: {
@@ -306,6 +401,8 @@ async function collectRoutes(modules, publishedProjects = []) {
       },
       schemas: seo.getBlogArticleSchemas(article),
       ogImage: DEFAULT_OG_IMAGE,
+      h1: article.title || article.meta.title,
+      crawlLinks,
     })
   }
 
@@ -322,11 +419,20 @@ async function collectRoutes(modules, publishedProjects = []) {
       photos: project.coverImage ? [{ url: project.coverImage, label: 'general' }] : [],
     }
     const projectSeo = seo.getProjectDetailSeo(publicish)
+    const serviceName = String(project.service || 'exterior cleaning').replace(/-/g, ' ')
+    const cityName = String(project.city || '').replace(/-/g, ' ')
     routes.push({
       path: `/projects/${project.slug}`,
       seo: projectSeo,
       schemas: seo.getProjectDetailSchemas(publicish),
       ogImage: projectSeo.ogImage || DEFAULT_OG_IMAGE,
+      h1: projectSeo.title?.split('|')[0]?.trim() || `${serviceName} in ${cityName}`,
+      crawlLinks: [
+        { href: '/projects', label: 'All projects' },
+        ...(project.service ? [{ href: `/services/${project.service}`, label: 'Related service' }] : []),
+        ...(project.city ? [{ href: `/service-areas/${project.city}`, label: 'Service area' }] : []),
+        { href: '/#gallery', label: 'Our Work' },
+      ],
     })
   }
 

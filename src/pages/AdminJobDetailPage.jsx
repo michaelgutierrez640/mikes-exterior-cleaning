@@ -8,6 +8,7 @@ import AdminNav from '../components/admin/AdminNav'
 import JobForm from '../components/admin/JobForm'
 import JobPhotoGallery from '../components/admin/JobPhotoGallery'
 import SeoHead from '../components/seo/SeoHead'
+import SeoDeployStatus from '../components/admin/SeoDeployStatus'
 import {
   deleteAdminProject,
   fetchAdminFacebookStatus,
@@ -62,6 +63,12 @@ function DetailBody({
   setBusy,
   publishOrUnpublish,
   remove,
+  seoWarning,
+  seoStatus,
+  seoRefreshToken,
+  setSeoWarning,
+  setSeoStatus,
+  setSeoRefreshToken,
 }) {
   const [facebookConfigured, setFacebookConfigured] = useState(false)
 
@@ -130,6 +137,13 @@ function DetailBody({
         </p>
       )}
 
+      <SeoDeployStatus
+        seo={seoStatus}
+        warning={seoWarning}
+        refreshToken={seoRefreshToken}
+        onUnauthorized={setUnauthorized}
+      />
+
       {loading && (
         <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500">
           Loading job from Redis…
@@ -159,6 +173,9 @@ function DetailBody({
             setProject(updated)
             if (opts.closeEditor !== false) setEditing(false)
             setMessage(opts.closeEditor === false ? 'Photo updated.' : 'Job updated.')
+            setSeoWarning(opts.seoWarning || '')
+            setSeoStatus(opts.seo || null)
+            setSeoRefreshToken((n) => n + 1)
           }}
         />
       )}
@@ -306,6 +323,9 @@ export default function AdminJobDetailPage() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [seoWarning, setSeoWarning] = useState('')
+  const [seoStatus, setSeoStatus] = useState(null)
+  const [seoRefreshToken, setSeoRefreshToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -344,18 +364,22 @@ export default function AdminJobDetailPage() {
   const backLabel = project?.status === 'draft' ? 'Back to Drafts' : 'Back to Published'
 
   async function publishOrUnpublish() {
-    if (!project) return
+    if (!project || busy) return
     if (project.status === 'draft' && !project.photos?.length) {
       setError('Add at least one photo before publishing')
       return
     }
     setBusy(true)
     setError('')
+    setSeoWarning('')
     try {
       const nextStatus = project.status === 'published' ? 'draft' : 'published'
-      const updated = await updateAdminProject(project.id, { status: nextStatus })
-      setProject(updated)
+      const result = await updateAdminProject(project.id, { status: nextStatus })
+      setProject(result.project)
       setMessage(nextStatus === 'published' ? 'Job published.' : 'Job moved to drafts.')
+      setSeoWarning(result.seoWarning || '')
+      setSeoStatus(result.seo || null)
+      setSeoRefreshToken((n) => n + 1)
     } catch (err) {
       setError(err.message || 'Status update failed')
       throw err
@@ -365,15 +389,20 @@ export default function AdminJobDetailPage() {
   }
 
   async function remove() {
-    if (!project) return
+    if (!project || busy) return
     const ok = window.confirm(
       `Delete this ${project.status} job in ${cityLabel(project.city)}? Photos will be removed from Blob storage. This cannot be undone.`,
     )
     if (!ok) return
     setBusy(true)
     setError('')
+    setSeoWarning('')
     try {
-      await deleteAdminProject(project.id)
+      const result = await deleteAdminProject(project.id)
+      if (result?.seoWarning) {
+        // Surface briefly before navigate — status persists in Redis for list pages.
+        setSeoWarning(result.seoWarning)
+      }
       navigate(backHref, { replace: true })
     } catch (err) {
       setError(err.message || 'Delete failed')
@@ -423,6 +452,12 @@ export default function AdminJobDetailPage() {
               setBusy={setBusy}
               publishOrUnpublish={publishOrUnpublish}
               remove={remove}
+              seoWarning={seoWarning}
+              seoStatus={seoStatus}
+              seoRefreshToken={seoRefreshToken}
+              setSeoWarning={setSeoWarning}
+              setSeoStatus={setSeoStatus}
+              setSeoRefreshToken={setSeoRefreshToken}
             />
           )}
         </AdminAuthGate>
