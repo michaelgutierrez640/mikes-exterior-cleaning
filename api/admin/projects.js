@@ -24,6 +24,11 @@ import {
   normalizeProjectId,
   updateProject,
 } from '../../lib/projectsStore.mjs'
+import {
+  getSeoDeployStatus,
+  maybeTriggerSeoRebuildAfterJobChange,
+  toPublicSeoDeployStatus,
+} from '../../lib/seoDeployHook.mjs'
 
 /**
  * Collection + item operations on one stable path:
@@ -36,6 +41,7 @@ import {
  * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
  * - GET /api/admin/projects?resource=facebook
  * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry', caption? }
+ * - GET /api/admin/projects?resource=seo-deploy
  *
  * Query-param item routes avoid brittle dynamic /api/.../[id] matching behind the SPA rewrite.
  * Extra resources are folded into this function to stay within Vercel Hobby function limits.
@@ -221,6 +227,15 @@ export default async function handler(req, res) {
     }
   }
 
+  if (resource === 'seo-deploy') {
+    if (req.method !== 'GET') {
+      res.setHeader('Allow', 'GET')
+      return json(res, 405, { error: 'Method not allowed' })
+    }
+    const status = await getSeoDeployStatus()
+    return json(res, 200, { seo: toPublicSeoDeployStatus(status) })
+  }
+
   if (!isProjectsStorageConfigured()) {
     return json(res, 503, {
       error: 'Projects storage not configured',
@@ -266,6 +281,13 @@ export default async function handler(req, res) {
       let project = await createProject(projectBody)
       console.info('[admin/projects] created', { id: project.id, redisKey: `project:${project.id}` })
 
+      // SEO rebuild before Facebook — never fail the job save if the hook fails.
+      const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
+        previous: null,
+        next: project,
+        action: 'save',
+      })
+
       const fb = await maybePublishToFacebook({
         project,
         previous: null,
@@ -276,6 +298,8 @@ export default async function handler(req, res) {
       return json(res, 201, {
         project,
         facebook: facebookResponseMeta(project, fb.attempt),
+        seo: seoResult.seo,
+        seoWarning: seoResult.warning || null,
       })
     }
 
@@ -298,6 +322,12 @@ export default async function handler(req, res) {
         }
       }
 
+      const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
+        previous: existing,
+        next: project,
+        action: 'save',
+      })
+
       const fb = await maybePublishToFacebook({
         project,
         previous: existing,
@@ -310,6 +340,8 @@ export default async function handler(req, res) {
         project,
         blob,
         facebook: facebookResponseMeta(project, fb.attempt),
+        seo: seoResult.seo,
+        seoWarning: seoResult.warning || null,
       })
     }
 
@@ -317,7 +349,17 @@ export default async function handler(req, res) {
       if (!itemId) return json(res, 400, { error: 'Missing job id' })
       const existing = await deleteProject(itemId)
       const blobResult = await deleteBlobUrls((existing?.photos || []).map((p) => p.url).filter(Boolean))
-      return json(res, 200, { ok: true, blob: blobResult })
+      const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
+        previous: existing,
+        next: null,
+        action: 'delete',
+      })
+      return json(res, 200, {
+        ok: true,
+        blob: blobResult,
+        seo: seoResult.seo,
+        seoWarning: seoResult.warning || null,
+      })
     }
 
     res.setHeader('Allow', 'GET, POST, PATCH, DELETE')

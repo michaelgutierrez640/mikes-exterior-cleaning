@@ -303,13 +303,19 @@ export default function JobForm({
         payload.facebookCaption = (facebookCaption || defaultCaption).trim()
       }
 
-      let project
+      let result
       if (mode === 'edit' && initialProject?.id) {
-        project = await updateProject(initialProject.id, payload)
+        result = await updateProject(initialProject.id, payload)
       } else {
-        project = await createProject(payload)
+        result = await createProject(payload)
       }
-      onSaved?.(project, { closeEditor: true })
+      // Support both legacy project-only returns and { project, seo, seoWarning }.
+      const project = result?.project || result
+      onSaved?.(project, {
+        closeEditor: true,
+        seo: result?.seo || null,
+        seoWarning: result?.seoWarning || null,
+      })
     } catch (err) {
       setError(err.message || 'Save failed')
     } finally {

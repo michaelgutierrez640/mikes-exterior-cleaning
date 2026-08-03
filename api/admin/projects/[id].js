@@ -7,6 +7,7 @@ import {
   normalizeProjectId,
   updateProject,
 } from '../../../lib/projectsStore.mjs'
+import { maybeTriggerSeoRebuildAfterJobChange } from '../../../lib/seoDeployHook.mjs'
 
 /**
  * Resolve id from query, path, or framework params.
@@ -94,13 +95,34 @@ export default async function handler(req, res) {
         }
       }
 
-      return json(res, 200, { project, blob })
+      const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
+        previous: existing,
+        next: project,
+        action: 'save',
+      })
+
+      return json(res, 200, {
+        project,
+        blob,
+        seo: seoResult.seo,
+        seoWarning: seoResult.warning || null,
+      })
     }
 
     if (req.method === 'DELETE') {
       const existing = await deleteProject(id)
       const blobResult = await deleteBlobUrls((existing?.photos || []).map((p) => p.url).filter(Boolean))
-      return json(res, 200, { ok: true, blob: blobResult })
+      const seoResult = await maybeTriggerSeoRebuildAfterJobChange({
+        previous: existing,
+        next: null,
+        action: 'delete',
+      })
+      return json(res, 200, {
+        ok: true,
+        blob: blobResult,
+        seo: seoResult.seo,
+        seoWarning: seoResult.warning || null,
+      })
     }
 
     res.setHeader('Allow', 'GET, PATCH, DELETE')

@@ -136,7 +136,12 @@ export async function createAdminProject(payload) {
     throw err
   }
   if (!res.ok) throw new Error(data.error || 'Failed to save job')
-  return data.project
+  return {
+    project: data.project,
+    facebook: data.facebook || null,
+    seo: data.seo || null,
+    seoWarning: data.seoWarning || null,
+  }
 }
 
 export async function updateAdminProject(id, payload) {
@@ -152,7 +157,13 @@ export async function updateAdminProject(id, payload) {
     throw err
   }
   if (!res.ok) throw new Error(data.error || 'Failed to update job')
-  return data.project
+  return {
+    project: data.project,
+    facebook: data.facebook || null,
+    seo: data.seo || null,
+    seoWarning: data.seoWarning || null,
+    blob: data.blob || null,
+  }
 }
 
 export async function fetchAdminFacebookStatus() {
@@ -198,6 +209,20 @@ export async function deleteAdminProject(id) {
   }
   if (!res.ok) throw new Error(data.error || 'Failed to delete job')
   return data
+}
+
+export async function fetchAdminSeoDeployStatus() {
+  const res = await fetch('/api/admin/projects?resource=seo-deploy', {
+    headers: { Accept: 'application/json' },
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to load SEO update status')
+  return data.seo || null
 }
 
 export async function fetchAdminOurWorkGallery() {

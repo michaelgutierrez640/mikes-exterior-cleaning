@@ -6,17 +6,22 @@ import {
 } from '../../services/adminApi'
 import JobCard from './JobCard'
 import JobForm from './JobForm'
+import SeoDeployStatus from './SeoDeployStatus'
 
 export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnauthorized }) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [seoWarning, setSeoWarning] = useState('')
+  const [seoStatus, setSeoStatus] = useState(null)
+  const [seoRefreshToken, setSeoRefreshToken] = useState(0)
   const [formKey, setFormKey] = useState(0)
 
   useEffect(() => {
     setMessage('')
     setError('')
+    setSeoWarning('')
     if (tab === 'new') setFormKey((k) => k + 1)
   }, [tab])
 
@@ -50,8 +55,11 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
     return updateAdminProject(id, payload)
   }
 
-  function handleSaved(project) {
-    setMessage(project.status === 'published' ? 'Job published (admin-only for now).' : 'Draft saved.')
+  function handleSaved(project, opts = {}) {
+    setMessage(project.status === 'published' ? 'Job published.' : 'Draft saved.')
+    setSeoWarning(opts.seoWarning || '')
+    setSeoStatus(opts.seo || null)
+    setSeoRefreshToken((n) => n + 1)
     setFormKey((k) => k + 1)
     onTabChange?.(project.status === 'published' ? 'published' : 'draft')
   }
@@ -68,6 +76,13 @@ export default function CompletedJobsPanel({ tab = 'new', onTabChange, onUnautho
           {error}
         </p>
       )}
+
+      <SeoDeployStatus
+        seo={seoStatus}
+        warning={seoWarning}
+        refreshToken={seoRefreshToken}
+        onUnauthorized={onUnauthorized}
+      />
 
       {tab === 'new' && (
         <JobForm
