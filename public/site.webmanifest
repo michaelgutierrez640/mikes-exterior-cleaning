@@ -1,0 +1,23 @@
+{
+  "name": "Mike's Exterior Cleaning Services",
+  "short_name": "Mike's Exterior",
+  "description": "Premium window cleaning, solar panel cleaning, gutter cleaning, and pressure washing in Modesto and the Central Valley.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
