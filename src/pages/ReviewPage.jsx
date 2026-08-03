@@ -3,6 +3,7 @@ import { getReviewPageSeo, getReviewPageSchemas } from '../config/seo'
 import { DEFAULT_OG_IMAGE } from '../config/site'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
+import StarRatingInput from '../components/review/StarRatingInput'
 import { submitWebsiteReview } from '../services/websiteReviewsApi'
 
 const pageSeo = getReviewPageSeo()
@@ -10,8 +11,8 @@ const pageSeo = getReviewPageSeo()
 export default function ReviewPage() {
   const schemas = getReviewPageSchemas()
   const [name, setName] = useState('')
+  const [rating, setRating] = useState(null)
   const [reviewText, setReviewText] = useState('')
-  const [displayPermission, setDisplayPermission] = useState(false)
   const [companyWebsite, setCompanyWebsite] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -27,12 +28,12 @@ export default function ReviewPage() {
       setError('Please enter your name.')
       return
     }
-    if (!trimmedReview) {
-      setError('Please enter your review.')
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      setError('Please select a rating from 1 to 5 stars.')
       return
     }
-    if (!displayPermission) {
-      setError('Please check the box to allow displaying your review on the website.')
+    if (!trimmedReview) {
+      setError('Please enter your review.')
       return
     }
 
@@ -40,8 +41,8 @@ export default function ReviewPage() {
     try {
       await submitWebsiteReview({
         name: trimmedName,
+        rating,
         reviewText: trimmedReview,
-        displayPermission: true,
         companyWebsite,
       })
       setDone(true)
@@ -110,6 +111,15 @@ export default function ReviewPage() {
               </div>
 
               <div>
+                <p className="mb-2 block text-base font-semibold text-navy-900" id="rating-label">
+                  Star rating
+                </p>
+                <div aria-labelledby="rating-label">
+                  <StarRatingInput value={rating} onChange={setRating} />
+                </div>
+              </div>
+
+              <div>
                 <label htmlFor="review-text" className="mb-2 block text-base font-semibold text-navy-900">
                   Review
                 </label>
@@ -124,19 +134,6 @@ export default function ReviewPage() {
                 />
               </div>
 
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-gray-50 p-4 ring-1 ring-black/[0.06]">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5 shrink-0 rounded border-gray-300 text-royal-600 focus:ring-royal-500"
-                  checked={displayPermission}
-                  onChange={(e) => setDisplayPermission(e.target.checked)}
-                  required
-                />
-                <span className="text-[0.9375rem] leading-snug text-navy-900">
-                  You may display my review on the Mike&apos;s Exterior Cleaning Services website.
-                </span>
-              </label>
-
               {error && (
                 <p className="text-[0.9375rem] font-medium text-red-600" role="alert">
                   {error}
@@ -150,6 +147,10 @@ export default function ReviewPage() {
               >
                 {submitting ? 'Submitting…' : 'Submit Review'}
               </button>
+
+              <p className="text-center text-[0.875rem] leading-snug text-gray-500">
+                By submitting, you agree that your review may be displayed on our website.
+              </p>
             </form>
           )}
         </div>

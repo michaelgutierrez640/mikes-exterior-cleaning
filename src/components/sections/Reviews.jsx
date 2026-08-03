@@ -135,6 +135,18 @@ export default function Reviews() {
                     <p className="text-[0.75rem] font-semibold tracking-wide text-royal-600 uppercase">
                       Website customer review
                     </p>
+                    {Number.isInteger(review.rating) && review.rating >= 1 && (
+                      <div className="mt-3">
+                        <GoogleStars
+                          count={review.rating}
+                          className="h-5 w-5"
+                        />
+                        <p className="sr-only">{review.rating} out of 5</p>
+                        <p className="mt-1 text-[0.8125rem] font-medium text-gray-500">
+                          {review.rating} out of 5
+                        </p>
+                      </div>
+                    )}
                     <p className="mt-4 text-[0.9375rem] leading-[1.7] text-gray-600">
                       &ldquo;{review.reviewText}&rdquo;
                     </p>

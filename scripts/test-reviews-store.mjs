@@ -6,6 +6,7 @@ import assert from 'assert'
 import {
   filterReviews,
   normalizeDuplicateKey,
+  parseStarRating,
   toPublicReview,
   validateReviewAdminUpdate,
   validateReviewIngest,
@@ -21,30 +22,56 @@ function ok(name) {
 {
   const r = validateReviewIngest({
     name: 'Jane',
+    rating: 5,
     reviewText: 'Great window cleaning job!',
-    displayPermission: true,
   })
   assert.equal(r.ok, true)
   assert.equal(r.data.name, 'Jane')
+  assert.equal(r.data.rating, 5)
   assert.equal(r.data.displayPermission, true)
-  ok('accept valid review with permission')
+  ok('accept valid review with star rating')
 }
 
 {
   const r = validateReviewIngest({
     name: 'Jane',
-    reviewText: 'Great work',
-    displayPermission: false,
+    reviewText: 'Great window cleaning job!',
   })
   assert.equal(r.ok, false)
-  ok('reject without display permission')
+  ok('reject without star rating')
+}
+
+{
+  const r = validateReviewIngest({
+    name: 'Jane',
+    rating: 0,
+    reviewText: 'Great window cleaning job!',
+  })
+  assert.equal(r.ok, false)
+  ok('reject rating below 1')
+}
+
+{
+  const r = validateReviewIngest({
+    name: 'Jane',
+    rating: 6,
+    reviewText: 'Great window cleaning job!',
+  })
+  assert.equal(r.ok, false)
+  ok('reject rating above 5')
+}
+
+{
+  assert.equal(parseStarRating('3').ok, true)
+  assert.equal(parseStarRating('3').value, 3)
+  ok('parse string star rating')
 }
 
 {
   const r = validateReviewIngest({
     name: '',
+    rating: 4,
     reviewText: 'Great window cleaning job!',
-    displayPermission: true,
   })
   assert.equal(r.ok, false)
   ok('reject missing name')
@@ -53,8 +80,8 @@ function ok(name) {
 {
   const r = validateReviewIngest({
     name: 'Jane',
+    rating: 4,
     reviewText: 'short',
-    displayPermission: true,
   })
   assert.equal(r.ok, false)
   ok('reject too-short review')
@@ -63,8 +90,8 @@ function ok(name) {
 {
   const r = validateReviewIngest({
     name: 'Bot',
+    rating: 5,
     reviewText: 'Great window cleaning job!',
-    displayPermission: true,
     companyWebsite: 'https://spam.example',
   })
   assert.equal(r.ok, false)
@@ -75,8 +102,8 @@ function ok(name) {
 {
   const r = validateReviewIngest({
     name: '<script>alert(1)</script>',
+    rating: 5,
     reviewText: 'Great window cleaning job!',
-    displayPermission: true,
   })
   assert.equal(r.ok, false)
   ok('reject script-like name')
@@ -85,8 +112,8 @@ function ok(name) {
 {
   const r = validateReviewIngest({
     name: 'Jane',
+    rating: 5,
     reviewText: 'Call me at 209-555-1212 after you clean my windows please!',
-    displayPermission: true,
   })
   assert.equal(r.ok, true)
   assert.match(r.data.reviewText, /\[redacted\]/)
@@ -125,6 +152,7 @@ function ok(name) {
   const pending = {
     id: 'rev_1',
     name: 'A',
+    rating: 5,
     reviewText: 'Pending review text here',
     status: 'pending',
     published: false,
@@ -156,6 +184,7 @@ function ok(name) {
   const publicItem = toPublicReview({
     id: 'rev_9',
     name: 'Sam',
+    rating: 4,
     reviewText: 'Wonderful service',
     status: 'approved',
     published: true,
@@ -163,8 +192,9 @@ function ok(name) {
     createdAt: '2026-08-01T00:00:00.000Z',
   })
   assert.equal(publicItem.source, 'website')
+  assert.equal(publicItem.rating, 4)
   assert.equal(publicItem.email, undefined)
-  ok('public review shape omits private fields')
+  ok('public review shape includes rating and omits private fields')
 }
 
 {

@@ -98,7 +98,12 @@ function ReviewCard({ review, onChanged, onUnauthorized }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <StatusPill status={review.status} published={review.published} />
-          <p className="mt-2 text-[0.8125rem] text-gray-500">
+          <p className="mt-2 text-[0.9375rem] font-semibold text-navy-900">
+            {Number.isInteger(review.rating)
+              ? `${review.rating} out of 5`
+              : 'No star rating'}
+          </p>
+          <p className="mt-1 text-[0.8125rem] text-gray-500">
             Submitted {formatSubmittedAt(review.createdAt)}
           </p>
         </div>

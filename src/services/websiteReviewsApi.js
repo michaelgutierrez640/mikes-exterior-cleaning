@@ -9,14 +9,14 @@ async function parseJson(res) {
 /**
  * Submit a website customer review. Always stored as pending.
  */
-export async function submitWebsiteReview({ name, reviewText, displayPermission, companyWebsite = '' }) {
+export async function submitWebsiteReview({ name, rating, reviewText, companyWebsite = '' }) {
   const res = await fetch('/api/reviews', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
       name,
+      rating,
       reviewText,
-      displayPermission,
       companyWebsite,
     }),
   })
