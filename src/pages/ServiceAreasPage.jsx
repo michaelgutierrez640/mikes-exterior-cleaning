@@ -3,7 +3,7 @@ import { BUSINESS } from '../config/business'
 import { SERVICE_CITIES } from '../config/serviceAreas'
 import { WINDOW_CLEANING_CITY_SLUGS } from '../content/cities/window-cleaning'
 import { getServiceAreasPageSeo, getServiceAreasPageSchemas } from '../config/seo'
-import { absoluteUrl } from '../config/site'
+import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { SERVICE_PAGES } from '../content/services'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
@@ -17,7 +17,7 @@ export default function ServiceAreasPage() {
 
   return (
     <>
-      <SeoHead {...pageSeo} />
+      <SeoHead {...pageSeo} ogImage={DEFAULT_OG_IMAGE} />
       <JsonLd data={schemas} id="service-areas-schema" />
 
       <section className="section-padding bg-navy-950 pt-32" aria-labelledby="areas-page-heading">

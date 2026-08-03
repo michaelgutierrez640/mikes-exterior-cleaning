@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import {
   DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_ALT,
   DEFAULT_OG_IMAGE_HEIGHT,
   DEFAULT_OG_IMAGE_TYPE,
   DEFAULT_OG_IMAGE_WIDTH,
@@ -43,11 +44,15 @@ export default function SeoHead({
   canonical,
   ogType = 'website',
   ogImage,
+  ogImageAlt,
   noindex = false,
 }) {
   useEffect(() => {
     const image = ogImage || DEFAULT_OG_IMAGE
     const useBrandedDimensions = isDefaultOgImage(image)
+    const imageAlt = useBrandedDimensions
+      ? ogImageAlt || DEFAULT_OG_IMAGE_ALT
+      : ogImageAlt || title
 
     document.title = title
     upsertMeta('name', 'description', description)
@@ -63,15 +68,17 @@ export default function SeoHead({
       upsertMeta('property', 'og:image:height', String(DEFAULT_OG_IMAGE_HEIGHT))
       upsertMeta('property', 'og:image:type', DEFAULT_OG_IMAGE_TYPE)
     }
+    upsertMeta('property', 'og:image:alt', imageAlt)
     upsertMeta('name', 'twitter:card', 'summary_large_image')
     upsertMeta('name', 'twitter:title', title)
     upsertMeta('name', 'twitter:description', description)
     upsertMeta('name', 'twitter:image', image)
+    upsertMeta('name', 'twitter:image:alt', imageAlt)
     if (canonical) {
       upsertLink('canonical', canonical)
       upsertMeta('property', 'og:url', canonical)
     }
-  }, [title, description, keywords, canonical, ogType, ogImage, noindex])
+  }, [title, description, keywords, canonical, ogType, ogImage, ogImageAlt, noindex])
 
   return null
 }

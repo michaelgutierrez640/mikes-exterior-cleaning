@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { BUSINESS, NAV_LINKS, getBusinessNapLine } from '../../config/business'
 import { useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import { SERVICE_CITIES } from '../../config/serviceAreas'
-import { LogoMark } from '../ui/Icons'
+import BrandLogo from '../ui/BrandLogo'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 import { PhoneLink } from '../ui/Button'
 
@@ -47,15 +47,9 @@ export default function Footer() {
       <div className="section-container py-16 sm:py-20">
         <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-4">
-            <div className="flex items-center gap-3">
-              <div className="icon-wrap-royal">
-                <LogoMark />
-              </div>
-              <div>
-                <p className="font-display text-lg font-semibold text-white">{BUSINESS.shortName}</p>
-                <p className="text-[10px] font-medium tracking-[0.2em] text-white/40 uppercase">{BUSINESS.tagline}</p>
-              </div>
-            </div>
+            <Link to="/" aria-label={`${BUSINESS.name} home`} className="inline-flex">
+              <BrandLogo className="h-14 w-auto max-w-[220px] object-contain object-left sm:h-16" />
+            </Link>
             <p className="mt-5 max-w-xs text-[0.8125rem] leading-[1.65] text-white/40">
               {BUSINESS.description}
             </p>

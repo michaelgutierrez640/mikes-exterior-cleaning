@@ -4,6 +4,7 @@ import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
 import ProjectCard from '../components/projects/ProjectCard'
 import { getProjectsIndexSeo, getProjectsIndexSchemas } from '../config/seo'
+import { DEFAULT_OG_IMAGE } from '../config/site'
 import { fetchPublicProjects } from '../services/projectsApi'
 import { InstantQuoteButton } from '../components/ui/Button'
 
@@ -36,7 +37,7 @@ export default function ProjectsPage() {
 
   return (
     <>
-      <SeoHead {...pageSeo} />
+      <SeoHead {...pageSeo} ogImage={DEFAULT_OG_IMAGE} />
       <JsonLd data={getProjectsIndexSchemas()} id="projects-index" />
 
       <section className="relative overflow-hidden bg-navy-950 pt-28 pb-12 sm:pt-32 sm:pb-14">

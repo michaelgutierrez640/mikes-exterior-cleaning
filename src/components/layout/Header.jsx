@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
 import { BookOnlineButton, CallButton, InstantQuoteButton, PhoneLink } from '../ui/Button'
-
-const BRAND_LOGO_SRC = '/images/brand/mikes-exterior-logo.png'
+import BrandLogo from '../ui/BrandLogo'
 
 function NavLink({ href, children, onClick, mobile = false }) {
   const isRoute = href.startsWith('/') && !href.includes('#')
@@ -79,19 +78,11 @@ export default function Header() {
         <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-7 py-3.5 sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14">
           <Link
             to="/"
-            className="relative z-20 flex shrink-0 items-center transition-opacity duration-300 hover:opacity-90"
+            className="relative z-20 flex shrink-0 items-center"
             aria-label={`${BUSINESS.name} home`}
+            onClick={closeMenu}
           >
-            <img
-              src={BRAND_LOGO_SRC}
-              alt={BUSINESS.name}
-              width={364}
-              height={216}
-              decoding="async"
-              fetchPriority="high"
-              loading="eager"
-              className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
-            />
+            <BrandLogo priority />
           </Link>
 
           <nav

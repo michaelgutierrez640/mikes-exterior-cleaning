@@ -1,5 +1,12 @@
 import { BUSINESS } from './business'
-import { SITE_URL, absoluteUrl, DEFAULT_OG_IMAGE } from './site'
+import {
+  SITE_URL,
+  absoluteUrl,
+  BRAND_LOGO,
+  BRAND_LOGO_HEIGHT,
+  BRAND_LOGO_WIDTH,
+  DEFAULT_OG_IMAGE,
+} from './site'
 import { SERVICE_CITIES } from './serviceAreas'
 import { sanitizePublicText } from '../../lib/sanitizePublicText.mjs'
 
@@ -12,7 +19,12 @@ export function getOrganizationSchema() {
     '@id': `${SITE_URL}/#organization`,
     name: BUSINESS.name,
     url: SITE_URL,
-    logo: `${SITE_URL}/favicon.svg`,
+    logo: {
+      '@type': 'ImageObject',
+      url: BRAND_LOGO,
+      width: BRAND_LOGO_WIDTH,
+      height: BRAND_LOGO_HEIGHT,
+    },
     email: BUSINESS.email,
     telephone: BUSINESS.phone,
     description: BUSINESS.description,
@@ -108,6 +120,12 @@ export function getLocalBusinessSchema(overrides = {}, reviewSummary = null) {
     email: BUSINESS.email,
     description: BUSINESS.description,
     parentOrganization: { '@id': `${SITE_URL}/#organization` },
+    logo: {
+      '@type': 'ImageObject',
+      url: BRAND_LOGO,
+      width: BRAND_LOGO_WIDTH,
+      height: BRAND_LOGO_HEIGHT,
+    },
     image: DEFAULT_OG_IMAGE,
     address: {
       '@type': 'PostalAddress',
@@ -498,7 +516,12 @@ export function getBlogArticleSchemas(article) {
       publisher: {
         '@type': 'Organization',
         name: BUSINESS.name,
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.svg` },
+        logo: {
+          '@type': 'ImageObject',
+          url: BRAND_LOGO,
+          width: BRAND_LOGO_WIDTH,
+          height: BRAND_LOGO_HEIGHT,
+        },
       },
       image: DEFAULT_OG_IMAGE,
       mainEntityOfPage: url,
