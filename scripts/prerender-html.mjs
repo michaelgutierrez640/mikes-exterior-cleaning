@@ -61,6 +61,7 @@ function injectRouteHtml(
     ogImageWidth,
     ogImageHeight,
     ogImageType,
+    ogImageAlt,
     schemas = [],
     noindex = false,
     h1 = '',
@@ -85,6 +86,10 @@ function injectRouteHtml(
     html = removeMetaTag(html, 'property', 'og:image:width')
     html = removeMetaTag(html, 'property', 'og:image:height')
     html = removeMetaTag(html, 'property', 'og:image:type')
+  }
+  if (ogImageAlt) {
+    html = upsertMetaTag(html, 'property', 'og:image:alt', ogImageAlt)
+    html = upsertMetaTag(html, 'name', 'twitter:image:alt', ogImageAlt)
   }
   html = upsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image')
   html = upsertMetaTag(html, 'name', 'twitter:title', title)
@@ -162,6 +167,7 @@ async function collectRoutes(modules, publishedProjects = []) {
     DEFAULT_OG_IMAGE_WIDTH,
     DEFAULT_OG_IMAGE_HEIGHT,
     DEFAULT_OG_IMAGE_TYPE,
+    DEFAULT_OG_IMAGE_ALT,
     absoluteUrl,
   } = site
 
@@ -170,6 +176,7 @@ async function collectRoutes(modules, publishedProjects = []) {
     ogImageWidth: DEFAULT_OG_IMAGE_WIDTH,
     ogImageHeight: DEFAULT_OG_IMAGE_HEIGHT,
     ogImageType: DEFAULT_OG_IMAGE_TYPE,
+    ogImageAlt: DEFAULT_OG_IMAGE_ALT,
   }
 
   const routes = []
@@ -481,17 +488,22 @@ async function collectRoutes(modules, publishedProjects = []) {
     const projectSeo = seo.getProjectDetailSeo(publicish)
     const serviceName = String(project.service || 'exterior cleaning').replace(/-/g, ' ')
     const cityName = String(project.city || '').replace(/-/g, ' ')
+    const projectOg = projectSeo.ogImage || DEFAULT_OG_IMAGE
+    const projectUsesBrandedOg = projectOg === DEFAULT_OG_IMAGE
     routes.push({
       path: `/projects/${project.slug}`,
       seo: projectSeo,
       schemas: seo.getProjectDetailSchemas(publicish),
-      ogImage: projectSeo.ogImage || DEFAULT_OG_IMAGE,
-      ...(projectSeo.ogImage
-        ? {}
-        : {
+      ogImage: projectOg,
+      ...(projectUsesBrandedOg
+        ? {
             ogImageWidth: DEFAULT_OG_IMAGE_WIDTH,
             ogImageHeight: DEFAULT_OG_IMAGE_HEIGHT,
             ogImageType: DEFAULT_OG_IMAGE_TYPE,
+            ogImageAlt: DEFAULT_OG_IMAGE_ALT,
+          }
+        : {
+            ogImageAlt: projectSeo.title,
           }),
       h1: projectSeo.title?.split('|')[0]?.trim() || `${serviceName} in ${cityName}`,
       crawlLinks: [
@@ -530,6 +542,7 @@ async function main() {
       ogImageWidth: route.ogImageWidth,
       ogImageHeight: route.ogImageHeight,
       ogImageType: route.ogImageType,
+      ogImageAlt: route.ogImageAlt,
       schemas: route.schemas,
       noindex: route.noindex,
       h1: route.h1,

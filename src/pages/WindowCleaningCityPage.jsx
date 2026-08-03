@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import NotFoundPage from './NotFoundPage'
 import { BUSINESS } from '../config/business'
-import { absoluteUrl } from '../config/site'
+import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
 import { getServiceImage } from '../config/images'
 import { getWindowCleaningCityPageSchemas } from '../config/seo'
 import { getWindowCleaningCityPage } from '../content/cities/window-cleaning'
@@ -84,7 +84,13 @@ export default function WindowCleaningCityPage() {
 
   return (
     <>
-      <SeoHead title={meta.title} description={meta.description} keywords={meta.keywords} canonical={canonical} />
+      <SeoHead
+        title={meta.title}
+        description={meta.description}
+        keywords={meta.keywords}
+        canonical={canonical}
+        ogImage={DEFAULT_OG_IMAGE}
+      />
       <JsonLd data={schemas} id={`wc-city-${citySlug}`} />
 
       {/* Hero */}
