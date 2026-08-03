@@ -100,7 +100,7 @@ export default function ServiceCityPage() {
         description={content.description}
         keywords={content.keywords}
         canonical={canonical}
-        ogImage={servicePage.hero?.image ? absoluteUrl(servicePage.hero.image) : DEFAULT_OG_IMAGE}
+        ogImage={DEFAULT_OG_IMAGE}
       />
       <JsonLd data={schemas} id={`service-city-${serviceSlug}-${citySlug}`} />
 

@@ -33,6 +33,14 @@ function upsertMetaTag(html, attr, key, content) {
   return html.replace('</head>', `    ${tag}\n  </head>`)
 }
 
+function removeMetaTag(html, attr, key) {
+  const pattern = new RegExp(
+    `\\s*<meta\\s[^>]*?${attr}\\s*=\\s*["']${key}["'][^>]*?/?>`,
+    'is',
+  )
+  return html.replace(pattern, '')
+}
+
 function upsertLink(html, rel, href) {
   if (!href) return html
   const escaped = escapeHtml(href)
@@ -42,7 +50,23 @@ function upsertLink(html, rel, href) {
   return html.replace('</head>', `    ${tag}\n  </head>`)
 }
 
-function injectRouteHtml(baseHtml, { title, description, keywords, canonical, ogImage, schemas = [], noindex = false, h1 = '', crawlLinks = [] }) {
+function injectRouteHtml(
+  baseHtml,
+  {
+    title,
+    description,
+    keywords,
+    canonical,
+    ogImage,
+    ogImageWidth,
+    ogImageHeight,
+    ogImageType,
+    schemas = [],
+    noindex = false,
+    h1 = '',
+    crawlLinks = [],
+  },
+) {
   let html = baseHtml
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${escapeHtml(title)}</title>`)
   html = upsertMetaTag(html, 'name', 'description', description)
@@ -51,6 +75,18 @@ function injectRouteHtml(baseHtml, { title, description, keywords, canonical, og
   html = upsertMetaTag(html, 'property', 'og:title', title)
   html = upsertMetaTag(html, 'property', 'og:description', description)
   html = upsertMetaTag(html, 'property', 'og:image', ogImage)
+  html = upsertMetaTag(html, 'property', 'og:image:secure_url', ogImage)
+  if (ogImageWidth && ogImageHeight && ogImageType) {
+    html = upsertMetaTag(html, 'property', 'og:image:width', String(ogImageWidth))
+    html = upsertMetaTag(html, 'property', 'og:image:height', String(ogImageHeight))
+    html = upsertMetaTag(html, 'property', 'og:image:type', ogImageType)
+  } else {
+    // Avoid leaving branded 1200×630/png tags on Completed Job photo shares.
+    html = removeMetaTag(html, 'property', 'og:image:width')
+    html = removeMetaTag(html, 'property', 'og:image:height')
+    html = removeMetaTag(html, 'property', 'og:image:type')
+  }
+  html = upsertMetaTag(html, 'name', 'twitter:card', 'summary_large_image')
   html = upsertMetaTag(html, 'name', 'twitter:title', title)
   html = upsertMetaTag(html, 'name', 'twitter:description', description)
   html = upsertMetaTag(html, 'name', 'twitter:image', ogImage)
@@ -121,7 +157,20 @@ async function loadModules() {
 async function collectRoutes(modules, publishedProjects = []) {
   const { seo, site, content, services, articles, wcCities, locations, serviceAreas, serviceCityContent } =
     modules
-  const { DEFAULT_OG_IMAGE, absoluteUrl } = site
+  const {
+    DEFAULT_OG_IMAGE,
+    DEFAULT_OG_IMAGE_WIDTH,
+    DEFAULT_OG_IMAGE_HEIGHT,
+    DEFAULT_OG_IMAGE_TYPE,
+    absoluteUrl,
+  } = site
+
+  const brandedOg = {
+    ogImage: DEFAULT_OG_IMAGE,
+    ogImageWidth: DEFAULT_OG_IMAGE_WIDTH,
+    ogImageHeight: DEFAULT_OG_IMAGE_HEIGHT,
+    ogImageType: DEFAULT_OG_IMAGE_TYPE,
+  }
 
   const routes = []
 
@@ -129,7 +178,7 @@ async function collectRoutes(modules, publishedProjects = []) {
     path: '/',
     seo: seo.SEO,
     schemas: seo.getHomePageSchemas(content.FAQS),
-    ogImage: DEFAULT_OG_IMAGE,
+    ...brandedOg,
     h1: "Mike's Exterior Cleaning Services",
     crawlLinks: [
       { href: '/service-areas/modesto', label: 'Exterior cleaning in Modesto' },
@@ -228,7 +277,7 @@ async function collectRoutes(modules, publishedProjects = []) {
       path: page.path,
       seo: page.seo,
       schemas: page.schemas,
-      ogImage: DEFAULT_OG_IMAGE,
+      ...brandedOg,
       h1: page.h1,
       crawlLinks: page.crawlLinks || [],
     })
@@ -250,7 +299,7 @@ async function collectRoutes(modules, publishedProjects = []) {
         slug: service.slug,
         faqs: service.faqs,
       }),
-      ogImage: service.hero?.image ? absoluteUrl(service.hero.image) : DEFAULT_OG_IMAGE,
+      ...brandedOg,
       h1: service.hero?.h1 || service.serviceName,
       crawlLinks: isWindowCleaning
         ? [
@@ -299,7 +348,7 @@ async function collectRoutes(modules, publishedProjects = []) {
           ]),
           seo.getFaqPageSchema(local.faqs),
         ],
-        ogImage: service.hero?.image ? absoluteUrl(service.hero.image) : DEFAULT_OG_IMAGE,
+        ...brandedOg,
         h1: local.h1,
         crawlLinks,
       })
@@ -322,7 +371,7 @@ async function collectRoutes(modules, publishedProjects = []) {
         citySlug: city.citySlug,
         faqs: city.faqs,
       }),
-      ogImage: DEFAULT_OG_IMAGE,
+      ...brandedOg,
       h1: city.hero?.h1 || `Window Cleaning in ${city.cityName}, CA`,
       crawlLinks: [
         { href: '/services/window-cleaning', label: 'Window Cleaning service' },
@@ -350,7 +399,7 @@ async function collectRoutes(modules, publishedProjects = []) {
         citySlug: page.citySlug,
         faqs: page.faqs,
       }),
-      ogImage: DEFAULT_OG_IMAGE,
+      ...brandedOg,
       h1: page.hero?.h1 || `Exterior Cleaning in ${page.cityName}, CA`,
       crawlLinks: [
         ...(hasWc
@@ -380,7 +429,7 @@ async function collectRoutes(modules, publishedProjects = []) {
         ]),
         seo.getFaqPageSchema(thinFaqs),
       ],
-      ogImage: DEFAULT_OG_IMAGE,
+      ...brandedOg,
     })
   }
 
@@ -411,7 +460,7 @@ async function collectRoutes(modules, publishedProjects = []) {
         canonical: absoluteUrl(`/resources/${article.slug}`),
       },
       schemas: seo.getBlogArticleSchemas(article),
-      ogImage: DEFAULT_OG_IMAGE,
+      ...brandedOg,
       h1: article.title || article.meta.title,
       crawlLinks,
     })
@@ -437,6 +486,13 @@ async function collectRoutes(modules, publishedProjects = []) {
       seo: projectSeo,
       schemas: seo.getProjectDetailSchemas(publicish),
       ogImage: projectSeo.ogImage || DEFAULT_OG_IMAGE,
+      ...(projectSeo.ogImage
+        ? {}
+        : {
+            ogImageWidth: DEFAULT_OG_IMAGE_WIDTH,
+            ogImageHeight: DEFAULT_OG_IMAGE_HEIGHT,
+            ogImageType: DEFAULT_OG_IMAGE_TYPE,
+          }),
       h1: projectSeo.title?.split('|')[0]?.trim() || `${serviceName} in ${cityName}`,
       crawlLinks: [
         { href: '/projects', label: 'All projects' },
@@ -471,6 +527,9 @@ async function main() {
       keywords: route.seo.keywords,
       canonical: route.seo.canonical,
       ogImage: route.ogImage,
+      ogImageWidth: route.ogImageWidth,
+      ogImageHeight: route.ogImageHeight,
+      ogImageType: route.ogImageType,
       schemas: route.schemas,
       noindex: route.noindex,
       h1: route.h1,

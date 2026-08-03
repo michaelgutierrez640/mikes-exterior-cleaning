@@ -1,15 +1,20 @@
 import { useEffect } from 'react'
-import { DEFAULT_OG_IMAGE } from '../../config/site'
+import {
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_TYPE,
+  DEFAULT_OG_IMAGE_WIDTH,
+} from '../../config/site'
 
 function upsertMeta(attr, key, content) {
-  if (!content) return
+  if (content === undefined || content === null || content === '') return
   let el = document.querySelector(`meta[${attr}="${key}"]`)
   if (!el) {
     el = document.createElement('meta')
     el.setAttribute(attr, key)
     document.head.appendChild(el)
   }
-  el.setAttribute('content', content)
+  el.setAttribute('content', String(content))
 }
 
 function upsertLink(rel, href) {
@@ -23,9 +28,13 @@ function upsertLink(rel, href) {
   el.setAttribute('href', href)
 }
 
+function isDefaultOgImage(image) {
+  return !image || image === DEFAULT_OG_IMAGE
+}
+
 /**
  * Client-side document head updates for SPA routes (Vite/React).
- * Pair with static prerender or SSR later for maximum crawler coverage.
+ * Pair with static prerender for crawler / messaging-app coverage.
  */
 export default function SeoHead({
   title,
@@ -38,6 +47,8 @@ export default function SeoHead({
 }) {
   useEffect(() => {
     const image = ogImage || DEFAULT_OG_IMAGE
+    const useBrandedDimensions = isDefaultOgImage(image)
+
     document.title = title
     upsertMeta('name', 'description', description)
     upsertMeta('name', 'keywords', keywords)
@@ -46,6 +57,12 @@ export default function SeoHead({
     upsertMeta('property', 'og:description', description)
     upsertMeta('property', 'og:type', ogType)
     upsertMeta('property', 'og:image', image)
+    upsertMeta('property', 'og:image:secure_url', image)
+    if (useBrandedDimensions) {
+      upsertMeta('property', 'og:image:width', String(DEFAULT_OG_IMAGE_WIDTH))
+      upsertMeta('property', 'og:image:height', String(DEFAULT_OG_IMAGE_HEIGHT))
+      upsertMeta('property', 'og:image:type', DEFAULT_OG_IMAGE_TYPE)
+    }
     upsertMeta('name', 'twitter:card', 'summary_large_image')
     upsertMeta('name', 'twitter:title', title)
     upsertMeta('name', 'twitter:description', description)
