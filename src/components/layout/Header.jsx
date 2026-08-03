@@ -79,7 +79,7 @@ export default function Header() {
         <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-7 py-3.5 sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14">
           <Link
             to="/"
-            className="relative z-20 flex shrink-0 items-center transition-opacity duration-300 hover:opacity-90"
+            className="relative z-20 flex shrink-0 items-center"
             aria-label={`${BUSINESS.name} home`}
           >
             <img
@@ -90,6 +90,7 @@ export default function Header() {
               decoding="async"
               fetchPriority="high"
               loading="eager"
+              draggable={false}
               className="h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]"
             />
           </Link>

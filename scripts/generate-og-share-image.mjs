@@ -3,8 +3,8 @@
  * Builds the default 1200×630 social-sharing image.
  *
  * Composites the official transparent logo PNG centered on dark navy.
- * Does not redraw, sharpen, recolor, reshape, or otherwise alter logo pixels
- * beyond proportional resize to fit the card with safe spacing.
+ * Does not redraw, sharpen, recolor, reshape, clean edges, or otherwise
+ * alter logo pixels beyond proportional resize to fit with safe spacing.
  *
  * Bump VERSION when messaging apps need a fresh cache-busting filename.
  */
@@ -12,7 +12,7 @@ import sharp from 'sharp'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-const VERSION = 'v20260804'
+const VERSION = 'v20260805'
 const WIDTH = 1200
 const HEIGHT = 630
 const BG = { r: 10, g: 22, b: 40 } // #0a1628 navy-900
