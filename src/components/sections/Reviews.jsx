@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useGoogleReviews, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
 import { getReviewerInitials } from '../../config/googleReviews'
+import { fetchPublishedWebsiteReviews } from '../../services/websiteReviewsApi'
 import ScrollReveal from '../ScrollReveal'
 import GoogleReviewsBadge from '../ui/GoogleReviewsBadge'
 import GoogleStars from '../ui/GoogleStars'
@@ -12,9 +14,37 @@ function ReviewAvatar({ reviewerName }) {
   )
 }
 
+function formatWebsiteReviewDate(iso) {
+  if (!iso) return ''
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      month: 'short',
+      year: 'numeric',
+    }).format(new Date(iso))
+  } catch {
+    return ''
+  }
+}
+
 export default function Reviews() {
   const { reviews, reviewsUrl, loading, error, fromApi } = useGoogleReviews()
   const reviewsLink = reviewsUrl
+  const [websiteReviews, setWebsiteReviews] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchPublishedWebsiteReviews()
+      .then((list) => {
+        if (!cancelled) setWebsiteReviews(list)
+      })
+      .catch(() => {
+        if (!cancelled) setWebsiteReviews([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <section id="reviews" className="section-padding relative bg-section-reviews" aria-labelledby="reviews-heading">
@@ -40,6 +70,7 @@ export default function Reviews() {
                   <cite className="not-italic">
                     <p className="text-[0.9375rem] font-semibold text-navy-900">{review.reviewerName}</p>
                     <p className="mt-0.5 text-[0.8125rem] text-gray-500">{review.date}</p>
+                    <p className="mt-0.5 text-[0.75rem] font-medium text-gray-400">Google review</p>
                   </cite>
                 </footer>
               </blockquote>
@@ -82,6 +113,59 @@ export default function Reviews() {
               Read More on Google
             </a>
           </ScrollReveal>
+        )}
+
+        {websiteReviews.length > 0 && (
+          <div className="mt-16 border-t border-black/[0.06] pt-14 sm:mt-20 sm:pt-16">
+            <ScrollReveal className="section-header" animation="reveal-fade">
+              <p className="section-label">Website Customer Reviews</p>
+              <h3 className="section-title text-[1.75rem] sm:text-[2rem]">
+                From Customers on Our Website
+              </h3>
+              <p className="mx-auto mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-gray-500">
+                These reviews were submitted on mikesexteriorcleaning.com. They are website customer
+                reviews — not Google reviews.
+              </p>
+            </ScrollReveal>
+
+            <div className="section-content grid gap-5 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
+              {websiteReviews.map((review, i) => (
+                <ScrollReveal key={review.id || `${review.name}-${i}`} stagger={i + 1}>
+                  <blockquote className="glass-card h-full p-7 sm:p-8">
+                    <p className="text-[0.75rem] font-semibold tracking-wide text-royal-600 uppercase">
+                      Website customer review
+                    </p>
+                    {Number.isInteger(review.rating) && review.rating >= 1 && (
+                      <div className="mt-3">
+                        <GoogleStars
+                          count={review.rating}
+                          className="h-5 w-5"
+                        />
+                        <p className="sr-only">{review.rating} out of 5</p>
+                        <p className="mt-1 text-[0.8125rem] font-medium text-gray-500">
+                          {review.rating} out of 5
+                        </p>
+                      </div>
+                    )}
+                    <p className="mt-4 text-[0.9375rem] leading-[1.7] text-gray-600">
+                      &ldquo;{review.reviewText}&rdquo;
+                    </p>
+                    <footer className="mt-7 flex items-center gap-3.5 border-t border-black/[0.05] pt-6">
+                      <ReviewAvatar reviewerName={review.name} />
+                      <cite className="not-italic">
+                        <p className="text-[0.9375rem] font-semibold text-navy-900">{review.name}</p>
+                        {formatWebsiteReviewDate(review.createdAt) && (
+                          <p className="mt-0.5 text-[0.8125rem] text-gray-500">
+                            {formatWebsiteReviewDate(review.createdAt)}
+                          </p>
+                        )}
+                      </cite>
+                    </footer>
+                  </blockquote>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </section>

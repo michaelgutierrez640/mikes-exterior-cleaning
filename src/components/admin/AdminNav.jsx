@@ -18,6 +18,13 @@ const PRIMARY = [
     matchPrefix: '/admin/our-work-gallery',
     area: 'gallery',
   },
+  {
+    to: '/admin/customer-reviews',
+    label: 'Customer Reviews',
+    end: false,
+    matchPrefix: '/admin/customer-reviews',
+    area: 'reviews',
+  },
 ]
 
 const JOB_TABS = [

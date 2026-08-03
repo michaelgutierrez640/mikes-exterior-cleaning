@@ -1,4 +1,5 @@
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
+import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
 import {
   checkLeadIngestRateLimit,
   createLeadFromIngest,
@@ -38,6 +39,9 @@ function parseBody(req) {
  * Public:
  * - POST /api/leads  → create lead (no PII in response)
  *
+ * Website customer reviews (same function via rewrite /api/reviews → ?resource=website-reviews):
+ * - POST/GET/PATCH/DELETE handled by handleWebsiteReviewsRequest
+ *
  * Admin (cookie auth):
  * - GET  /api/leads
  * - GET  /api/leads?id=<leadId>
@@ -45,6 +49,11 @@ function parseBody(req) {
  */
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
+
+  // Folded website reviews keep us under Vercel Hobby serverless-function limits.
+  if (String(req.query?.resource || '') === 'website-reviews') {
+    return handleWebsiteReviewsRequest(req, res)
+  }
 
   if (!isLeadsStorageConfigured()) {
     return json(res, 503, {

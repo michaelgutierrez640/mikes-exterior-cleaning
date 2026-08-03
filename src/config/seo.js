@@ -355,6 +355,39 @@ export function getNotFoundPageSeo() {
   }
 }
 
+export function getReviewPageSeo() {
+  return {
+    title: 'Share Your Experience | Website Customer Review | Mike\'s Exterior',
+    description:
+      'Leave a simple website customer review for Mike\'s Exterior Cleaning Services. No account required — just your name and a short note about your experience.',
+    keywords:
+      'Mike\'s Exterior Cleaning review, website customer review Modesto, leave a review exterior cleaning',
+    canonical: absoluteUrl('/review'),
+  }
+}
+
+/** WebPage + breadcrumb only — no Review / AggregateRating schema on this form page. */
+export function getReviewPageSchemas() {
+  return [
+    getOrganizationSchema(),
+    getWebSiteSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Share Your Experience', url: absoluteUrl('/review') },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': `${absoluteUrl('/review')}#webpage`,
+      name: 'How Did We Do? — Website Customer Review',
+      description: getReviewPageSeo().description,
+      url: absoluteUrl('/review'),
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#organization` },
+    },
+  ]
+}
+
 export function getInstantQuotePageSeo() {
   return {
     title: 'Instant Quote Calculator | Free Exterior Cleaning Estimate | Mike\'s Exterior',
