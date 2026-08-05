@@ -7,7 +7,9 @@
 import assert from 'assert'
 import {
   buildDefaultFacebookCaption,
+  countProjectUrlOccurrences,
   facebookStatusLabel,
+  finalizeFacebookCaption,
   getFacebookConfigStatus,
   getFeaturedPhotoUrl,
   hasSuccessfulFacebookPost,
@@ -17,10 +19,13 @@ import {
   sanitizeFacebookCaption,
   shortFacebookBlurb,
   shouldAttemptFacebookOnSave,
+  stripProjectUrlsFromText,
   validateFacebookImageUrl,
   validateFacebookProjectUrl,
 } from '../lib/facebookPagePost.mjs'
 import { toPublicProject } from '../lib/projectsPublic.mjs'
+
+const liveUrlOk = async (url) => ({ ok: true, url, status: 200 })
 
 function ok(name) {
   console.log(`PASS ${name}`)
@@ -57,13 +62,64 @@ function memoryState(initial) {
 }
 
 {
-  const caption = buildDefaultFacebookCaption(sampleProject())
+  const project = sampleProject()
+  const caption = buildDefaultFacebookCaption(project)
   assert.match(caption, /Window Cleaning in Modesto, CA/)
-  assert.match(caption, /https:\/\/www\.mikesexteriorcleaning\.com\/projects\//)
+  assert.match(
+    caption,
+    /https:\/\/www\.mikesexteriorcleaning\.com\/projects\/window-cleaning-modesto-2026-07-30-abcd1234/,
+  )
   assert.match(caption, /Mike's Exterior Cleaning Services/)
   assert.ok(!caption.includes('brighter interior view throughout the property'))
+  assert.ok(!caption.includes('your-new-project'))
+  assert.equal(countProjectUrlOccurrences(caption), 1)
   assert.ok(shortFacebookBlurb(sampleProject().notes).length <= 100)
   ok('default caption is concise and includes service, city, canonical URL')
+}
+
+{
+  const dirtyNotes =
+    'Great results. See https://www.mikesexteriorcleaning.com/projects/your-new-project and also /projects/old-job-slug for details.'
+  const blurb = shortFacebookBlurb(dirtyNotes)
+  assert.ok(!blurb.includes('your-new-project'))
+  assert.ok(!blurb.includes('/projects/'))
+  ok('blurb strips placeholder and existing project URLs from notes')
+}
+
+{
+  const project = sampleProject()
+  const dirtyCaption = [
+    'Window Cleaning in Modesto, CA',
+    'Nice work https://www.mikesexteriorcleaning.com/projects/your-new-project',
+    'Also https://www.mikesexteriorcleaning.com/projects/some-other-job',
+    "Mike's Exterior Cleaning Services",
+  ].join('\n')
+  const finalized = finalizeFacebookCaption(project, dirtyCaption)
+  assert.equal(finalized.ok, true)
+  assert.equal(countProjectUrlOccurrences(finalized.caption), 1)
+  assert.ok(finalized.caption.includes(finalized.projectUrl))
+  assert.ok(!finalized.caption.includes('your-new-project'))
+  assert.ok(!finalized.caption.includes('some-other-job'))
+  assert.equal(
+    finalized.projectUrl,
+    'https://www.mikesexteriorcleaning.com/projects/window-cleaning-modesto-2026-07-30-abcd1234',
+  )
+  ok('finalize strips placeholders/duplicates and keeps one saved-slug URL')
+}
+
+{
+  const missing = finalizeFacebookCaption(sampleProject({ slug: '' }), 'Hello')
+  assert.equal(missing.ok, false)
+  assert.match(missing.error || '', /saved project slug/i)
+  const placeholder = finalizeFacebookCaption(sampleProject({ slug: 'your-new-project' }), 'Hello')
+  assert.equal(placeholder.ok, false)
+  assert.equal(validateFacebookProjectUrl('https://www.mikesexteriorcleaning.com/projects/your-new-project').ok, false)
+  ok('missing or placeholder slug fails with actionable error')
+}
+
+{
+  assert.equal(stripProjectUrlsFromText('See /projects/your-new-project today').includes('your-new-project'), false)
+  ok('stripProjectUrlsFromText removes path-only placeholders')
 }
 
 {
@@ -157,17 +213,20 @@ function memoryState(initial) {
   const project = sampleProject()
   const mem = memoryState(project)
   let posts = 0
+  let postedCaption = ''
   const result = await maybePostProjectToFacebook(
     project,
     { caption: buildDefaultFacebookCaption(project) },
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
       async findPagePostByProjectUrl() {
         return null
       },
-      async postPhotoToFacebookPage() {
+      async postPhotoToFacebookPage({ caption }) {
         posts += 1
+        postedCaption = caption
         return { postId: 'fb_post_1' }
       },
     },
@@ -176,7 +235,132 @@ function memoryState(initial) {
   assert.equal(result.project.facebookPostStatus, 'posted')
   assert.equal(result.project.facebookPostId, 'fb_post_1')
   assert.equal(posts, 1)
+  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
+  assert.ok(!postedCaption.includes('your-new-project'))
   ok('job posts to Facebook when Graph API succeeds')
+}
+
+{
+  const project = sampleProject({
+    notes: 'See https://www.mikesexteriorcleaning.com/projects/existing-job-slug for reference.',
+  })
+  const mem = memoryState(project)
+  let postedCaption = ''
+  const dirtyClientCaption = [
+    'Window Cleaning in Modesto, CA',
+    'See https://www.mikesexteriorcleaning.com/projects/your-new-project',
+    "Mike's Exterior Cleaning Services",
+  ].join('\n')
+  const result = await maybePostProjectToFacebook(
+    project,
+    { caption: dirtyClientCaption },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
+      async findPagePostByProjectUrl() {
+        return null
+      },
+      async postPhotoToFacebookPage({ caption }) {
+        postedCaption = caption
+        return { postId: 'fb_clean_caption' }
+      },
+    },
+  )
+  assert.equal(result.status, 'posted')
+  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
+  assert.ok(postedCaption.includes(project.slug))
+  assert.ok(!postedCaption.includes('your-new-project'))
+  assert.ok(!postedCaption.includes('existing-job-slug'))
+  assert.equal(result.project.facebookCaption, postedCaption)
+  ok('publish with placeholder + notes URL posts one correct saved-slug link')
+}
+
+{
+  const project = sampleProject({ slug: '' })
+  const mem = memoryState(project)
+  let posts = 0
+  const result = await maybePostProjectToFacebook(
+    project,
+    { caption: 'Window Cleaning in Modesto, CA\nhttps://www.mikesexteriorcleaning.com/projects/your-new-project' },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
+      async findPagePostByProjectUrl() {
+        return null
+      },
+      async postPhotoToFacebookPage() {
+        posts += 1
+        return { postId: 'should_not_post' }
+      },
+    },
+  )
+  assert.equal(posts, 0)
+  assert.equal(result.status, 'failed')
+  assert.match(result.error || '', /saved project slug/i)
+  ok('missing saved slug blocks Facebook post with actionable error')
+}
+
+{
+  const project = sampleProject({
+    facebookPostStatus: 'failed',
+    facebookPostError: 'old error',
+    facebookCaption:
+      'Retry me https://www.mikesexteriorcleaning.com/projects/your-new-project https://www.mikesexteriorcleaning.com/projects/wrong-slug',
+  })
+  const mem = memoryState(project)
+  let postedCaption = ''
+  const result = await maybePostProjectToFacebook(
+    project,
+    { forceRetry: true, caption: project.facebookCaption },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
+      async findPagePostByProjectUrl() {
+        return null
+      },
+      async postPhotoToFacebookPage({ caption }) {
+        postedCaption = caption
+        return { postId: 'retry_clean' }
+      },
+    },
+  )
+  assert.equal(result.status, 'posted')
+  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
+  assert.ok(postedCaption.includes(project.slug))
+  assert.ok(!postedCaption.includes('your-new-project'))
+  assert.ok(!postedCaption.includes('wrong-slug'))
+  ok('Retry Facebook Post strips bad links and uses saved slug')
+}
+
+{
+  const project = sampleProject()
+  const mem = memoryState(project)
+  let posts = 0
+  const result = await maybePostProjectToFacebook(
+    project,
+    { caption: buildDefaultFacebookCaption(project) },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      async verifyProjectUrl() {
+        return { ok: false, error: 'Project page is not live yet (HTTP 404). Wait for publishing to finish, then use Retry Facebook Post.' }
+      },
+      async findPagePostByProjectUrl() {
+        return null
+      },
+      async postPhotoToFacebookPage() {
+        posts += 1
+        return { postId: 'should_not_post' }
+      },
+    },
+  )
+  assert.equal(posts, 0)
+  assert.equal(result.status, 'failed')
+  assert.match(result.error || '', /not live yet/i)
+  ok('non-200 project URL blocks Facebook post')
 }
 
 {
@@ -188,6 +372,7 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
       async findPagePostByProjectUrl() {
         return null
       },
@@ -215,6 +400,7 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
       async findPagePostByProjectUrl() {
         // First call (pre-post) finds nothing; second call (after timeout) finds the accepted post.
         if (posts === 0) return null
@@ -248,6 +434,7 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
       async findPagePostByProjectUrl() {
         return { postId: 'existing_from_timeout', source: 'published_posts' }
       },
@@ -275,6 +462,7 @@ function memoryState(initial) {
   const first = await maybePostProjectToFacebook(project, { forceRetry: true }, {
     updateProjectFacebookState: mem.updateProjectFacebookState,
     isFacebookConfigured: () => true,
+    verifyProjectUrl: liveUrlOk,
     async findPagePostByProjectUrl() {
       return { postId: 'already_there', source: 'feed' }
     },
@@ -286,6 +474,7 @@ function memoryState(initial) {
   const second = await maybePostProjectToFacebook(first.project, { forceRetry: true }, {
     updateProjectFacebookState: mem.updateProjectFacebookState,
     isFacebookConfigured: () => true,
+    verifyProjectUrl: liveUrlOk,
     async findPagePostByProjectUrl() {
       return { postId: 'already_there', source: 'feed' }
     },
@@ -311,6 +500,7 @@ function memoryState(initial) {
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
       async findPagePostByProjectUrl() {
         return null
       },
