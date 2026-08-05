@@ -97,10 +97,8 @@ function DetailBody({
     setError('')
     setMessage('')
     try {
-      // Server rebuilds the caption from the saved slug and strips any placeholder links.
-      const data = await retryAdminFacebookPost(project.id, {
-        caption: project.facebookCaption || '',
-      })
+      // Server rebuilds the caption from Short job notes + the saved project slug.
+      const data = await retryAdminFacebookPost(project.id)
       if (data.project) setProject(data.project)
       setMessage(data.message || facebookStatusLabel(data.project?.facebookPostStatus))
     } catch (err) {

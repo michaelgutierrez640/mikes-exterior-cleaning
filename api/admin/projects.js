@@ -40,7 +40,7 @@ import {
  * - GET /api/admin/projects?resource=our-work-gallery
  * - DELETE /api/admin/projects?resource=our-work-gallery  body: { src }
  * - GET /api/admin/projects?resource=facebook
- * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry', caption? }
+ * - POST /api/admin/projects?resource=facebook&id=<projectId>  body: { action: 'retry' }
  * - GET /api/admin/projects?resource=seo-deploy
  *
  * Query-param item routes avoid brittle dynamic /api/.../[id] matching behind the SPA rewrite.
@@ -184,7 +184,6 @@ async function handleFacebookResource(req, res) {
     }
 
     const attempt = await maybePostProjectToFacebook(existing, {
-      caption: sanitizeFacebookCaption(body.caption || existing.facebookCaption || ''),
       forceRetry: true,
     })
     return json(res, 200, {
