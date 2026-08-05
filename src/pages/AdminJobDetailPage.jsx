@@ -97,6 +97,7 @@ function DetailBody({
     setError('')
     setMessage('')
     try {
+      // Server rebuilds the caption from the saved slug and strips any placeholder links.
       const data = await retryAdminFacebookPost(project.id, {
         caption: project.facebookCaption || '',
       })

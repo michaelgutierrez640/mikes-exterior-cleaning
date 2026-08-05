@@ -595,7 +595,7 @@ export default function JobForm({
               <span className="mt-1 block text-[0.8125rem] leading-relaxed text-gray-600">
                 {facebookConfigLoaded && !facebookConfigured
                   ? 'Connect Facebook to enable automatic posting.'
-                  : "Uses the cover photo and posts to the Mike's Exterior Cleaning Services Facebook Page after the website job publishes."}
+                  : "Uses the cover photo and posts to the Mike's Exterior Cleaning Services Facebook Page after the website job publishes. The project link is added automatically from the saved job slug — never a placeholder URL."}
               </span>
             </span>
           </label>
