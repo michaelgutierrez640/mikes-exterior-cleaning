@@ -180,11 +180,11 @@ export async function fetchAdminFacebookStatus() {
   return data
 }
 
-export async function retryAdminFacebookPost(id, { caption } = {}) {
+export async function retryAdminFacebookPost(id) {
   const res = await fetch(`/api/admin/projects?resource=facebook&id=${encodeURIComponent(id)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ action: 'retry', caption: caption || '' }),
+    body: JSON.stringify({ action: 'retry' }),
   })
   const data = await parseJson(res)
   if (res.status === 401) {

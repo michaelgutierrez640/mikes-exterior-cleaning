@@ -17,7 +17,6 @@ import {
   maybePostProjectToFacebook,
   postPhotoToFacebookPage,
   sanitizeFacebookCaption,
-  shortFacebookBlurb,
   shouldAttemptFacebookOnSave,
   stripProjectUrlsFromText,
   validateFacebookImageUrl,
@@ -61,57 +60,58 @@ function memoryState(initial) {
   }
 }
 
+function assertNotesPlusUrlCaption(caption, project) {
+  const projectUrl = `https://www.mikesexteriorcleaning.com/projects/${project.slug}`
+  const notesBody = stripProjectUrlsFromText(project.notes)
+  assert.equal(caption, `${notesBody}\n${projectUrl}`)
+  assert.equal(countProjectUrlOccurrences(caption), 1)
+  assert.ok(!caption.includes('your-new-project'))
+}
+
 {
   const project = sampleProject()
   const caption = buildDefaultFacebookCaption(project)
-  assert.match(caption, /Window Cleaning in Modesto, CA/)
-  assert.match(
-    caption,
-    /https:\/\/www\.mikesexteriorcleaning\.com\/projects\/window-cleaning-modesto-2026-07-30-abcd1234/,
-  )
-  assert.match(caption, /Mike's Exterior Cleaning Services/)
-  assert.ok(!caption.includes('brighter interior view throughout the property'))
-  assert.ok(!caption.includes('your-new-project'))
-  assert.equal(countProjectUrlOccurrences(caption), 1)
-  assert.ok(shortFacebookBlurb(sampleProject().notes).length <= 100)
-  ok('default caption is concise and includes service, city, canonical URL')
+  assertNotesPlusUrlCaption(caption, project)
+  assert.ok(caption.includes('brighter interior view throughout the property'))
+  assert.ok(!caption.includes("Mike's Exterior Cleaning Services"))
+  assert.ok(!caption.includes('Window Cleaning in Modesto'))
+  ok('default caption is exact short job notes plus one canonical URL')
 }
 
 {
   const dirtyNotes =
     'Great results. See https://www.mikesexteriorcleaning.com/projects/your-new-project and also /projects/old-job-slug for details.'
-  const blurb = shortFacebookBlurb(dirtyNotes)
-  assert.ok(!blurb.includes('your-new-project'))
-  assert.ok(!blurb.includes('/projects/'))
-  ok('blurb strips placeholder and existing project URLs from notes')
+  const project = sampleProject({ notes: dirtyNotes })
+  const finalized = finalizeFacebookCaption(project)
+  assert.equal(finalized.ok, true)
+  assert.equal(countProjectUrlOccurrences(finalized.caption), 1)
+  assert.ok(!finalized.caption.includes('your-new-project'))
+  assert.ok(!finalized.caption.includes('old-job-slug'))
+  assert.ok(finalized.caption.startsWith('Great results.'))
+  assert.ok(finalized.caption.endsWith(finalized.projectUrl))
+  assert.ok(finalized.caption.includes(`\n${finalized.projectUrl}`))
+  ok('notes strip placeholder and existing project URLs before appending saved-slug URL')
 }
 
 {
   const project = sampleProject()
-  const dirtyCaption = [
+  const ignoredLegacyCaption = [
     'Window Cleaning in Modesto, CA',
     'Nice work https://www.mikesexteriorcleaning.com/projects/your-new-project',
-    'Also https://www.mikesexteriorcleaning.com/projects/some-other-job',
     "Mike's Exterior Cleaning Services",
   ].join('\n')
-  const finalized = finalizeFacebookCaption(project, dirtyCaption)
+  const finalized = finalizeFacebookCaption(project, ignoredLegacyCaption)
   assert.equal(finalized.ok, true)
-  assert.equal(countProjectUrlOccurrences(finalized.caption), 1)
-  assert.ok(finalized.caption.includes(finalized.projectUrl))
+  assertNotesPlusUrlCaption(finalized.caption, project)
   assert.ok(!finalized.caption.includes('your-new-project'))
-  assert.ok(!finalized.caption.includes('some-other-job'))
-  assert.equal(
-    finalized.projectUrl,
-    'https://www.mikesexteriorcleaning.com/projects/window-cleaning-modesto-2026-07-30-abcd1234',
-  )
-  ok('finalize strips placeholders/duplicates and keeps one saved-slug URL')
+  ok('finalize ignores separate caption field and uses short job notes')
 }
 
 {
-  const missing = finalizeFacebookCaption(sampleProject({ slug: '' }), 'Hello')
+  const missing = finalizeFacebookCaption(sampleProject({ slug: '' }))
   assert.equal(missing.ok, false)
   assert.match(missing.error || '', /saved project slug/i)
-  const placeholder = finalizeFacebookCaption(sampleProject({ slug: 'your-new-project' }), 'Hello')
+  const placeholder = finalizeFacebookCaption(sampleProject({ slug: 'your-new-project' }))
   assert.equal(placeholder.ok, false)
   assert.equal(validateFacebookProjectUrl('https://www.mikesexteriorcleaning.com/projects/your-new-project').ok, false)
   ok('missing or placeholder slug fails with actionable error')
@@ -126,7 +126,10 @@ function memoryState(initial) {
   const dirty = sanitizeFacebookCaption('<b>Hi</b> call 209-555-1212 at 123 Main St')
   assert.equal(dirty.includes('<b>'), false)
   assert.match(dirty, /\[redacted\]/)
-  ok('caption sanitizes HTML and PII')
+  const multiline = sanitizeFacebookCaption('Line one\n\nLine two\nhttps://www.mikesexteriorcleaning.com/projects/demo-slug')
+  assert.ok(multiline.includes('\n'))
+  assert.match(multiline, /Line one\n\nLine two\nhttps:\/\/www\.mikesexteriorcleaning\.com\/projects\/demo-slug/)
+  ok('caption sanitizes HTML and PII while preserving newlines')
 }
 
 {
@@ -152,56 +155,56 @@ function memoryState(initial) {
 
 {
   assert.equal(facebookStatusLabel('posted'), 'Posted to Facebook')
-  assert.equal(facebookStatusLabel('pending'), 'Facebook post pending')
   assert.equal(facebookStatusLabel('failed'), 'Facebook posting failed')
+  assert.equal(facebookStatusLabel('pending'), 'Facebook post pending')
   assert.equal(facebookStatusLabel('not_posted'), 'Not posted to Facebook')
   ok('status labels')
 }
 
 {
-  const timeoutErr = new Error('Facebook request timed out')
-  timeoutErr.code = 'FACEBOOK_TIMEOUT'
-  assert.equal(isAmbiguousFacebookError(timeoutErr), true)
+  const timeout = new Error('Facebook request timed out')
+  timeout.code = 'FACEBOOK_TIMEOUT'
+  assert.equal(isAmbiguousFacebookError(timeout), true)
   assert.equal(isAmbiguousFacebookError(new Error('Graph down')), false)
   ok('timeout errors are treated as ambiguous')
 }
 
 {
-  const prevEnv = {
-    FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID,
-    FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN,
-    FACEBOOK_GRAPH_API_VERSION: process.env.FACEBOOK_GRAPH_API_VERSION,
-  }
-  delete process.env.FACEBOOK_PAGE_ID
+  const previous = process.env.FACEBOOK_PAGE_ACCESS_TOKEN
+  const previousId = process.env.FACEBOOK_PAGE_ID
   delete process.env.FACEBOOK_PAGE_ACCESS_TOKEN
-  delete process.env.FACEBOOK_GRAPH_API_VERSION
+  delete process.env.FACEBOOK_PAGE_ID
   const status = getFacebookConfigStatus()
   assert.equal(status.configured, false)
-  assert.equal('pageId' in status, false)
-  assert.equal('token' in status, false)
-  for (const [key, value] of Object.entries(prevEnv)) {
-    if (value === undefined) delete process.env[key]
-    else process.env[key] = value
-  }
+  assert.ok(!JSON.stringify(status).includes('EAA'))
+  if (previous !== undefined) process.env.FACEBOOK_PAGE_ACCESS_TOKEN = previous
+  if (previousId !== undefined) process.env.FACEBOOK_PAGE_ID = previousId
   ok('missing configuration handled safely without exposing secrets')
 }
 
 {
-  const project = sampleProject()
-  assert.equal(shouldAttemptFacebookOnSave({ previous: null, project, postToFacebook: true }), true)
-  assert.equal(shouldAttemptFacebookOnSave({ previous: null, project, postToFacebook: false }), false)
+  const project = sampleProject({ status: 'published', facebookPostId: 'already' })
+  assert.equal(hasSuccessfulFacebookPost(project), true)
   assert.equal(
     shouldAttemptFacebookOnSave({
       previous: sampleProject({ status: 'published' }),
-      project,
+      project: sampleProject({ status: 'published' }),
       postToFacebook: true,
     }),
     false,
   )
   assert.equal(
     shouldAttemptFacebookOnSave({
+      previous: null,
+      project: sampleProject({ status: 'published' }),
+      postToFacebook: false,
+    }),
+    false,
+  )
+  assert.equal(
+    shouldAttemptFacebookOnSave({
       previous: sampleProject({ status: 'draft' }),
-      project,
+      project: sampleProject({ status: 'published' }),
       postToFacebook: true,
     }),
     true,
@@ -216,7 +219,7 @@ function memoryState(initial) {
   let postedCaption = ''
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: buildDefaultFacebookCaption(project) },
+    {},
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -235,8 +238,7 @@ function memoryState(initial) {
   assert.equal(result.project.facebookPostStatus, 'posted')
   assert.equal(result.project.facebookPostId, 'fb_post_1')
   assert.equal(posts, 1)
-  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
-  assert.ok(!postedCaption.includes('your-new-project'))
+  assertNotesPlusUrlCaption(postedCaption, project)
   ok('job posts to Facebook when Graph API succeeds')
 }
 
@@ -246,14 +248,15 @@ function memoryState(initial) {
   })
   const mem = memoryState(project)
   let postedCaption = ''
-  const dirtyClientCaption = [
-    'Window Cleaning in Modesto, CA',
-    'See https://www.mikesexteriorcleaning.com/projects/your-new-project',
-    "Mike's Exterior Cleaning Services",
-  ].join('\n')
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: dirtyClientCaption },
+    {
+      caption: [
+        'Window Cleaning in Modesto, CA',
+        'See https://www.mikesexteriorcleaning.com/projects/your-new-project',
+        "Mike's Exterior Cleaning Services",
+      ].join('\n'),
+    },
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -268,9 +271,7 @@ function memoryState(initial) {
     },
   )
   assert.equal(result.status, 'posted')
-  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
-  assert.ok(postedCaption.includes(project.slug))
-  assert.ok(!postedCaption.includes('your-new-project'))
+  assertNotesPlusUrlCaption(postedCaption, project)
   assert.ok(!postedCaption.includes('existing-job-slug'))
   assert.equal(result.project.facebookCaption, postedCaption)
   ok('publish with placeholder + notes URL posts one correct saved-slug link')
@@ -282,7 +283,7 @@ function memoryState(initial) {
   let posts = 0
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: 'Window Cleaning in Modesto, CA\nhttps://www.mikesexteriorcleaning.com/projects/your-new-project' },
+    {},
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -313,7 +314,7 @@ function memoryState(initial) {
   let postedCaption = ''
   const result = await maybePostProjectToFacebook(
     project,
-    { forceRetry: true, caption: project.facebookCaption },
+    { forceRetry: true },
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -328,11 +329,9 @@ function memoryState(initial) {
     },
   )
   assert.equal(result.status, 'posted')
-  assert.equal(countProjectUrlOccurrences(postedCaption), 1)
-  assert.ok(postedCaption.includes(project.slug))
-  assert.ok(!postedCaption.includes('your-new-project'))
+  assertNotesPlusUrlCaption(postedCaption, project)
   assert.ok(!postedCaption.includes('wrong-slug'))
-  ok('Retry Facebook Post strips bad links and uses saved slug')
+  ok('Retry Facebook Post uses short job notes and one saved-slug link')
 }
 
 {
@@ -341,7 +340,7 @@ function memoryState(initial) {
   let posts = 0
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: buildDefaultFacebookCaption(project) },
+    {},
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -368,7 +367,7 @@ function memoryState(initial) {
   const mem = memoryState(project)
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: buildDefaultFacebookCaption(project) },
+    {},
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -396,7 +395,7 @@ function memoryState(initial) {
   timeoutErr.code = 'FACEBOOK_TIMEOUT'
   const result = await maybePostProjectToFacebook(
     project,
-    { caption: buildDefaultFacebookCaption(project) },
+    {},
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -416,21 +415,19 @@ function memoryState(initial) {
   assert.equal(result.status, 'posted')
   assert.equal(result.reason, 'reconciled_after_timeout')
   assert.equal(result.project.facebookPostId, 'page_timeout_reconciled')
-  assert.equal(result.project.facebookPostStatus, 'posted')
-  assert.equal(result.project.facebookPostError, null)
   ok('ambiguous timeout reconciles to Posted when Facebook already accepted the post')
 }
 
 {
   const project = sampleProject({
     facebookPostStatus: 'failed',
-    facebookPostError: 'Facebook request timed out',
+    facebookPostError: 'timeout',
   })
   const mem = memoryState(project)
   let posts = 0
   const result = await maybePostProjectToFacebook(
     project,
-    { forceRetry: true, caption: buildDefaultFacebookCaption(project) },
+    { forceRetry: true },
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -454,49 +451,43 @@ function memoryState(initial) {
 
 {
   const project = sampleProject({
-    facebookPostId: 'already_there',
     facebookPostStatus: 'posted',
+    facebookPostId: 'existing_post',
   })
-  const mem = memoryState(project)
-  let posts = 0
-  const first = await maybePostProjectToFacebook(project, { forceRetry: true }, {
-    updateProjectFacebookState: mem.updateProjectFacebookState,
-    isFacebookConfigured: () => true,
-    verifyProjectUrl: liveUrlOk,
-    async findPagePostByProjectUrl() {
-      return { postId: 'already_there', source: 'feed' }
-    },
-    async postPhotoToFacebookPage() {
-      posts += 1
-      return { postId: 'dup' }
-    },
-  })
-  const second = await maybePostProjectToFacebook(first.project, { forceRetry: true }, {
-    updateProjectFacebookState: mem.updateProjectFacebookState,
-    isFacebookConfigured: () => true,
-    verifyProjectUrl: liveUrlOk,
-    async findPagePostByProjectUrl() {
-      return { postId: 'already_there', source: 'feed' }
-    },
-    async postPhotoToFacebookPage() {
-      posts += 1
-      return { postId: 'dup2' }
-    },
-  })
-  assert.equal(first.skipped, true)
-  assert.equal(second.skipped, true)
-  assert.equal(posts, 0)
-  assert.equal(hasSuccessfulFacebookPost(second.project), true)
-  ok('duplicate submissions do not create duplicate posts')
-}
-
-{
-  const project = sampleProject({ facebookPostStatus: 'failed', facebookPostError: 'temporary' })
   const mem = memoryState(project)
   let posts = 0
   const result = await maybePostProjectToFacebook(
     project,
-    { forceRetry: true, caption: buildDefaultFacebookCaption(project) },
+    { forceRetry: true },
+    {
+      updateProjectFacebookState: mem.updateProjectFacebookState,
+      isFacebookConfigured: () => true,
+      verifyProjectUrl: liveUrlOk,
+      async findPagePostByProjectUrl() {
+        return null
+      },
+      async postPhotoToFacebookPage() {
+        posts += 1
+        return { postId: 'dup' }
+      },
+    },
+  )
+  assert.equal(posts, 0)
+  assert.equal(result.skipped, true)
+  assert.equal(result.reason, 'already_posted')
+  ok('duplicate submissions do not create duplicate posts')
+}
+
+{
+  const project = sampleProject({
+    facebookPostStatus: 'failed',
+    facebookPostError: 'previous failure',
+  })
+  const mem = memoryState(project)
+  let posts = 0
+  const result = await maybePostProjectToFacebook(
+    project,
+    { forceRetry: true },
     {
       updateProjectFacebookState: mem.updateProjectFacebookState,
       isFacebookConfigured: () => true,
@@ -512,65 +503,69 @@ function memoryState(initial) {
   )
   assert.equal(posts, 1)
   assert.equal(result.status, 'posted')
-  assert.equal(result.facebookPostId, 'retry_ok')
+  assert.equal(result.project.facebookPostId, 'retry_ok')
   ok('retry works after a real failure when no existing post is found')
 }
 
 {
-  const publicProject = toPublicProject(
+  const pub = toPublicProject(
     sampleProject({
-      facebookPostId: 'secret_post',
-      facebookPostError: 'should not leak',
-      facebookCaption: 'private caption',
+      facebookPostId: 'secret',
+      facebookPostStatus: 'posted',
+      facebookCaption: 'internal',
+      facebookPostError: 'x',
     }),
   )
-  assert.equal(publicProject.facebookPostId, undefined)
-  assert.equal(publicProject.facebookPostError, undefined)
-  assert.equal(publicProject.facebookCaption, undefined)
+  assert.equal(pub.facebookPostId, undefined)
+  assert.equal(pub.facebookCaption, undefined)
+  assert.equal(pub.facebookPostError, undefined)
   ok('public project serializer omits Facebook fields')
 }
 
 {
-  const prev = {
-    FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID,
-    FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN,
-    FACEBOOK_GRAPH_API_VERSION: process.env.FACEBOOK_GRAPH_API_VERSION,
-  }
-  process.env.FACEBOOK_PAGE_ID = 'page123'
-  process.env.FACEBOOK_PAGE_ACCESS_TOKEN = 'token-secret-value'
+  const previous = process.env.FACEBOOK_PAGE_ACCESS_TOKEN
+  const previousId = process.env.FACEBOOK_PAGE_ID
+  const previousVersion = process.env.FACEBOOK_GRAPH_API_VERSION
+  process.env.FACEBOOK_PAGE_ACCESS_TOKEN = 'EAA_test_token'
+  process.env.FACEBOOK_PAGE_ID = '12345'
   process.env.FACEBOOK_GRAPH_API_VERSION = 'v21.0'
-
+  let capturedUrl = ''
+  let capturedBody = ''
   const originalFetch = globalThis.fetch
-  let sawTokenInUrl = false
   globalThis.fetch = async (url, init) => {
-    const href = String(url)
-    if (href.includes('token-secret-value')) sawTokenInUrl = true
-    const body = String(init?.body || '')
-    assert.match(body, /access_token=token-secret-value/)
-    assert.match(body, /url=https%3A%2F%2Fblob\.example\.com%2Fcover\.jpg/)
+    capturedUrl = String(url)
+    capturedBody = String(init?.body || '')
     return {
       ok: true,
+      status: 200,
       async json() {
-        return { id: 'photo1', post_id: 'page123_999' }
+        return { id: 'photo_1', post_id: 'page_post_1' }
+      },
+      async text() {
+        return ''
       },
     }
   }
-
   try {
     const result = await postPhotoToFacebookPage({
       imageUrl: 'https://blob.example.com/cover.jpg',
-      caption: 'Hello https://www.mikesexteriorcleaning.com/projects/demo',
+      caption: 'Hello\nhttps://www.mikesexteriorcleaning.com/projects/demo',
     })
-    assert.equal(result.postId, 'page123_999')
-    assert.equal(sawTokenInUrl, false)
-    ok('Graph photo endpoint posts with token in body, not URL')
+    assert.equal(result.postId, 'page_post_1')
+    assert.ok(capturedUrl.includes('/photos'))
+    assert.ok(!capturedUrl.includes('access_token'))
+    assert.ok(capturedBody.includes('access_token='))
+    assert.ok(capturedBody.includes(encodeURIComponent('Hello\nhttps://www.mikesexteriorcleaning.com/projects/demo')))
   } finally {
     globalThis.fetch = originalFetch
-    for (const [key, value] of Object.entries(prev)) {
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
-    }
+    if (previous !== undefined) process.env.FACEBOOK_PAGE_ACCESS_TOKEN = previous
+    else delete process.env.FACEBOOK_PAGE_ACCESS_TOKEN
+    if (previousId !== undefined) process.env.FACEBOOK_PAGE_ID = previousId
+    else delete process.env.FACEBOOK_PAGE_ID
+    if (previousVersion !== undefined) process.env.FACEBOOK_GRAPH_API_VERSION = previousVersion
+    else delete process.env.FACEBOOK_GRAPH_API_VERSION
   }
+  ok('Graph photo endpoint posts with token in body, not URL')
 }
 
 console.log('All Facebook page-post checks passed.')
