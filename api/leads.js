@@ -131,12 +131,15 @@ export default async function handler(req, res) {
         service: req.query?.service,
         city: req.query?.city,
         followUp: req.query?.followUp,
+        // active | completed | all — Completed/Lost remain in Redis; Active only hides them from this response slice
+        inboxView: req.query?.inboxView || req.query?.view,
       })
 
       return json(res, 200, {
         leads: leads.map((lead) => toLeadListItem(lead)),
         count: leads.length,
         followUpSummary,
+        inboxView: req.query?.inboxView || req.query?.view || null,
       })
     }
 

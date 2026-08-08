@@ -9,9 +9,12 @@ import {
   LEAD_STATUSES,
   filterLeads,
   getCanonicalStatus,
+  getFollowUpBadge,
+  matchesInboxView,
   normalizeAppointmentDate,
   normalizeAppointmentStartTime,
   parseMoneyAmount,
+  partitionActiveInboxLeads,
   phonesMatch,
   presentLead,
   startTimeFromTimeWindow,
@@ -173,6 +176,93 @@ function ok(name) {
   assert.equal(patch.patch.status, undefined)
   assert.equal(patch.patch.quotedAmount, undefined)
   ok('admin patch only includes provided fields')
+}
+
+{
+  const jennifer = {
+    id: 'lead_ms1wvpkc_bbbd2a81',
+    name: 'Jennifer Loftus',
+    status: 'Completed',
+    appointmentStatus: 'completed',
+    paymentStatus: 'paid',
+    completedRevenue: 345,
+    followUpDate: null,
+    followUpCompletedAt: '2026-08-08T05:28:35.251Z',
+    createdAt: '2026-07-28T20:00:00.000Z',
+  }
+  const booked = {
+    id: 'lead_active_1',
+    name: 'Active Booked',
+    status: 'Booked',
+    followUpDate: null,
+    followUpCompletedAt: null,
+    createdAt: '2026-08-01T00:00:00.000Z',
+  }
+  const contacted = {
+    id: 'lead_active_2',
+    name: 'Needs Call',
+    status: 'Contacted',
+    followUpDate: '2099-01-01',
+    createdAt: '2026-08-02T00:00:00.000Z',
+  }
+  const lost = {
+    id: 'lead_lost_1',
+    name: 'Lost Lead',
+    status: 'Lost',
+    followUpCompletedAt: '2026-08-01T00:00:00.000Z',
+    createdAt: '2026-07-01T00:00:00.000Z',
+  }
+  const pool = [jennifer, booked, contacted, lost]
+
+  assert.equal(matchesInboxView(jennifer, 'active'), false)
+  assert.equal(matchesInboxView(jennifer, 'completed'), true)
+  assert.equal(matchesInboxView(jennifer, 'all'), true)
+  assert.equal(matchesInboxView(booked, 'active'), true)
+  assert.equal(matchesInboxView(lost, 'active'), false)
+  assert.equal(matchesInboxView(lost, 'completed'), false)
+  assert.equal(matchesInboxView(lost, 'all'), true)
+  ok('inbox view membership for Completed / Active / Lost')
+
+  const active = filterLeads(pool, { inboxView: 'active' })
+  assert.equal(active.length, 2)
+  assert.ok(active.every((l) => ['New', 'Contacted', 'Booked'].includes(l.status)))
+  assert.ok(!active.some((l) => l.name === 'Jennifer Loftus'))
+  ok('Completed leads disappear from Active')
+
+  const completed = filterLeads(pool, { inboxView: 'completed' })
+  assert.equal(completed.length, 1)
+  assert.equal(completed[0].name, 'Jennifer Loftus')
+  assert.equal(completed[0].paymentStatus, 'paid')
+  assert.equal(completed[0].completedRevenue, 345)
+  ok('Completed leads appear under Completed with data intact')
+
+  const all = filterLeads(pool, { inboxView: 'all' })
+  assert.equal(all.length, 4)
+  assert.ok(all.some((l) => l.name === 'Jennifer Loftus'))
+  ok('Completed leads appear under All')
+
+  const searchCompleted = filterLeads(pool, { inboxView: 'completed', q: 'jennifer' })
+  assert.equal(searchCompleted.length, 1)
+  assert.equal(searchCompleted[0].id, 'lead_ms1wvpkc_bbbd2a81')
+  const searchAll = filterLeads(pool, { inboxView: 'all', q: 'loftus' })
+  assert.equal(searchAll.length, 1)
+  const searchActive = filterLeads(pool, { inboxView: 'active', q: 'jennifer' })
+  assert.equal(searchActive.length, 0)
+  ok('Completed leads can be found by name search in Completed and All')
+
+  // Reproduce production bug: follow-up cleared → badge "completed" must still be listed
+  assert.equal(getFollowUpBadge(jennifer), 'completed')
+  const partitioned = partitionActiveInboxLeads([jennifer, booked, contacted])
+  const partitionedIds = [
+    ...partitioned.overdue,
+    ...partitioned.dueToday,
+    ...partitioned.upcoming,
+    ...partitioned.other,
+  ].map((l) => l.id)
+  assert.equal(partitionedIds.length, 3)
+  assert.ok(partitionedIds.includes(jennifer.id))
+  assert.ok(partitioned.other.some((l) => l.id === jennifer.id))
+  ok('partition never drops leads with followUpBadge completed')
 }
 
 console.log('\nAll leads store tests passed.')
