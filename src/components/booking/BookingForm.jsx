@@ -10,6 +10,7 @@ import { getAvailableTimeWindows } from '../../services/calendarService'
 import TimeWindowPicker from './TimeWindowPicker'
 import BookingConfirmation from './BookingConfirmation'
 import { trackInternalEvent } from '../../utils/analytics'
+import { clearBookingPrefill } from '../../utils/bookingPrefill'
 
 function validateBooking(form, selectedServiceIds, timeWindow, customTime) {
   const errors = {}
@@ -71,6 +72,8 @@ export default function BookingForm({ prefill = null, compact = false }) {
 
   const estimateRange = prefill?.estimateRange ?? ''
   const quoteDetails = prefill?.quoteDetails ?? ''
+  const linkedLeadId = prefill?.linkedLeadId ?? ''
+  const quotedAmount = prefill?.quotedAmount ?? null
 
   useEffect(() => {
     if (!form.preferredDate) return
@@ -126,11 +129,14 @@ export default function BookingForm({ prefill = null, compact = false }) {
         notes: form.notes.trim(),
         quoteDetails,
         companyWebsite: form.companyWebsite || '',
+        linkedLeadId: linkedLeadId || undefined,
+        quotedAmount: quotedAmount ?? undefined,
       })
       trackInternalEvent('booking_requested', {
         service: serviceNames.join(', ') || null,
         sourceHint: 'booking_form',
       })
+      clearBookingPrefill()
       setSubmitted(true)
     } catch {
       submitLock.current = false

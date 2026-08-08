@@ -7,6 +7,7 @@ import {
   isLeadsStorageConfigured,
   listLeadsWithSummary,
   normalizeLeadId,
+  presentLead,
   toLeadListItem,
   updateLead,
   validateLeadIngest,
@@ -37,7 +38,8 @@ function parseBody(req) {
  * Combined leads API (Hobby plan: one serverless function).
  *
  * Public:
- * - POST /api/leads  → create lead (no PII in response)
+ * - POST /api/leads  → create lead or link booking onto existing Instant Quote lead
+ *   Response: { ok, id } (no PII). Optional linkedLeadId for quote→booking continuity.
  *
  * Website customer reviews (same function via rewrite /api/reviews → ?resource=website-reviews):
  * - POST/GET/PATCH/DELETE handled by handleWebsiteReviewsRequest
@@ -45,7 +47,14 @@ function parseBody(req) {
  * Admin (cookie auth):
  * - GET  /api/leads
  * - GET  /api/leads?id=<leadId>
- * - PATCH /api/leads?id=<leadId>  body: { status?, note?, followUpDate?, followUpNote?, clearFollowUp? }
+ * - PATCH /api/leads?id=<leadId>
+ *   body: {
+ *     status?, note?, followUpDate?, followUpNote?, clearFollowUp?,
+ *     appointmentDate?, appointmentStartTime?, appointmentTimezone?,
+ *     appointmentStatus?, appointmentNotes?,
+ *     quotedAmount?, bookedAmount?, completedRevenue?, paymentStatus?,
+ *     internalNotes?
+ *   }
  */
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
@@ -62,7 +71,7 @@ export default async function handler(req, res) {
     })
   }
 
-  // ——— Public create ———
+  // ——— Public create / link ———
   if (req.method === 'POST') {
     const ip = getClientIp(req)
     try {
@@ -88,8 +97,12 @@ export default async function handler(req, res) {
 
     try {
       const created = await createLeadFromIngest(validated.data)
-      console.info('[leads] created', { id: created.id, source: validated.data.source })
-      return json(res, 201, { ok: true, id: created.id })
+      console.info('[leads] created', {
+        id: created.id,
+        source: validated.data.source,
+        linked: Boolean(created.linked),
+      })
+      return json(res, 201, { ok: true, id: created.id, linked: Boolean(created.linked) })
     } catch (err) {
       console.error('[leads] storage error:', err?.message || err)
       const status = err?.status || 500
@@ -108,7 +121,7 @@ export default async function handler(req, res) {
       if (itemId) {
         const lead = await getLead(itemId)
         if (!lead) return json(res, 404, { error: 'Lead not found' })
-        return json(res, 200, { lead })
+        return json(res, 200, { lead: presentLead(lead) })
       }
 
       const { leads, followUpSummary } = await listLeadsWithSummary({
@@ -130,13 +143,8 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       if (!itemId) return json(res, 400, { error: 'Missing lead id' })
       const body = parseBody(req)
-      const lead = await updateLead(itemId, {
-        status: body.status,
-        note: body.note,
-        followUpDate: body.followUpDate,
-        followUpNote: body.followUpNote,
-        clearFollowUp: body.clearFollowUp === true,
-      })
+      // Pass through only defined keys — updateLead ignores unspecified fields.
+      const lead = await updateLead(itemId, body)
       console.info('[leads] updated', { id: lead.id, status: lead.status })
       return json(res, 200, { lead })
     }

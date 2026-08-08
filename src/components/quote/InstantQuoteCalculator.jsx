@@ -133,6 +133,7 @@ export default function InstantQuoteCalculator() {
               contact={contact}
               selectedServices={selectedServices}
               answers={answers}
+              linkedLeadId={contact?.leadId || null}
             />
           )}
         </div>

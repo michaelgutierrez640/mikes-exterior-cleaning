@@ -17,6 +17,7 @@
     "test:facebook": "node scripts/test-facebook-page-post.mjs",
     "test:projects": "node scripts/test-projects-store.mjs",
     "test:reviews": "node scripts/test-reviews-store.mjs",
+    "test:leads": "node scripts/test-leads-store.mjs",
     "test:seo-deploy": "node scripts/test-seo-deploy-hook.mjs"
   },
   "dependencies": {

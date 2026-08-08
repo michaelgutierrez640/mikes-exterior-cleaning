@@ -5,7 +5,7 @@ import { buildBookingPrefill, saveBookingPrefill } from '../../utils/bookingPref
 import { CallButton, PhoneLink } from '../ui/Button'
 import QuoteSummary from './QuoteSummary'
 
-export default function QuoteConfirmation({ quote, contact, selectedServices, answers }) {
+export default function QuoteConfirmation({ quote, contact, selectedServices, answers, linkedLeadId = null }) {
   const navigate = useNavigate()
 
   const serviceNames = selectedServices
@@ -21,6 +21,8 @@ export default function QuoteConfirmation({ quote, contact, selectedServices, an
       services: serviceNames,
       estimateRange: quote?.formattedRange ?? '',
       quoteDetails: buildQuoteSummaryText(selectedServices, answers, quote),
+      linkedLeadId: linkedLeadId || contact?.leadId || '',
+      quotedAmount: contact?.quotedAmount ?? (Number.isFinite(quote?.totalLow) ? quote.totalLow : null),
     })
     saveBookingPrefill(prefill)
     navigate('/book-online', { state: prefill })
