@@ -41,15 +41,29 @@ export default function BookingForm({ prefill = null, compact = false }) {
   const initialServices = useMemo(() => {
     if (!prefill?.services?.length) {
       if (prefill?.serviceSlug) {
-        const match = BOOKABLE_SERVICES.find((s) => s.id === prefill.serviceSlug)
+        // Residential WC service pages still deep-link here; map to Window Cleaning (not a separate option).
+        const slug =
+          prefill.serviceSlug === 'residential-window-cleaning'
+            ? 'window-cleaning'
+            : prefill.serviceSlug
+        const match = BOOKABLE_SERVICES.find((s) => s.id === slug)
         return match ? [match.id] : []
       }
       return []
     }
     return BOOKABLE_SERVICES.filter((s) =>
-      prefill.services.some(
-        (name) => name === s.name || name === s.id || name.toLowerCase() === s.name.toLowerCase(),
-      ),
+      prefill.services.some((name) => {
+        const n = String(name || '').toLowerCase()
+        if (name === s.name || name === s.id || n === s.name.toLowerCase()) return true
+        // Prefill text from residential pages → Window Cleaning checkbox
+        if (
+          s.id === 'window-cleaning' &&
+          (n === 'residential-window-cleaning' || n === 'residential window cleaning')
+        ) {
+          return true
+        }
+        return false
+      }),
     ).map((s) => s.id)
   }, [prefill])
 

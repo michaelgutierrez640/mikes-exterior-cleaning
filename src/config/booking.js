@@ -13,15 +13,8 @@ export const TIME_WINDOWS = [
   { id: 'custom', label: 'Custom time request', time: null },
 ]
 
-export const BOOKABLE_SERVICES = [
-  ...QUOTE_SERVICES,
-  {
-    id: 'residential-window-cleaning',
-    name: 'Residential Window Cleaning',
-    shortDescription: 'Interior & exterior glass for homes — tracks, screens, and sills',
-    icon: 'windows',
-  },
-]
+/** Book Online options — same set as Instant Quote (no duplicate Residential Window Cleaning). */
+export const BOOKABLE_SERVICES = [...QUOTE_SERVICES]
 
 export function getTimeWindowById(id) {
   return TIME_WINDOWS.find((w) => w.id === id)
