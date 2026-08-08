@@ -4,9 +4,12 @@ import { fetchAdminLeads } from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
   LEAD_STATUSES,
+  formatAppointmentDate,
+  formatAppointmentTime,
   formatFollowUpDate,
   formatLeadDate,
   formatLeadSource,
+  formatMoney,
   mailtoHref,
   telHref,
 } from './leadHelpers'
@@ -71,11 +74,15 @@ function LeadRow({ lead }) {
           </div>
           <p className="mt-1 text-[0.8125rem] text-gray-500">
             {[lead.service || '—', lead.city || 'City unknown'].join(' · ')}
+            {lead.quotedAmount != null ? ` · Quote ${formatMoney(lead.quotedAmount)}` : ''}
           </p>
           <p className="mt-1 text-[0.75rem] text-gray-400">
             {formatLeadSource(lead.source)} · {lead.status}
+            {lead.appointmentDate
+              ? ` · Appt ${formatAppointmentDate(lead.appointmentDate)} ${formatAppointmentTime(lead.appointmentStartTime)}`
+              : ''}
             {lead.followUpDate ? ` · Follow-up ${formatFollowUpDate(lead.followUpDate)}` : ''}
-            {!lead.followUpDate ? ` · ${formatLeadDate(lead.createdAt)}` : ''}
+            {!lead.followUpDate && !lead.appointmentDate ? ` · ${formatLeadDate(lead.createdAt)}` : ''}
           </p>
           {lead.followUpNote && (
             <p className="mt-1 line-clamp-1 text-[0.75rem] text-gray-500">{lead.followUpNote}</p>

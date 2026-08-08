@@ -9,6 +9,8 @@ export function buildBookingPrefill({
   estimateRange = '',
   quoteDetails = '',
   serviceSlug = '',
+  linkedLeadId = '',
+  quotedAmount = null,
 } = {}) {
   return {
     name,
@@ -19,7 +21,9 @@ export function buildBookingPrefill({
     estimateRange,
     quoteDetails,
     serviceSlug,
-    fromQuote: Boolean(estimateRange || quoteDetails),
+    linkedLeadId: linkedLeadId || '',
+    quotedAmount: quotedAmount ?? null,
+    fromQuote: Boolean(estimateRange || quoteDetails || linkedLeadId),
   }
 }
 

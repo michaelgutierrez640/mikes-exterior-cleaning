@@ -55,7 +55,7 @@ export default function QuoteContactForm({
 
     try {
       // Exactly one CRM lead + one FormSubmit email (via submitLead)
-      await submitLead({
+      const result = await submitLead({
         name: form.name.trim(),
         phone: form.phone.trim(),
         email: form.email.trim(),
@@ -65,6 +65,8 @@ export default function QuoteContactForm({
         subject: `Instant Quote Request (${quote.formattedRange}) — ${BUSINESS.name}`,
         source: 'instant_quote',
         companyWebsite: form.companyWebsite || '',
+        // Structured quote amount for CRM reporting (low end of Instant Quote range)
+        quotedAmount: Number.isFinite(quote?.totalLow) ? quote.totalLow : undefined,
       })
 
       // Exactly one instant_quote_completed first-party event
@@ -74,7 +76,11 @@ export default function QuoteContactForm({
         services: selectedServices,
       })
 
-      onSuccess(form)
+      onSuccess({
+        ...form,
+        leadId: result?.id || null,
+        quotedAmount: Number.isFinite(quote?.totalLow) ? quote.totalLow : null,
+      })
     } catch {
       submitLock.current = false
       setStatus('error')

@@ -7,7 +7,7 @@ const INGEST_ENDPOINT = '/api/leads'
 
 /**
  * Persist lead to private Redis CRM. Never logs or returns customer fields.
- * @returns {Promise<{ ok: boolean, id?: string }>}
+ * @returns {Promise<{ ok: boolean, id?: string, linked?: boolean }>}
  */
 async function ingestLead(payload) {
   const res = await fetch(INGEST_ENDPOINT, {
@@ -55,6 +55,12 @@ async function sendFormSubmitEmail({ name, phone, email, address, service, messa
  * @param {object} fields
  * @param {'instant_quote'|'contact'|'booking'} fields.source
  * @param {string} [fields.companyWebsite] honeypot — must stay empty
+ * @param {number} [fields.quotedAmount] structured quote amount (Instant Quote low end)
+ * @param {string} [fields.linkedLeadId] existing Instant Quote lead to update (booking)
+ * @param {string} [fields.preferredDate] booking preferred date YYYY-MM-DD
+ * @param {string} [fields.timeWindow] morning|afternoon|evening|custom
+ * @param {string} [fields.customTime]
+ * @returns {Promise<{ ok: boolean, id?: string, linked?: boolean }>}
  */
 export async function submitLead({
   name,
@@ -67,6 +73,11 @@ export async function submitLead({
   source = 'contact',
   city = null,
   companyWebsite = '',
+  quotedAmount = undefined,
+  linkedLeadId = undefined,
+  preferredDate = undefined,
+  timeWindow = undefined,
+  customTime = undefined,
 }) {
   // Silent drop for honeypot fills — no Redis lead, no email
   if (String(companyWebsite || '').trim()) {
@@ -78,9 +89,7 @@ export async function submitLead({
     city ||
     inferCityFromText(address, attribution.conversionPage, attribution.originalLandingPage)
 
-  // Save CRM first so a failed email still leaves an admin-visible lead when possible.
-  // Require both to succeed so the visitor knows if something went wrong.
-  await ingestLead({
+  const payload = {
     source,
     name,
     phone,
@@ -91,9 +100,21 @@ export async function submitLead({
     city: resolvedCity,
     companyWebsite: '',
     ...attribution,
-  })
+  }
 
-  return sendFormSubmitEmail({
+  if (quotedAmount !== undefined && quotedAmount !== null && quotedAmount !== '') {
+    payload.quotedAmount = quotedAmount
+  }
+  if (linkedLeadId) payload.linkedLeadId = linkedLeadId
+  if (preferredDate) payload.preferredDate = preferredDate
+  if (timeWindow) payload.timeWindow = timeWindow
+  if (customTime) payload.customTime = customTime
+
+  // Save CRM first so a failed email still leaves an admin-visible lead when possible.
+  // Require both to succeed so the visitor knows if something went wrong.
+  const ingest = await ingestLead(payload)
+
+  await sendFormSubmitEmail({
     name,
     phone,
     email,
@@ -102,4 +123,6 @@ export async function submitLead({
     message,
     subject,
   })
+
+  return { ok: true, id: ingest.id, linked: Boolean(ingest.linked) }
 }
