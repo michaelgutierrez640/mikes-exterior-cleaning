@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { BUSINESS } from '../../config/business'
+import SmsConsentCheckbox from '../forms/SmsConsentCheckbox'
 import { submitLead } from '../../services/submitLead'
 import { buildQuoteSummaryText } from '../../utils/quotePricing'
 import { trackQuoteSubmitted } from '../../utils/analytics'
@@ -22,6 +23,7 @@ export default function QuoteContactForm({
   onSuccess,
 }) {
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', companyWebsite: '' })
+  const [smsConsent, setSmsConsent] = useState(false)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
@@ -67,6 +69,8 @@ export default function QuoteContactForm({
         companyWebsite: form.companyWebsite || '',
         // Structured quote amount for CRM reporting (low end of Instant Quote range)
         quotedAmount: Number.isFinite(quote?.totalLow) ? quote.totalLow : undefined,
+        // Only true when the customer checks the box (never pre-checked)
+        smsConsent: smsConsent === true,
       })
 
       // Exactly one instant_quote_completed first-party event
@@ -188,6 +192,12 @@ export default function QuoteContactForm({
             <p id="quote-address-error" className="mt-1.5 text-[0.75rem] text-red-600" role="alert">{errors.address}</p>
           )}
         </div>
+
+        <SmsConsentCheckbox
+          id="quote-sms-consent"
+          checked={smsConsent}
+          onChange={setSmsConsent}
+        />
 
         {submitError && (
           <p className="rounded-xl bg-red-50 px-4 py-3 text-[0.8125rem] text-red-600" role="alert">{submitError}</p>

@@ -1,5 +1,7 @@
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
 import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
+import { handleSmsInbound } from '../lib/smsInbound.mjs'
+import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
 import {
   checkLeadIngestRateLimit,
   createLeadFromIngest,
@@ -12,6 +14,27 @@ import {
   updateLead,
   validateLeadIngest,
 } from '../lib/leadsStore.mjs'
+
+function safeSms(label, promise) {
+  Promise.resolve(promise)
+    .then((result) => {
+      console.info(`[sms] ${label}`, {
+        ok: result?.ok !== false,
+        results: Array.isArray(result?.results)
+          ? result.results.map((r) => ({
+              kind: r.kind,
+              ok: r.ok,
+              skipped: r.skipped || false,
+              dryRun: r.dryRun || false,
+              reason: r.reason || null,
+            }))
+          : undefined,
+      })
+    })
+    .catch((err) => {
+      console.error(`[sms] ${label} failed:`, err?.message || err)
+    })
+}
 
 function getClientIp(req) {
   const xfwd = req.headers['x-forwarded-for']
@@ -64,6 +87,14 @@ export default async function handler(req, res) {
     return handleWebsiteReviewsRequest(req, res)
   }
 
+  // Twilio STOP/START webhook (rewrite /api/sms/inbound → this resource).
+  if (String(req.query?.resource || '') === 'sms-inbound') {
+    if (!isLeadsStorageConfigured()) {
+      return json(res, 503, { error: 'Leads storage not configured' })
+    }
+    return handleSmsInbound(req, res, { json })
+  }
+
   if (!isLeadsStorageConfigured()) {
     return json(res, 503, {
       error: 'Leads storage not configured',
@@ -101,7 +132,12 @@ export default async function handler(req, res) {
         id: created.id,
         source: validated.data.source,
         linked: Boolean(created.linked),
+        smsConsent: validated.data.smsConsent === true,
       })
+      // SMS must never block or fail the lead save. Instant Quote only for new-lead texts.
+      if (!created.linked && validated.data.source === 'instant_quote') {
+        safeSms('new-lead', runNewLeadSmsAutomations(created.id))
+      }
       return json(res, 201, { ok: true, id: created.id, linked: Boolean(created.linked) })
     } catch (err) {
       console.error('[leads] storage error:', err?.message || err)
@@ -146,9 +182,12 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       if (!itemId) return json(res, 400, { error: 'Missing lead id' })
       const body = parseBody(req)
+      const before = await getLead(itemId)
       // Pass through only defined keys — updateLead ignores unspecified fields.
       const lead = await updateLead(itemId, body)
       console.info('[leads] updated', { id: lead.id, status: lead.status })
+      // Booking confirm / reschedule / review scheduling — never blocks the admin save.
+      safeSms('lead-update', runLeadUpdateSmsAutomations(before ? presentLead(before) : null, lead))
       return json(res, 200, { lead })
     }
 

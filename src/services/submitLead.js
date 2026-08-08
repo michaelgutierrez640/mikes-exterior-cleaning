@@ -60,6 +60,7 @@ async function sendFormSubmitEmail({ name, phone, email, address, service, messa
  * @param {string} [fields.preferredDate] booking preferred date YYYY-MM-DD
  * @param {string} [fields.timeWindow] morning|afternoon|evening|custom
  * @param {string} [fields.customTime]
+ * @param {boolean} [fields.smsConsent] explicit transactional SMS opt-in (never required)
  * @returns {Promise<{ ok: boolean, id?: string, linked?: boolean }>}
  */
 export async function submitLead({
@@ -78,6 +79,7 @@ export async function submitLead({
   preferredDate = undefined,
   timeWindow = undefined,
   customTime = undefined,
+  smsConsent = false,
 }) {
   // Silent drop for honeypot fills — no Redis lead, no email
   if (String(companyWebsite || '').trim()) {
@@ -109,6 +111,8 @@ export async function submitLead({
   if (preferredDate) payload.preferredDate = preferredDate
   if (timeWindow) payload.timeWindow = timeWindow
   if (customTime) payload.customTime = customTime
+  // Only forward explicit true — omit/false must never look like consent server-side.
+  if (smsConsent === true) payload.smsConsent = true
 
   // Save CRM first so a failed email still leaves an admin-visible lead when possible.
   // Require both to succeed so the visitor knows if something went wrong.

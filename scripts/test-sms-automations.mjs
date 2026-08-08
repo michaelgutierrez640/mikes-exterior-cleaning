@@ -1,0 +1,421 @@
+/**
+ * SMS automation foundation tests (no Redis / no Twilio required).
+ * Run: node scripts/test-sms-automations.mjs
+ */
+import assert from 'assert'
+import {
+  DEFAULT_AUTOMATION_STATE,
+  normalizeSmsConsent,
+  presentLead,
+  validateLeadIngest,
+  appointmentKeyFromLead,
+} from '../lib/leadsStore.mjs'
+import {
+  canSendCustomerSms,
+  planLeadUpdateSms,
+  planNewLeadSms,
+  runLeadUpdateSmsAutomations,
+  runNewLeadSmsAutomations,
+  sendAppointmentReminderForLead,
+  sendReviewRequestForLead,
+} from '../lib/smsAutomations.mjs'
+import { isLeadDueForReminder, isLeadDueForReviewRequest, runSmsCronJobs } from '../lib/smsCron.mjs'
+import {
+  buildBookingConfirmationMessage,
+  buildCustomerQuoteReceivedMessage,
+  buildOwnerNewLeadMessage,
+  buildReminderMessage,
+  buildReviewRequestMessage,
+} from '../lib/smsMessages.mjs'
+
+function ok(name) {
+  console.log(`PASS ${name}`)
+}
+
+function memoryStore(seedLeads = []) {
+  const map = new Map()
+  for (const lead of seedLeads) {
+    map.set(lead.id, structuredClone(lead))
+  }
+  return {
+    async getLead(id) {
+      const lead = map.get(id)
+      return lead ? structuredClone(lead) : null
+    },
+    async saveLeadMutation(id, mutator) {
+      const lead = map.get(id)
+      if (!lead) throw Object.assign(new Error('Lead not found'), { status: 404 })
+      if (!lead.automationState) lead.automationState = { ...DEFAULT_AUTOMATION_STATE }
+      mutator(lead)
+      lead.updatedAt = new Date().toISOString()
+      map.set(id, lead)
+      return presentLead(structuredClone(lead))
+    },
+    async listLeads() {
+      return [...map.values()].map((l) => structuredClone(l))
+    },
+    get(id) {
+      return map.get(id)
+    },
+  }
+}
+
+function recordingSender() {
+  const sent = []
+  return {
+    sent,
+    async sendFn({ to, body, kind, leadId }) {
+      sent.push({ to, body, kind, leadId })
+      return { sid: `mock_${sent.length}`, dryRun: false }
+    },
+  }
+}
+
+function baseLead(overrides = {}) {
+  return presentLead({
+    id: 'lead_test_1',
+    source: 'instant_quote',
+    name: 'Alex Rivera',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    service: 'Window Cleaning',
+    city: 'Modesto',
+    quotedAmount: 175,
+    status: 'New',
+    smsConsent: false,
+    smsConsentAt: null,
+    smsOptedOut: false,
+    smsOptedOutAt: null,
+    smsLastError: null,
+    appointmentDate: null,
+    appointmentStartTime: null,
+    appointmentTimezone: 'America/Los_Angeles',
+    automationState: { ...DEFAULT_AUTOMATION_STATE },
+    createdAt: '2026-08-08T12:00:00.000Z',
+    updatedAt: '2026-08-08T12:00:00.000Z',
+    ...overrides,
+  })
+}
+
+{
+  assert.equal(normalizeSmsConsent(true), true)
+  assert.equal(normalizeSmsConsent('true'), true)
+  assert.equal(normalizeSmsConsent(false), false)
+  assert.equal(normalizeSmsConsent(undefined), false)
+  assert.equal(normalizeSmsConsent('yes'), false)
+  ok('normalizeSmsConsent only accepts explicit true')
+}
+
+{
+  const withConsent = validateLeadIngest({
+    source: 'instant_quote',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: true,
+  })
+  assert.equal(withConsent.ok, true)
+  assert.equal(withConsent.data.smsConsent, true)
+
+  const without = validateLeadIngest({
+    source: 'instant_quote',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+  })
+  assert.equal(without.data.smsConsent, false)
+  ok('ingest stores smsConsent only when explicitly true')
+}
+
+{
+  const legacy = presentLead({
+    id: 'lead_old',
+    status: 'New Lead',
+    name: 'Pat',
+  })
+  assert.equal(legacy.smsConsent, false)
+  assert.equal(legacy.smsOptedOut, false)
+  assert.equal(legacy.smsLastError, null)
+  assert.equal(legacy.automationState.bookingConfirmForAppointmentKey, null)
+  assert.equal(legacy.automationState.reminderForAppointmentKey, null)
+  ok('existing leads without SMS fields continue working via presentLead')
+}
+
+{
+  const consented = baseLead({ smsConsent: true })
+  const optedOut = baseLead({ smsConsent: true, smsOptedOut: true })
+  const noConsent = baseLead({ smsConsent: false })
+  assert.equal(canSendCustomerSms(consented), true)
+  assert.equal(canSendCustomerSms(optedOut), false)
+  assert.equal(canSendCustomerSms(noConsent), false)
+  ok('customer SMS gate requires consent and not opted out')
+}
+
+{
+  const ownerMsg = buildOwnerNewLeadMessage(baseLead())
+  assert.match(ownerMsg, /Alex Rivera/)
+  assert.match(ownerMsg, /Window Cleaning/)
+  assert.match(ownerMsg, /Modesto/)
+  assert.match(ownerMsg, /2095551212/)
+  assert.match(ownerMsg, /\$175/)
+
+  const customerMsg = buildCustomerQuoteReceivedMessage(baseLead())
+  assert.match(customerMsg, /Hi Alex/)
+  assert.match(customerMsg, /STOP/)
+  ok('message templates include required fields')
+}
+
+{
+  const withConsent = baseLead({ smsConsent: true })
+  const plan = planNewLeadSms(withConsent)
+  assert.ok(plan.some((a) => a.kind === 'owner_new_lead'))
+  assert.ok(plan.some((a) => a.kind === 'customer_quote_received'))
+
+  const noConsent = baseLead({ smsConsent: false })
+  const planNo = planNewLeadSms(noConsent)
+  assert.ok(planNo.some((a) => a.kind === 'owner_new_lead'))
+  assert.ok(!planNo.some((a) => a.kind === 'customer_quote_received'))
+  ok('new Instant Quote plans owner notify always; customer only with consent')
+}
+
+{
+  const store = memoryStore([baseLead({ smsConsent: true })])
+  const sender = recordingSender()
+  const result = await runNewLeadSmsAutomations('lead_test_1', {
+    ...store,
+    ...sender,
+    ownerPhone: '+12095550000',
+  })
+  assert.equal(result.ok, true)
+  assert.equal(sender.sent.length, 2)
+  assert.ok(sender.sent.some((s) => s.kind === 'owner_new_lead'))
+  assert.ok(sender.sent.some((s) => s.kind === 'customer_quote_received'))
+  assert.ok(store.get('lead_test_1').automationState.ownerNewLeadSmsAt)
+  assert.ok(store.get('lead_test_1').automationState.quoteReceivedSmsAt)
+  ok('customer with consent receives eligible new-lead messages')
+}
+
+{
+  const store = memoryStore([baseLead({ smsConsent: false })])
+  const sender = recordingSender()
+  await runNewLeadSmsAutomations('lead_test_1', {
+    ...store,
+    ...sender,
+    ownerPhone: '+12095550000',
+  })
+  assert.equal(sender.sent.length, 1)
+  assert.equal(sender.sent[0].kind, 'owner_new_lead')
+  assert.equal(store.get('lead_test_1').automationState.quoteReceivedSmsAt, null)
+  ok('customer without consent receives no automated customer SMS; owner still notified')
+}
+
+{
+  const store = memoryStore([baseLead({ smsConsent: true, smsOptedOut: true })])
+  const sender = recordingSender()
+  await runNewLeadSmsAutomations('lead_test_1', {
+    ...store,
+    ...sender,
+    ownerPhone: '+12095550000',
+  })
+  assert.equal(sender.sent.length, 1)
+  assert.equal(sender.sent[0].kind, 'owner_new_lead')
+  ok('opted-out customers receive no further automated customer SMS')
+}
+
+{
+  const before = baseLead({ status: 'Contacted', smsConsent: true })
+  const after = baseLead({
+    status: 'Booked',
+    smsConsent: true,
+    appointmentDate: '2026-08-20',
+    appointmentStartTime: '09:00',
+  })
+  const plan = planLeadUpdateSms(before, after)
+  assert.ok(plan.some((a) => a.kind === 'customer_booking_confirm'))
+
+  const store = memoryStore([after])
+  const sender = recordingSender()
+  await runLeadUpdateSmsAutomations(before, after, { ...store, ...sender })
+  assert.equal(sender.sent.length, 1)
+  assert.equal(sender.sent[0].kind, 'customer_booking_confirm')
+  assert.match(sender.sent[0].body, /you're booked/i)
+  assert.ok(store.get('lead_test_1').automationState.bookingConfirmSmsAt)
+
+  // Second run / unrelated field edit must not resend
+  const afterEdit = presentLead({
+    ...store.get('lead_test_1'),
+    internalNotes: 'called voicemail',
+  })
+  const sender2 = recordingSender()
+  await runLeadUpdateSmsAutomations(after, afterEdit, { ...store, ...sender2 })
+  assert.equal(sender2.sent.length, 0)
+  ok('booking confirmation sends once; unrelated edits do not resend')
+}
+
+{
+  const confirmed = baseLead({
+    status: 'Booked',
+    smsConsent: true,
+    appointmentDate: '2026-08-20',
+    appointmentStartTime: '09:00',
+    automationState: {
+      ...DEFAULT_AUTOMATION_STATE,
+      bookingConfirmSmsAt: '2026-08-08T12:00:00.000Z',
+      bookingConfirmForAppointmentKey: '2026-08-20|09:00|America/Los_Angeles',
+      lastAppointmentKey: '2026-08-20|09:00|America/Los_Angeles',
+    },
+  })
+  const rescheduled = baseLead({
+    status: 'Booked',
+    smsConsent: true,
+    appointmentDate: '2026-08-21',
+    appointmentStartTime: '14:00',
+    automationState: { ...confirmed.automationState },
+  })
+  const plan = planLeadUpdateSms(confirmed, rescheduled)
+  assert.ok(plan.some((a) => a.kind === 'customer_appointment_updated'))
+  assert.ok(!plan.some((a) => a.kind === 'customer_booking_confirm'))
+
+  const store = memoryStore([rescheduled])
+  const sender = recordingSender()
+  await runLeadUpdateSmsAutomations(confirmed, rescheduled, { ...store, ...sender })
+  assert.equal(sender.sent.length, 1)
+  assert.equal(sender.sent[0].kind, 'customer_appointment_updated')
+  assert.ok(store.get('lead_test_1').automationState.bookingConfirmSmsAt)
+  assert.equal(
+    store.get('lead_test_1').automationState.bookingConfirmForAppointmentKey,
+    appointmentKeyFromLead(rescheduled),
+  )
+  ok('appointment change sends update SMS without duplicating initial confirmation')
+}
+
+{
+  const lead = baseLead({
+    status: 'Booked',
+    smsConsent: true,
+    appointmentDate: '2026-08-20',
+    appointmentStartTime: '09:00',
+  })
+  const store = memoryStore([lead])
+  const sender = recordingSender()
+  const first = await sendAppointmentReminderForLead(lead, { ...store, ...sender })
+  assert.equal(first.ok, true)
+  assert.equal(first.skipped, undefined)
+  assert.equal(sender.sent.length, 1)
+  assert.match(buildReminderMessage(lead), /tomorrow at 9:00 AM/)
+
+  const sender2 = recordingSender()
+  const second = await sendAppointmentReminderForLead(presentLead(store.get('lead_test_1')), {
+    ...store,
+    ...sender2,
+  })
+  assert.equal(second.skipped, true)
+  assert.equal(sender2.sent.length, 0)
+  ok('reminder sends once; cron retry does not duplicate')
+}
+
+{
+  const tomorrow = '2026-08-20'
+  const due = baseLead({
+    status: 'Booked',
+    smsConsent: true,
+    appointmentDate: tomorrow,
+    appointmentStartTime: '09:00',
+  })
+  assert.equal(isLeadDueForReminder(due, tomorrow), true)
+  due.automationState.reminderSmsAt = '2026-08-19T15:00:00.000Z'
+  due.automationState.reminderForAppointmentKey = appointmentKeyFromLead(due)
+  assert.equal(isLeadDueForReminder(due, tomorrow), false)
+
+  const store = memoryStore([
+    baseLead({
+      id: 'lead_due',
+      status: 'Booked',
+      smsConsent: true,
+      appointmentDate: tomorrow,
+      appointmentStartTime: '09:00',
+    }),
+  ])
+  const sender = recordingSender()
+  const cron1 = await runSmsCronJobs({
+    ...store,
+    ...sender,
+    tomorrowKey: tomorrow,
+    now: new Date('2026-08-19T15:00:00.000Z'),
+  })
+  assert.equal(cron1.remindersConsidered, 1)
+  assert.equal(sender.sent.length, 1)
+
+  const sender2 = recordingSender()
+  const cron2 = await runSmsCronJobs({
+    ...store,
+    ...sender2,
+    tomorrowKey: tomorrow,
+    now: new Date('2026-08-19T15:05:00.000Z'),
+  })
+  assert.equal(sender2.sent.length, 0)
+  assert.ok(cron2.remindersConsidered === 0 || cron2.remindersSkipped >= 0)
+  ok('cron reminder idempotent across retries')
+}
+
+{
+  const before = baseLead({ status: 'Booked', smsConsent: true })
+  const after = baseLead({ status: 'Completed', smsConsent: true })
+  const plan = planLeadUpdateSms(before, after)
+  assert.ok(plan.some((a) => a.kind === 'schedule_review_request'))
+
+  const store = memoryStore([after])
+  const sender = recordingSender()
+  const now = new Date('2026-08-08T12:00:00.000Z')
+  await runLeadUpdateSmsAutomations(before, after, {
+    ...store,
+    ...sender,
+    now,
+    reviewDelayHours: 24,
+  })
+  assert.equal(sender.sent.length, 0)
+  assert.ok(store.get('lead_test_1').automationState.reviewRequestDueAt)
+  assert.equal(
+    store.get('lead_test_1').automationState.reviewRequestDueAt,
+    new Date(now.getTime() + 24 * 3600 * 1000).toISOString(),
+  )
+
+  const dueLead = presentLead(store.get('lead_test_1'))
+  assert.equal(isLeadDueForReviewRequest(dueLead, new Date('2026-08-09T12:00:00.000Z')), true)
+
+  const first = await sendReviewRequestForLead(dueLead, {
+    ...store,
+    ...sender,
+    reviewUrl: 'https://g.page/r/example',
+  })
+  assert.equal(first.ok, true)
+  assert.equal(sender.sent.length, 1)
+  assert.match(buildReviewRequestMessage(dueLead, 'https://g.page/r/example'), /Google review/)
+
+  const sender2 = recordingSender()
+  const second = await sendReviewRequestForLead(presentLead(store.get('lead_test_1')), {
+    ...store,
+    ...sender2,
+    reviewUrl: 'https://g.page/r/example',
+  })
+  assert.equal(second.skipped, true)
+  assert.equal(sender2.sent.length, 0)
+  ok('completed-job review request delayed then sends once')
+}
+
+{
+  // SMS disabled path: planning only, no stamps for sends
+  const store = memoryStore([baseLead({ smsConsent: true })])
+  const result = await runNewLeadSmsAutomations('lead_test_1', {
+    ...store,
+    // no sendFn → requires SMS_ENABLED; unset in tests
+    ownerPhone: '+12095550000',
+  })
+  assert.equal(result.skipped, true)
+  assert.equal(result.reason, 'sms_disabled')
+  assert.equal(store.get('lead_test_1').automationState.ownerNewLeadSmsAt, null)
+  assert.equal(store.get('lead_test_1').automationState.quoteReceivedSmsAt, null)
+  ok('with SMS inactive, automations do not stamp or send')
+}
+
+console.log('\nAll SMS automation tests passed.')

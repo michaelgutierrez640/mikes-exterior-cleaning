@@ -7,6 +7,7 @@ import {
 } from '../../config/booking'
 import { submitBookingRequest } from '../../services/submitBooking'
 import { getAvailableTimeWindows } from '../../services/calendarService'
+import SmsConsentCheckbox from '../forms/SmsConsentCheckbox'
 import TimeWindowPicker from './TimeWindowPicker'
 import BookingConfirmation from './BookingConfirmation'
 import { trackInternalEvent } from '../../utils/analytics'
@@ -63,6 +64,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
   const [selectedServices, setSelectedServices] = useState(initialServices)
   const [timeWindow, setTimeWindow] = useState('')
   const [customTime, setCustomTime] = useState('')
+  const [smsConsent, setSmsConsent] = useState(false)
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
@@ -131,6 +133,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
         companyWebsite: form.companyWebsite || '',
         linkedLeadId: linkedLeadId || undefined,
         quotedAmount: quotedAmount ?? undefined,
+        smsConsent: smsConsent === true,
       })
       trackInternalEvent('booking_requested', {
         service: serviceNames.join(', ') || null,
@@ -339,6 +342,12 @@ export default function BookingForm({ prefill = null, compact = false }) {
             className="input-light min-h-[100px] resize-y"
           />
         </div>
+
+        <SmsConsentCheckbox
+          id="booking-sms-consent"
+          checked={smsConsent}
+          onChange={setSmsConsent}
+        />
 
         {submitError && (
           <p className="rounded-xl bg-red-50 px-4 py-3 text-[0.8125rem] text-red-600" role="alert">{submitError}</p>

@@ -576,7 +576,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               Confirm booking
             </h3>
             <p className="mt-2 text-[0.875rem] text-gray-600">
-              Save this lead as <strong>Booked</strong>? No SMS or email will be sent to the customer yet.
+              Save this lead as <strong>Booked</strong>? When SMS is activated, customers who opted in
+              receive one booking confirmation (not on every later edit).
             </p>
             <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 px-4 py-3 text-[0.875rem] text-navy-900">
               <div className="flex justify-between gap-3">
@@ -630,6 +631,54 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </div>
         </div>
       )}
+
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
+        <h3 className="font-display text-lg font-semibold text-navy-900">SMS automation</h3>
+        <p className="mt-1 text-[0.8125rem] text-gray-500">
+          Read-only delivery state. Real texts send only after SMS is activated in Vercel.
+        </p>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <Field label="Customer SMS consent">
+            {lead.smsConsent ? `Yes${lead.smsConsentAt ? ` · ${formatLeadDate(lead.smsConsentAt)}` : ''}` : 'No'}
+          </Field>
+          <Field label="Opted out">
+            {lead.smsOptedOut ? `Yes${lead.smsOptedOutAt ? ` · ${formatLeadDate(lead.smsOptedOutAt)}` : ''}` : 'No'}
+          </Field>
+          <Field label="Quote confirmation SMS">
+            {lead.automationState?.quoteReceivedSmsAt
+              ? formatLeadDate(lead.automationState.quoteReceivedSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Owner new-lead SMS">
+            {lead.automationState?.ownerNewLeadSmsAt
+              ? formatLeadDate(lead.automationState.ownerNewLeadSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Booking confirmation SMS">
+            {lead.automationState?.bookingConfirmSmsAt
+              ? formatLeadDate(lead.automationState.bookingConfirmSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Appointment reminder SMS">
+            {lead.automationState?.reminderSmsAt
+              ? formatLeadDate(lead.automationState.reminderSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Review request due">
+            {lead.automationState?.reviewRequestDueAt
+              ? formatLeadDate(lead.automationState.reviewRequestDueAt)
+              : '—'}
+          </Field>
+          <Field label="Review request SMS">
+            {lead.automationState?.reviewRequestSmsAt
+              ? formatLeadDate(lead.automationState.reviewRequestSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Last SMS error">
+            <span className="break-all text-[0.8125rem]">{lead.smsLastError || '—'}</span>
+          </Field>
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <h3 className="font-display text-lg font-semibold text-navy-900">Attribution</h3>

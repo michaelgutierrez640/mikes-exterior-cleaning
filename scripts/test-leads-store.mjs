@@ -144,7 +144,31 @@ function ok(name) {
   assert.equal(presented.appointmentTimezone, 'America/Los_Angeles')
   assert.deepEqual(presented.automationState, DEFAULT_AUTOMATION_STATE)
   assert.equal(presented.quotedAmount, null)
+  assert.equal(presented.smsConsent, false)
+  assert.equal(presented.smsOptedOut, false)
+  assert.equal(presented.smsLastError, null)
   ok('presentLead normalizes legacy records + automation defaults')
+}
+
+{
+  const consented = validateLeadIngest({
+    source: 'instant_quote',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: true,
+  })
+  assert.equal(consented.ok, true)
+  assert.equal(consented.data.smsConsent, true)
+  const unchecked = validateLeadIngest({
+    source: 'booking',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: false,
+  })
+  assert.equal(unchecked.data.smsConsent, false)
+  ok('lead ingest accepts optional SMS consent without requiring it')
 }
 
 {
