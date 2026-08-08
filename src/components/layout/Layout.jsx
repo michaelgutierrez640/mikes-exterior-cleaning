@@ -33,7 +33,8 @@ export default function Layout() {
         pathname !== '/book-online' &&
         pathname !== '/review' &&
         !pathname.startsWith('/admin') && <MobileCTA />}
-      <BackToTop />
+      {/* Hide on admin so the control does not cover lead form inputs on iPhone. */}
+      {!pathname.startsWith('/admin') && <BackToTop />}
     </div>
   )
 }
