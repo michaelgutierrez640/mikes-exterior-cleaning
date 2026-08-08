@@ -53,8 +53,9 @@ function parseBody(req) {
  *     appointmentDate?, appointmentStartTime?, appointmentTimezone?,
  *     appointmentStatus?, appointmentNotes?,
  *     quotedAmount?, bookedAmount?, completedRevenue?, paymentStatus?,
- *     internalNotes?
+ *     internalNotes?, lostReason?
  *   }
+ *   Appointment status is derived from pipeline status (not required from the client).
  */
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { fetchAdminLead, updateAdminLead } from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
-  APPOINTMENT_STATUSES,
   LEAD_STATUSES,
   PAYMENT_STATUSES,
   formatAppointmentDate,
@@ -38,11 +37,21 @@ function getFollowUpBadgeClient(lead) {
   return 'none'
 }
 
-function Field({ label, children }) {
+function Field({ label, children, className = '' }) {
   return (
-    <div>
-      <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">{label}</p>
-      <div className="mt-1.5 text-[0.9375rem] text-navy-900">{children || '—'}</div>
+    <div className={className}>
+      <p className="text-[10px] font-semibold tracking-[0.16em] text-gray-500 uppercase">{label}</p>
+      <div className="mt-1 text-[0.9375rem] text-navy-900">{children || '—'}</div>
+    </div>
+  )
+}
+
+function Section({ title, children, hint }) {
+  return (
+    <div className="rounded-2xl border border-black/[0.06] bg-white p-4 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-5">
+      <h3 className="font-display text-base font-semibold text-navy-900 sm:text-lg">{title}</h3>
+      {hint ? <p className="mt-1 text-[0.75rem] leading-snug text-gray-500">{hint}</p> : null}
+      <div className="mt-3 space-y-3">{children}</div>
     </div>
   )
 }
@@ -52,14 +61,15 @@ function emptyDetailsDraft() {
     status: 'New',
     appointmentDate: '',
     appointmentStartTime: '',
-    appointmentTimezone: 'America/Los_Angeles',
-    appointmentStatus: 'none',
     appointmentNotes: '',
     quotedAmount: '',
     bookedAmount: '',
     completedRevenue: '',
     paymentStatus: '',
     internalNotes: '',
+    lostReason: '',
+    followUpDate: '',
+    followUpNote: '',
   }
 }
 
@@ -69,14 +79,15 @@ function draftFromLead(lead) {
     status: lead.status || 'New',
     appointmentDate: lead.appointmentDate || '',
     appointmentStartTime: lead.appointmentStartTime || '',
-    appointmentTimezone: lead.appointmentTimezone || 'America/Los_Angeles',
-    appointmentStatus: lead.appointmentStatus || 'none',
     appointmentNotes: lead.appointmentNotes || '',
     quotedAmount: moneyInputValue(lead.quotedAmount),
     bookedAmount: moneyInputValue(lead.bookedAmount),
     completedRevenue: moneyInputValue(lead.completedRevenue),
     paymentStatus: lead.paymentStatus || '',
     internalNotes: lead.internalNotes || '',
+    lostReason: lead.lostReason || '',
+    followUpDate: lead.followUpDate || '',
+    followUpNote: lead.followUpNote || '',
   }
 }
 
@@ -92,9 +103,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [detailsDraft, setDetailsDraft] = useState(emptyDetailsDraft())
-  const [noteDraft, setNoteDraft] = useState('')
-  const [followUpDateDraft, setFollowUpDateDraft] = useState('')
-  const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [bookedConfirmOpen, setBookedConfirmOpen] = useState(false)
 
@@ -109,8 +117,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       }
       setLead(data.lead)
       setDetailsDraft(draftFromLead(data.lead))
-      setFollowUpDateDraft(data.lead?.followUpDate || '')
-      setFollowUpNoteDraft(data.lead?.followUpNote || '')
     } catch (err) {
       setError(err.message || 'Failed to load lead')
       setLead(null)
@@ -124,7 +130,13 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   }, [load])
 
   const updateDetail = (field, value) => {
-    setDetailsDraft((prev) => ({ ...prev, [field]: value }))
+    setDetailsDraft((prev) => {
+      const next = { ...prev, [field]: value }
+      if (field === 'status' && value === 'Booked' && !prev.paymentStatus) {
+        next.paymentStatus = 'unpaid'
+      }
+      return next
+    })
   }
 
   const detailsDirty = useMemo(() => {
@@ -132,6 +144,16 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     const baseline = draftFromLead(lead)
     return Object.keys(baseline).some((key) => String(baseline[key] ?? '') !== String(detailsDraft[key] ?? ''))
   }, [lead, detailsDraft])
+
+  useEffect(() => {
+    if (!detailsDirty) return undefined
+    const onBeforeUnload = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [detailsDirty])
 
   async function persistDetails(payload) {
     setSaving(true)
@@ -141,8 +163,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       const updated = await updateAdminLead(lead.id, payload)
       setLead(updated)
       setDetailsDraft(draftFromLead(updated))
-      setFollowUpDateDraft(updated.followUpDate || '')
-      setFollowUpNoteDraft(updated.followUpNote || '')
       setMessage('Lead saved.')
       setBookedConfirmOpen(false)
     } catch (err) {
@@ -158,19 +178,42 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   }
 
   function buildDetailsPayload() {
-    return {
-      status: detailsDraft.status,
-      appointmentDate: detailsDraft.appointmentDate || null,
-      appointmentStartTime: detailsDraft.appointmentStartTime || null,
-      appointmentTimezone: detailsDraft.appointmentTimezone || 'America/Los_Angeles',
-      appointmentStatus: detailsDraft.appointmentStatus || 'none',
-      appointmentNotes: detailsDraft.appointmentNotes || null,
-      quotedAmount: moneyOrNull(detailsDraft.quotedAmount),
-      bookedAmount: moneyOrNull(detailsDraft.bookedAmount),
-      completedRevenue: moneyOrNull(detailsDraft.completedRevenue),
-      paymentStatus: detailsDraft.paymentStatus || null,
+    const status = detailsDraft.status
+    const isEarly = status === 'New' || status === 'Contacted'
+    const payload = {
+      status,
+      // Always persist timezone server-side default; never require UI edit.
+      appointmentTimezone: 'America/Los_Angeles',
       internalNotes: detailsDraft.internalNotes || null,
     }
+
+    // Preserve amounts/appointment/follow-up values even when sections are hidden.
+    payload.quotedAmount = moneyOrNull(detailsDraft.quotedAmount)
+    payload.bookedAmount = moneyOrNull(detailsDraft.bookedAmount)
+    payload.completedRevenue = moneyOrNull(detailsDraft.completedRevenue)
+    payload.appointmentDate = detailsDraft.appointmentDate || null
+    payload.appointmentStartTime = detailsDraft.appointmentStartTime || null
+    payload.appointmentNotes = detailsDraft.appointmentNotes || null
+    payload.paymentStatus = detailsDraft.paymentStatus || null
+    payload.lostReason = detailsDraft.lostReason || null
+
+    if (isEarly) {
+      if (detailsDraft.followUpDate) {
+        payload.followUpDate = detailsDraft.followUpDate
+        payload.followUpNote = detailsDraft.followUpNote || null
+      } else if (lead?.followUpDate) {
+        payload.clearFollowUp = true
+      } else {
+        payload.followUpDate = null
+        payload.followUpNote = detailsDraft.followUpNote || null
+      }
+    }
+
+    if (status === 'Booked' && !payload.paymentStatus) {
+      payload.paymentStatus = 'unpaid'
+    }
+
+    return payload
   }
 
   function handleDetailsSave(e) {
@@ -190,80 +233,9 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     return persistDetails(buildDetailsPayload())
   }
 
-  async function handleAddNote(e) {
-    e.preventDefault()
-    const text = noteDraft.trim()
-    if (!lead || !text) return
-    setSaving(true)
-    setMessage('')
-    setError('')
-    try {
-      const updated = await updateAdminLead(lead.id, { note: text })
-      setLead(updated)
-      setNoteDraft('')
-      setMessage('Note added.')
-    } catch (err) {
-      if (err.unauthorized) {
-        onUnauthorized?.()
-        return
-      }
-      setError(err.message || 'Failed to add note')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleFollowUpSave(e) {
-    e.preventDefault()
-    if (!lead) return
-    setSaving(true)
-    setMessage('')
-    setError('')
-    try {
-      const updated = await updateAdminLead(lead.id, {
-        followUpDate: followUpDateDraft || null,
-        followUpNote: followUpNoteDraft,
-      })
-      setLead(updated)
-      setFollowUpDateDraft(updated.followUpDate || '')
-      setFollowUpNoteDraft(updated.followUpNote || '')
-      setMessage(updated.followUpDate ? 'Follow-up saved.' : 'Follow-up date cleared.')
-    } catch (err) {
-      if (err.unauthorized) {
-        onUnauthorized?.()
-        return
-      }
-      setError(err.message || 'Failed to save follow-up')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleFollowUpClear() {
-    if (!lead) return
-    setSaving(true)
-    setMessage('')
-    setError('')
-    try {
-      const updated = await updateAdminLead(lead.id, { clearFollowUp: true })
-      setLead(updated)
-      setFollowUpDateDraft('')
-      setFollowUpNoteDraft('')
-      setMessage('Follow-up cleared.')
-    } catch (err) {
-      if (err.unauthorized) {
-        onUnauthorized?.()
-        return
-      }
-      setError(err.message || 'Failed to clear follow-up')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   if (loading) {
     return (
-      <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 text-center text-[0.875rem] text-gray-500">
         Loading lead…
       </div>
     )
@@ -271,9 +243,9 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   if (!lead) {
     return (
-      <div className="rounded-2xl border border-black/[0.06] bg-white p-8 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-6">
         <p className="text-[0.875rem] text-red-700">{error || 'Lead not found.'}</p>
-        <Link to="/admin/leads" className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-700 hover:text-royal-800">
+        <Link to="/admin/leads" className="mt-3 inline-block text-[0.875rem] font-semibold text-royal-700">
           ← Back to inbox
         </Link>
       </div>
@@ -282,25 +254,30 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   const phoneLink = telHref(lead.phone)
   const emailLink = mailtoHref(lead.email)
-  const notes = Array.isArray(lead.notes) ? [...lead.notes].reverse() : []
+  const notesHistory = Array.isArray(lead.notes) ? [...lead.notes].reverse() : []
   const history = Array.isArray(lead.statusHistory) ? [...lead.statusHistory].reverse() : []
   const followUpBadge = getFollowUpBadgeClient(lead)
-  const requiresAppointment = detailsDraft.status === 'Booked'
+  const status = detailsDraft.status
+  const isEarly = status === 'New' || status === 'Contacted'
+  const isBooked = status === 'Booked'
+  const isCompleted = status === 'Completed'
+  const isLost = status === 'Lost'
+  const showFollowUpNote = Boolean(detailsDraft.followUpDate)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link to="/admin/leads" className="text-[0.875rem] font-semibold text-royal-700 hover:text-royal-800">
-          ← Back to inbox
+    <div className="space-y-3 pb-24 sm:space-y-4 sm:pb-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link to="/admin/leads" className="text-[0.875rem] font-semibold text-royal-700">
+          ← Inbox
         </Link>
         <div className="flex flex-wrap gap-2">
           {phoneLink && (
-            <a href={phoneLink} className="btn-secondary btn-md !rounded-xl">
-              Call {lead.phone}
+            <a href={phoneLink} className="btn-secondary btn-sm !rounded-xl !px-3 !py-2">
+              Call
             </a>
           )}
           {emailLink && (
-            <a href={emailLink} className="btn-secondary btn-md !rounded-xl">
+            <a href={emailLink} className="btn-secondary btn-sm !rounded-xl !px-3 !py-2">
               Email
             </a>
           )}
@@ -308,83 +285,84 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       </div>
 
       {message && (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-[0.875rem] text-emerald-800" role="status">
+        <p className="rounded-xl bg-emerald-50 px-3 py-2 text-[0.8125rem] text-emerald-800" role="status">
           {message}
         </p>
       )}
       {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-[0.875rem] text-red-700" role="alert">
+        <p className="rounded-xl bg-red-50 px-3 py-2 text-[0.8125rem] text-red-700" role="alert">
           {error}
         </p>
       )}
+      {detailsDirty && (
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-[0.8125rem] text-amber-900" role="status">
+          Unsaved changes — tap Save before leaving.
+        </p>
+      )}
 
-      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-2xl font-semibold text-navy-900">{lead.name}</h2>
-            <p className="mt-1 text-[0.875rem] text-gray-500">
-              {formatLeadSource(lead.source)} · Submitted {formatLeadDate(lead.createdAt)}
-              {lead.bookingLinkedAt ? ' · Booking linked to this lead' : ''}
+      {/* Compact customer summary */}
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-4 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-semibold text-navy-900">{lead.name}</h2>
+            <p className="mt-0.5 text-[0.75rem] text-gray-500">
+              {formatLeadSource(lead.source)} · {formatLeadDate(lead.createdAt)}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-royal-50 px-3 py-1 text-[0.75rem] font-semibold text-royal-800">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-royal-50 px-2.5 py-1 text-[0.6875rem] font-semibold text-royal-800">
               {lead.status}
             </span>
-            <FollowUpBadge badge={followUpBadge} />
+            {isEarly ? <FollowUpBadge badge={followUpBadge} /> : null}
           </div>
         </div>
-
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          <Field label="Phone">{lead.phone}</Field>
-          <Field label="Email">{lead.email}</Field>
-          <Field label="Service">{lead.service}</Field>
-          <Field label="City">{lead.city || '—'}</Field>
-          <Field label="Address">{lead.address}</Field>
-          <Field label="Source">{formatLeadSource(lead.source)}</Field>
-          <Field label="Appointment">
-            {lead.appointmentDate
-              ? `${formatAppointmentDate(lead.appointmentDate)} · ${formatAppointmentTime(lead.appointmentStartTime)} (${lead.appointmentTimezone || 'America/Los_Angeles'})`
-              : '—'}
-          </Field>
-          <Field label="Quoted amount">{formatMoney(lead.quotedAmount)}</Field>
-        </div>
-
-        <div className="mt-8">
-          <Field label="Customer message">
-            <p className="whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-gray-700">
-              {lead.message || '—'}
+        <div className="mt-3 grid gap-2 text-[0.875rem] text-navy-900">
+          <p>
+            <span className="text-gray-500">Phone · </span>
+            {phoneLink ? (
+              <a href={phoneLink} className="font-medium text-royal-700">
+                {lead.phone}
+              </a>
+            ) : (
+              lead.phone || '—'
+            )}
+          </p>
+          <p>
+            <span className="text-gray-500">Service · </span>
+            {lead.service || '—'}
+          </p>
+          <p>
+            <span className="text-gray-500">Address · </span>
+            {[lead.address, lead.city].filter(Boolean).join(', ') || '—'}
+          </p>
+          {lead.quotedAmount != null && (
+            <p>
+              <span className="text-gray-500">Quoted · </span>
+              {formatMoney(lead.quotedAmount)}
             </p>
-          </Field>
+          )}
         </div>
+        {lead.message ? (
+          <details className="mt-3">
+            <summary className="cursor-pointer text-[0.75rem] font-semibold text-royal-700">Customer message</summary>
+            <p className="mt-2 whitespace-pre-wrap text-[0.8125rem] leading-relaxed text-gray-600">{lead.message}</p>
+          </details>
+        ) : null}
       </div>
 
-      <form
-        onSubmit={handleDetailsSave}
-        className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="font-display text-lg font-semibold text-navy-900">Pipeline, appointment & revenue</h3>
-            <p className="mt-1 text-[0.8125rem] text-gray-500">
-              Status path: New → Contacted → Booked → Completed or Lost. No customer messages are sent from this screen.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <p className="mb-2 text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">Status</p>
-          <div className="flex flex-wrap gap-2">
+      <form onSubmit={handleDetailsSave} className="space-y-3 sm:space-y-4">
+        <Section title="Lead status" hint="New → Contacted → Booked → Completed or Lost">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {LEAD_STATUSES.map((s) => {
-              const active = detailsDraft.status === s
+              const active = status === s
               return (
                 <button
                   key={s}
                   type="button"
                   onClick={() => updateDetail('status', s)}
                   className={[
-                    'rounded-xl px-3 py-2 text-[0.8125rem] font-semibold transition',
-                    active ? 'bg-royal-600 text-white' : 'bg-gray-100 text-navy-900 hover:bg-gray-200',
+                    'min-h-11 rounded-xl px-2 py-2.5 text-[0.8125rem] font-semibold transition',
+                    active ? 'bg-royal-600 text-white shadow-sm' : 'bg-gray-100 text-navy-900 hover:bg-gray-200',
                   ].join(' ')}
                 >
                   {s}
@@ -392,172 +370,239 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               )
             })}
           </div>
-        </div>
+        </Section>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="appt-date" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Appointment date {requiresAppointment && <span className="text-amber-600">*</span>}
-            </label>
-            <input
-              id="appt-date"
-              type="date"
-              value={detailsDraft.appointmentDate}
-              onChange={(e) => updateDetail('appointmentDate', e.target.value)}
-              className="input-light"
-              required={requiresAppointment}
-            />
-          </div>
-          <div>
-            <label htmlFor="appt-time" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Appointment start time {requiresAppointment && <span className="text-amber-600">*</span>}
-            </label>
-            <input
-              id="appt-time"
-              type="time"
-              value={detailsDraft.appointmentStartTime}
-              onChange={(e) => updateDetail('appointmentStartTime', e.target.value)}
-              className="input-light"
-              required={requiresAppointment}
-            />
-          </div>
-          <div>
-            <label htmlFor="appt-tz" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Timezone
-            </label>
-            <input
-              id="appt-tz"
-              type="text"
-              value={detailsDraft.appointmentTimezone}
-              onChange={(e) => updateDetail('appointmentTimezone', e.target.value)}
-              className="input-light"
-            />
-          </div>
-          <div>
-            <label htmlFor="appt-status" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Appointment status
-            </label>
-            <select
-              id="appt-status"
-              value={detailsDraft.appointmentStatus}
-              onChange={(e) => updateDetail('appointmentStatus', e.target.value)}
-              className="input-light"
-            >
-              {APPOINTMENT_STATUSES.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label htmlFor="appt-notes" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Appointment notes (optional)
-            </label>
-            <textarea
-              id="appt-notes"
-              rows={2}
-              value={detailsDraft.appointmentNotes}
-              onChange={(e) => updateDetail('appointmentNotes', e.target.value)}
-              className="input-light resize-none"
-              placeholder="Gate code, parking, special access…"
-            />
-          </div>
-        </div>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label htmlFor="quoted-amount" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Quoted amount ($)
-            </label>
-            <input
-              id="quoted-amount"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={detailsDraft.quotedAmount}
-              onChange={(e) => updateDetail('quotedAmount', e.target.value)}
-              className="input-light"
-              placeholder="0.00"
-            />
-          </div>
-          <div>
-            <label htmlFor="booked-amount" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Booked amount ($)
-            </label>
-            <input
-              id="booked-amount"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={detailsDraft.bookedAmount}
-              onChange={(e) => updateDetail('bookedAmount', e.target.value)}
-              className="input-light"
-              placeholder="0.00"
-            />
-          </div>
-          <div>
-            <label htmlFor="completed-revenue" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Completed revenue ($)
-            </label>
-            <input
-              id="completed-revenue"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={detailsDraft.completedRevenue}
-              onChange={(e) => updateDetail('completedRevenue', e.target.value)}
-              className="input-light"
-              placeholder="0.00"
-            />
-          </div>
-          <div>
-            <label htmlFor="payment-status" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Payment status
-            </label>
-            <select
-              id="payment-status"
-              value={detailsDraft.paymentStatus}
-              onChange={(e) => updateDetail('paymentStatus', e.target.value)}
-              className="input-light"
-            >
-              {PAYMENT_STATUSES.map((o) => (
-                <option key={o.value || 'unset'} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {detailsDraft.status === 'Completed' && (
-          <p className="mt-3 text-[0.8125rem] text-gray-500">
-            Enter completed revenue and payment status when the job is finished. Review-request messages are not sent yet.
-          </p>
+        {isEarly && (
+          <Section title="Quote & follow-up">
+            <div>
+              <label htmlFor="quoted-amount" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Quoted amount ($)
+              </label>
+              <input
+                id="quoted-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={detailsDraft.quotedAmount}
+                onChange={(e) => updateDetail('quotedAmount', e.target.value)}
+                className="input-light"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label htmlFor="follow-up-date" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Follow-up date
+              </label>
+              <input
+                id="follow-up-date"
+                type="date"
+                value={detailsDraft.followUpDate}
+                onChange={(e) => updateDetail('followUpDate', e.target.value)}
+                className="input-light"
+              />
+              <p className="mt-1 text-[0.6875rem] text-gray-400">Reminder for you to call this lead — not a customer appointment.</p>
+            </div>
+            {showFollowUpNote && (
+              <div>
+                <label htmlFor="follow-up-note" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                  Follow-up note
+                </label>
+                <textarea
+                  id="follow-up-note"
+                  rows={2}
+                  value={detailsDraft.followUpNote}
+                  onChange={(e) => updateDetail('followUpNote', e.target.value)}
+                  className="input-light resize-none"
+                  placeholder="Call about estimate…"
+                />
+              </div>
+            )}
+            {detailsDraft.followUpDate ? (
+              <p className="text-[0.75rem] text-gray-400">
+                Scheduled for {formatFollowUpDate(detailsDraft.followUpDate)}
+              </p>
+            ) : null}
+          </Section>
         )}
 
-        <div className="mt-6">
-          <label htmlFor="internal-notes" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-            Internal notes (optional)
-          </label>
+        {isBooked && (
+          <Section title="Appointment" hint="Required for Booked. Timezone is Pacific (automatic).">
+            {detailsDraft.quotedAmount !== '' && detailsDraft.quotedAmount != null && (
+              <p className="rounded-xl bg-gray-50 px-3 py-2 text-[0.8125rem] text-gray-600">
+                Quoted reference: <span className="font-semibold text-navy-900">{formatMoney(detailsDraft.quotedAmount)}</span>
+              </p>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="appt-date" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                  Appointment date <span className="text-amber-600">*</span>
+                </label>
+                <input
+                  id="appt-date"
+                  type="date"
+                  value={detailsDraft.appointmentDate}
+                  onChange={(e) => updateDetail('appointmentDate', e.target.value)}
+                  className="input-light"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="appt-time" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                  Start time <span className="text-amber-600">*</span>
+                </label>
+                <input
+                  id="appt-time"
+                  type="time"
+                  value={detailsDraft.appointmentStartTime}
+                  onChange={(e) => updateDetail('appointmentStartTime', e.target.value)}
+                  className="input-light"
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="booked-amount" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Booked amount ($)
+              </label>
+              <input
+                id="booked-amount"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={detailsDraft.bookedAmount}
+                onChange={(e) => updateDetail('bookedAmount', e.target.value)}
+                className="input-light"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label htmlFor="appt-notes" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Access notes
+              </label>
+              <textarea
+                id="appt-notes"
+                rows={2}
+                value={detailsDraft.appointmentNotes}
+                onChange={(e) => updateDetail('appointmentNotes', e.target.value)}
+                className="input-light resize-none"
+                placeholder="Gate code, parking, dogs…"
+              />
+            </div>
+            <div>
+              <label htmlFor="payment-status" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Payment status
+              </label>
+              <select
+                id="payment-status"
+                value={detailsDraft.paymentStatus || 'unpaid'}
+                onChange={(e) => updateDetail('paymentStatus', e.target.value)}
+                className="input-light"
+              >
+                {PAYMENT_STATUSES.filter((o) => o.value).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Section>
+        )}
+
+        {isCompleted && (
+          <Section title="Completed job">
+            {(detailsDraft.appointmentDate || detailsDraft.bookedAmount !== '') && (
+              <div className="rounded-xl bg-gray-50 px-3 py-2 text-[0.8125rem] text-gray-600">
+                {detailsDraft.appointmentDate ? (
+                  <p>
+                    Appointment:{' '}
+                    <span className="font-semibold text-navy-900">
+                      {formatAppointmentDate(detailsDraft.appointmentDate)} ·{' '}
+                      {formatAppointmentTime(detailsDraft.appointmentStartTime)}
+                    </span>
+                  </p>
+                ) : null}
+                {detailsDraft.bookedAmount !== '' && detailsDraft.bookedAmount != null ? (
+                  <p className="mt-1">
+                    Booked amount:{' '}
+                    <span className="font-semibold text-navy-900">{formatMoney(detailsDraft.bookedAmount)}</span>
+                  </p>
+                ) : null}
+              </div>
+            )}
+            <div>
+              <label htmlFor="completed-revenue" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Completed revenue ($)
+              </label>
+              <input
+                id="completed-revenue"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={detailsDraft.completedRevenue}
+                onChange={(e) => updateDetail('completedRevenue', e.target.value)}
+                className="input-light"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label htmlFor="payment-status-completed" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Payment status
+              </label>
+              <select
+                id="payment-status-completed"
+                value={detailsDraft.paymentStatus || ''}
+                onChange={(e) => updateDetail('paymentStatus', e.target.value)}
+                className="input-light"
+              >
+                {PAYMENT_STATUSES.map((o) => (
+                  <option key={o.value || 'unset'} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </Section>
+        )}
+
+        {isLost && (
+          <Section title="Lost lead">
+            <div>
+              <label htmlFor="lost-reason" className="mb-1 block text-[0.8125rem] font-medium text-gray-600">
+                Lost reason (optional)
+              </label>
+              <textarea
+                id="lost-reason"
+                rows={2}
+                value={detailsDraft.lostReason}
+                onChange={(e) => updateDetail('lostReason', e.target.value)}
+                className="input-light resize-none"
+                placeholder="Price, timing, hired someone else…"
+              />
+            </div>
+          </Section>
+        )}
+
+        <Section title="Private notes" hint="Editable notes for this lead. Older append-only notes stay in history below.">
           <textarea
             id="internal-notes"
             rows={3}
             value={detailsDraft.internalNotes}
             onChange={(e) => updateDetail('internalNotes', e.target.value)}
             className="input-light resize-none"
-            placeholder="Private notes for your reference…"
+            placeholder="Private notes…"
           />
-        </div>
+        </Section>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        {/* Sticky primary save on mobile */}
+        <div className="fixed right-0 bottom-0 left-0 z-30 border-t border-black/[0.06] bg-white/95 px-4 py-3 backdrop-blur-xl sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
           <button
             type="submit"
             disabled={saving || !detailsDirty}
-            className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-royal btn-md w-full !rounded-xl disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            style={{ marginBottom: 'max(0px, env(safe-area-inset-bottom))' }}
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
@@ -571,45 +616,41 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           aria-modal="true"
           aria-labelledby="booked-confirm-title"
         >
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <h3 id="booked-confirm-title" className="font-display text-xl font-semibold text-navy-900">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+            <h3 id="booked-confirm-title" className="font-display text-lg font-semibold text-navy-900">
               Confirm booking
             </h3>
-            <p className="mt-2 text-[0.875rem] text-gray-600">
-              Save this lead as <strong>Booked</strong>? No SMS or email will be sent to the customer yet.
+            <p className="mt-2 text-[0.8125rem] text-gray-600">
+              Save as <strong>Booked</strong>? No customer message is sent yet.
             </p>
-            <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 px-4 py-3 text-[0.875rem] text-navy-900">
-              <div className="flex justify-between gap-3">
+            <dl className="mt-4 space-y-1.5 rounded-xl bg-gray-50 px-3 py-3 text-[0.8125rem]">
+              <div className="flex justify-between gap-2">
                 <dt className="text-gray-500">Name</dt>
-                <dd className="font-medium text-right">{lead.name}</dd>
+                <dd className="font-medium text-navy-900 text-right">{lead.name}</dd>
               </div>
-              <div className="flex justify-between gap-3">
+              <div className="flex justify-between gap-2">
                 <dt className="text-gray-500">Phone</dt>
-                <dd className="font-medium text-right">{lead.phone}</dd>
+                <dd className="font-medium text-navy-900 text-right">{lead.phone}</dd>
               </div>
-              <div className="flex justify-between gap-3">
+              <div className="flex justify-between gap-2">
                 <dt className="text-gray-500">Service</dt>
-                <dd className="font-medium text-right">{lead.service || '—'}</dd>
+                <dd className="font-medium text-navy-900 text-right">{lead.service || '—'}</dd>
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-gray-500">Address / city</dt>
-                <dd className="font-medium text-right">
+              <div className="flex justify-between gap-2">
+                <dt className="text-gray-500">Address</dt>
+                <dd className="font-medium text-navy-900 text-right">
                   {[lead.address, lead.city].filter(Boolean).join(' · ') || '—'}
                 </dd>
               </div>
-              <div className="flex justify-between gap-3">
+              <div className="flex justify-between gap-2">
                 <dt className="text-gray-500">Appointment</dt>
-                <dd className="font-medium text-right">
+                <dd className="font-medium text-navy-900 text-right">
                   {formatAppointmentDate(detailsDraft.appointmentDate)} ·{' '}
                   {formatAppointmentTime(detailsDraft.appointmentStartTime)}
-                  <br />
-                  <span className="text-[0.75rem] text-gray-500">
-                    {detailsDraft.appointmentTimezone || 'America/Los_Angeles'}
-                  </span>
                 </dd>
               </div>
             </dl>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 className="btn-secondary btn-md !rounded-xl"
@@ -624,167 +665,64 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
                 disabled={saving}
                 onClick={() => persistDetails(buildDetailsPayload())}
               >
-                {saving ? 'Saving…' : 'Confirm & save Booked'}
+                {saving ? 'Saving…' : 'Confirm & save'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-        <h3 className="font-display text-lg font-semibold text-navy-900">Attribution</h3>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <Field label="Original landing page">
-            <span className="break-all font-mono text-[0.8125rem]">{lead.originalLandingPage || '—'}</span>
-          </Field>
-          <Field label="Conversion page">
-            <span className="break-all font-mono text-[0.8125rem]">{lead.conversionPage || '—'}</span>
-          </Field>
-          <Field label="Referrer">
-            <span className="break-all font-mono text-[0.8125rem]">{lead.referrer || '—'}</span>
-          </Field>
-          <Field label="UTM source">{lead.utmSource}</Field>
-          <Field label="UTM medium">{lead.utmMedium}</Field>
-          <Field label="UTM campaign">{lead.utmCampaign}</Field>
-          <Field label="UTM term">{lead.utmTerm}</Field>
-          <Field label="UTM content">{lead.utmContent}</Field>
-        </div>
-      </div>
-
-      <form
-        onSubmit={handleFollowUpSave}
-        className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="font-display text-lg font-semibold text-navy-900">Follow-up reminder</h3>
-            <p className="mt-1 text-[0.8125rem] text-gray-500">
-              Admin-only reminder — no email or SMS is sent.
-            </p>
-          </div>
-          <FollowUpBadge badge={followUpBadge} />
-        </div>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="follow-up-date" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Follow-up date
-            </label>
-            <input
-              id="follow-up-date"
-              type="date"
-              value={followUpDateDraft}
-              onChange={(e) => setFollowUpDateDraft(e.target.value)}
-              className="input-light"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label htmlFor="follow-up-note" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Follow-up note (optional)
-            </label>
-            <textarea
-              id="follow-up-note"
-              rows={3}
-              value={followUpNoteDraft}
-              onChange={(e) => setFollowUpNoteDraft(e.target.value)}
-              className="input-light resize-none"
-              placeholder="Call back about estimate, confirm appointment…"
-            />
-          </div>
-        </div>
-        {(lead.followUpDate || lead.followUpCompletedAt) && (
-          <p className="mt-3 text-[0.75rem] text-gray-400">
-            {lead.followUpDate
-              ? `Scheduled for ${formatFollowUpDate(lead.followUpDate)}`
-              : `Reminder completed ${formatLeadDate(lead.followUpCompletedAt)}`}
-          </p>
-        )}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Save follow-up'}
-          </button>
-          <button
-            type="button"
-            onClick={handleFollowUpClear}
-            disabled={saving || (!lead.followUpDate && !lead.followUpNote)}
-            className="btn-secondary btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Clear follow-up
-          </button>
-        </div>
-      </form>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form
-          onSubmit={handleAddNote}
-          className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
-        >
-          <h3 className="font-display text-lg font-semibold text-navy-900">Add private note</h3>
-          <label htmlFor="lead-note" className="mt-4 mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-            Chronological note
-          </label>
-          <textarea
-            id="lead-note"
-            rows={4}
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            className="input-light resize-none"
-            placeholder="Call notes, estimate details, follow-up plans…"
-          />
-          <button
-            type="submit"
-            disabled={saving || !noteDraft.trim()}
-            className="btn-royal btn-md mt-4 !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Add note'}
-          </button>
-        </form>
-
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-          <h3 className="font-display text-lg font-semibold text-navy-900">Notes</h3>
-          {!notes.length ? (
-            <p className="mt-4 text-[0.875rem] text-gray-500">No notes yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {notes.map((n) => (
-                <li key={n.id} className="rounded-xl bg-gray-50 px-4 py-3">
-                  <p className="whitespace-pre-wrap text-[0.875rem] text-gray-700">{n.text}</p>
-                  <p className="mt-2 text-[0.75rem] text-gray-400">{formatLeadDate(n.at)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-        <h3 className="font-display text-lg font-semibold text-navy-900">Status history</h3>
-        {!history.length ? (
-          <p className="mt-4 text-[0.875rem] text-gray-500">No history yet.</p>
-        ) : (
-          <ol className="mt-4 space-y-3">
-            {history.map((h, idx) => (
-              <li key={`${h.at}-${h.status}-${idx}`} className="flex items-start gap-3">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-royal-500" aria-hidden />
-                <div>
-                  <p className="text-[0.875rem] font-medium text-navy-900">{h.status}</p>
-                  <p className="text-[0.75rem] text-gray-400">
-                    {formatLeadDate(h.at)}
-                    {h.by ? ` · ${h.by}` : ''}
-                  </p>
-                </div>
+      {notesHistory.length > 0 && (
+        <details className="rounded-2xl border border-black/[0.06] bg-white p-4">
+          <summary className="cursor-pointer font-display text-sm font-semibold text-navy-900">
+            Note history ({notesHistory.length})
+          </summary>
+          <ul className="mt-3 space-y-2">
+            {notesHistory.map((n) => (
+              <li key={n.id} className="rounded-xl bg-gray-50 px-3 py-2">
+                <p className="whitespace-pre-wrap text-[0.8125rem] text-gray-700">{n.text}</p>
+                <p className="mt-1 text-[0.6875rem] text-gray-400">{formatLeadDate(n.at)}</p>
               </li>
             ))}
-          </ol>
-        )}
-      </div>
+          </ul>
+        </details>
+      )}
 
-      <p className="text-[0.75rem] text-gray-400">
-        Lead ID <span className="font-mono">{lead.id}</span> · Updated {formatLeadDate(lead.updatedAt)}
-        {lead.appointmentConfirmedAt ? ` · Appointment confirmed ${formatLeadDate(lead.appointmentConfirmedAt)}` : ''}
+      <details className="rounded-2xl border border-black/[0.06] bg-white p-4">
+        <summary className="cursor-pointer font-display text-sm font-semibold text-navy-900">
+          Status history & attribution
+        </summary>
+        <div className="mt-3 space-y-3">
+          {history.length ? (
+            <ol className="space-y-2">
+              {history.map((h, idx) => (
+                <li key={`${h.at}-${h.status}-${idx}`} className="text-[0.8125rem]">
+                  <span className="font-medium text-navy-900">{h.status}</span>
+                  <span className="text-gray-400">
+                    {' '}
+                    · {formatLeadDate(h.at)}
+                    {h.by ? ` · ${h.by}` : ''}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-[0.8125rem] text-gray-500">No status history yet.</p>
+          )}
+          <div className="grid gap-2 border-t border-black/[0.04] pt-3 text-[0.75rem] text-gray-500">
+            <Field label="Email">{lead.email}</Field>
+            <Field label="Landing page">
+              <span className="break-all font-mono">{lead.originalLandingPage || '—'}</span>
+            </Field>
+            <Field label="UTM">
+              {[lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ') || '—'}
+            </Field>
+          </div>
+        </div>
+      </details>
+
+      <p className="text-[0.6875rem] text-gray-400">
+        ID <span className="font-mono">{lead.id}</span> · Updated {formatLeadDate(lead.updatedAt)}
       </p>
     </div>
   )

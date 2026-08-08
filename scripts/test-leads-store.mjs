@@ -7,6 +7,7 @@ import {
   DEFAULT_AUTOMATION_STATE,
   LEGACY_STATUS_MAP,
   LEAD_STATUSES,
+  deriveAppointmentStatusForLeadStatus,
   filterLeads,
   getCanonicalStatus,
   normalizeAppointmentDate,
@@ -173,6 +174,27 @@ function ok(name) {
   assert.equal(patch.patch.status, undefined)
   assert.equal(patch.patch.quotedAmount, undefined)
   ok('admin patch only includes provided fields')
+}
+
+{
+  assert.equal(deriveAppointmentStatusForLeadStatus('Booked', {}), 'confirmed')
+  assert.equal(deriveAppointmentStatusForLeadStatus('Completed', {}), 'completed')
+  assert.equal(
+    deriveAppointmentStatusForLeadStatus('Lost', { appointmentDate: '2026-08-20' }),
+    'cancelled',
+  )
+  assert.equal(deriveAppointmentStatusForLeadStatus('Lost', {}), 'none')
+  ok('appointment status derived from lead status')
+}
+
+{
+  const lost = validateLeadAdminUpdate(
+    { status: 'Lost', lostReason: 'Hired another cleaner' },
+    { status: 'Contacted' },
+  )
+  assert.equal(lost.ok, true)
+  assert.equal(lost.patch.lostReason, 'Hired another cleaner')
+  ok('lost reason accepted on admin update')
 }
 
 console.log('\nAll leads store tests passed.')

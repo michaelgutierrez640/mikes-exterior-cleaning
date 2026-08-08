@@ -181,21 +181,23 @@ export default function LeadsInbox({ onUnauthorized }) {
     const overdue = []
     const today = []
     const upcoming = []
-    const none = []
+    const other = []
     for (const lead of leads) {
       if (lead.followUpBadge === 'overdue') overdue.push(lead)
       else if (lead.followUpBadge === 'today') today.push(lead)
       else if (lead.followUpBadge === 'upcoming') upcoming.push(lead)
-      else if (lead.followUpBadge === 'none') none.push(lead)
+      else other.push(lead)
     }
     const byDate = (a, b) => String(a.followUpDate || '').localeCompare(String(b.followUpDate || ''))
     overdue.sort(byDate)
     today.sort(byDate)
     upcoming.sort(byDate)
-    return { overdue, today, upcoming, none }
+    return { overdue, today, upcoming, other }
   }, [leads])
 
-  const showFollowUpBoard = !filters.followUp || ['overdue', 'today', 'week', 'upcoming', 'none'].includes(filters.followUp)
+  const showFollowUpBoard = !filters.followUp || ['overdue', 'today', 'week', 'upcoming'].includes(filters.followUp)
+  const hasFollowUpBuckets =
+    grouped.overdue.length > 0 || grouped.today.length > 0 || grouped.upcoming.length > 0
 
   return (
     <div className="space-y-6">
@@ -343,16 +345,30 @@ export default function LeadsInbox({ onUnauthorized }) {
         </div>
       ) : showFollowUpBoard && !filters.followUp ? (
         <div className="space-y-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-navy-900">Follow-Up</h2>
-            <p className="mt-1 text-[0.8125rem] text-gray-500">
-              Sorted by urgency — overdue first, then today, then upcoming.
-            </p>
-          </div>
-          <FollowUpGroup title="Overdue" leads={grouped.overdue} emptyLabel="No overdue follow-ups." />
-          <FollowUpGroup title="Due Today" leads={grouped.today} emptyLabel="Nothing due today." />
-          <FollowUpGroup title="Upcoming" leads={grouped.upcoming} emptyLabel="No upcoming follow-ups." />
-          <FollowUpGroup title="No Follow-Up Set" leads={grouped.none} emptyLabel="Every lead has a follow-up set." />
+          {hasFollowUpBuckets ? (
+            <>
+              <div>
+                <h2 className="font-display text-xl font-semibold text-navy-900">Follow-Up</h2>
+                <p className="mt-1 text-[0.8125rem] text-gray-500">
+                  Overdue first, then today, then upcoming. Leads without a follow-up date are listed below.
+                </p>
+              </div>
+              {grouped.overdue.length > 0 && (
+                <FollowUpGroup title="Overdue" leads={grouped.overdue} emptyLabel="No overdue follow-ups." />
+              )}
+              {grouped.today.length > 0 && (
+                <FollowUpGroup title="Due Today" leads={grouped.today} emptyLabel="Nothing due today." />
+              )}
+              {grouped.upcoming.length > 0 && (
+                <FollowUpGroup title="Upcoming" leads={grouped.upcoming} emptyLabel="No upcoming follow-ups." />
+              )}
+            </>
+          ) : null}
+          <FollowUpGroup
+            title={hasFollowUpBuckets ? 'Other leads' : 'Inbox'}
+            leads={grouped.other}
+            emptyLabel="No leads yet."
+          />
         </div>
       ) : (
         <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
