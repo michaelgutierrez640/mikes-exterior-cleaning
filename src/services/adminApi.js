@@ -263,6 +263,7 @@ function buildLeadsQuery(filters = {}) {
   if (filters.service) params.set('service', filters.service)
   if (filters.city) params.set('city', filters.city)
   if (filters.followUp) params.set('followUp', filters.followUp)
+  if (filters.inboxView) params.set('inboxView', filters.inboxView)
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }

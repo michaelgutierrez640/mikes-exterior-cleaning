@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { fetchAdminLeads } from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
-  LEAD_STATUSES,
   formatAppointmentDate,
   formatAppointmentTime,
   formatFollowUpDate,
@@ -13,6 +12,12 @@ import {
   mailtoHref,
   telHref,
 } from './leadHelpers'
+
+const INBOX_VIEWS = [
+  { value: 'active', label: 'Active' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'all', label: 'All' },
+]
 
 const SOURCE_OPTIONS = [
   { value: '', label: 'All sources' },
@@ -31,11 +36,11 @@ const FOLLOW_UP_FILTERS = [
 
 const emptyFilters = {
   q: '',
-  status: '',
   source: '',
   service: '',
   city: '',
   followUp: '',
+  inboxView: 'active',
 }
 
 function SummaryCard({ label, value, tone = 'default', onClick, active }) {
@@ -70,23 +75,25 @@ function LeadRow({ lead }) {
         <Link to={`/admin/leads/${encodeURIComponent(lead.id)}`} className="min-w-0 flex-1 group">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold text-navy-900 group-hover:text-royal-700">{lead.name || '—'}</p>
+            <span className="rounded-full bg-royal-50 px-2 py-0.5 text-[0.6875rem] font-semibold text-royal-800">
+              {lead.status}
+            </span>
             <FollowUpBadge badge={lead.followUpBadge} />
           </div>
           <p className="mt-1 text-[0.8125rem] text-gray-500">
             {[lead.service || '—', lead.city || 'City unknown'].join(' · ')}
             {lead.quotedAmount != null ? ` · Quote ${formatMoney(lead.quotedAmount)}` : ''}
+            {lead.completedRevenue != null ? ` · Revenue ${formatMoney(lead.completedRevenue)}` : ''}
+            {lead.paymentStatus ? ` · ${lead.paymentStatus}` : ''}
           </p>
           <p className="mt-1 text-[0.75rem] text-gray-400">
-            {formatLeadSource(lead.source)} · {lead.status}
+            {formatLeadSource(lead.source)}
             {lead.appointmentDate
               ? ` · Appt ${formatAppointmentDate(lead.appointmentDate)} ${formatAppointmentTime(lead.appointmentStartTime)}`
               : ''}
             {lead.followUpDate ? ` · Follow-up ${formatFollowUpDate(lead.followUpDate)}` : ''}
             {!lead.followUpDate && !lead.appointmentDate ? ` · ${formatLeadDate(lead.createdAt)}` : ''}
           </p>
-          {lead.followUpNote && (
-            <p className="mt-1 line-clamp-1 text-[0.75rem] text-gray-500">{lead.followUpNote}</p>
-          )}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           {phoneLink && (
@@ -111,7 +118,7 @@ function LeadRow({ lead }) {
   )
 }
 
-function FollowUpGroup({ title, leads, emptyLabel }) {
+function LeadGroup({ title, leads, emptyLabel }) {
   return (
     <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
       <div className="flex items-center justify-between border-b border-black/[0.06] px-5 py-3 sm:px-6">
@@ -129,6 +136,25 @@ function FollowUpGroup({ title, leads, emptyLabel }) {
       )}
     </div>
   )
+}
+
+/**
+ * Client-side partition that never drops leads (mirrors lib/leadsStore.partitionActiveInboxLeads).
+ * Fixes: followUpBadge === 'completed' was previously omitted from every inbox group.
+ */
+function partitionActiveLeads(leads) {
+  const overdue = []
+  const dueToday = []
+  const upcoming = []
+  const other = []
+  for (const lead of leads) {
+    const badge = lead.followUpBadge
+    if (badge === 'overdue') overdue.push(lead)
+    else if (badge === 'today') dueToday.push(lead)
+    else if (badge === 'upcoming') upcoming.push(lead)
+    else other.push(lead)
+  }
+  return { overdue, dueToday, upcoming, other }
 }
 
 export default function LeadsInbox({ onUnauthorized }) {
@@ -167,67 +193,88 @@ export default function LeadsInbox({ onUnauthorized }) {
   }
 
   function clearFilters() {
-    setDraft(emptyFilters)
-    setFilters(emptyFilters)
-  }
-
-  function setFollowUpQuick(value) {
-    const next = { ...draft, followUp: value }
+    const next = { ...emptyFilters, inboxView: filters.inboxView || 'active' }
     setDraft(next)
     setFilters(next)
   }
 
-  const grouped = useMemo(() => {
-    const overdue = []
-    const today = []
-    const upcoming = []
-    const none = []
-    for (const lead of leads) {
-      if (lead.followUpBadge === 'overdue') overdue.push(lead)
-      else if (lead.followUpBadge === 'today') today.push(lead)
-      else if (lead.followUpBadge === 'upcoming') upcoming.push(lead)
-      else if (lead.followUpBadge === 'none') none.push(lead)
-    }
-    const byDate = (a, b) => String(a.followUpDate || '').localeCompare(String(b.followUpDate || ''))
-    overdue.sort(byDate)
-    today.sort(byDate)
-    upcoming.sort(byDate)
-    return { overdue, today, upcoming, none }
-  }, [leads])
+  function setInboxView(view) {
+    const next = { ...draft, inboxView: view, followUp: '' }
+    setDraft(next)
+    setFilters(next)
+  }
 
-  const showFollowUpBoard = !filters.followUp || ['overdue', 'today', 'week', 'upcoming', 'none'].includes(filters.followUp)
+  function setFollowUpQuick(value) {
+    const next = { ...draft, followUp: value, inboxView: 'active' }
+    setDraft(next)
+    setFilters(next)
+  }
+
+  const inboxView = filters.inboxView || 'active'
+  const grouped = useMemo(() => partitionActiveLeads(leads), [leads])
+  const showActiveBoard = inboxView === 'active' && !filters.followUp
+  const hasFollowUpBuckets =
+    grouped.overdue.length > 0 || grouped.dueToday.length > 0 || grouped.upcoming.length > 0
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard
-          label="Overdue follow-ups"
-          value={summary.overdue ?? 0}
-          tone="danger"
-          active={filters.followUp === 'overdue'}
-          onClick={() => setFollowUpQuick(filters.followUp === 'overdue' ? '' : 'overdue')}
-        />
-        <SummaryCard
-          label="Due today"
-          value={summary.dueToday ?? 0}
-          tone="warn"
-          active={filters.followUp === 'today'}
-          onClick={() => setFollowUpQuick(filters.followUp === 'today' ? '' : 'today')}
-        />
-        <SummaryCard
-          label="Due this week"
-          value={summary.dueThisWeek ?? 0}
-          tone="info"
-          active={filters.followUp === 'week'}
-          onClick={() => setFollowUpQuick(filters.followUp === 'week' ? '' : 'week')}
-        />
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Lead inbox views">
+        {INBOX_VIEWS.map((view) => {
+          const active = inboxView === view.value
+          return (
+            <button
+              key={view.value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setInboxView(view.value)}
+              className={[
+                'min-h-11 rounded-xl px-4 py-2.5 text-[0.875rem] font-semibold transition',
+                active ? 'bg-royal-600 text-white shadow-sm' : 'bg-white text-navy-900 ring-1 ring-black/[0.08] hover:bg-gray-50',
+              ].join(' ')}
+            >
+              {view.label}
+            </button>
+          )
+        })}
       </div>
+      <p className="text-[0.8125rem] text-gray-500">
+        {inboxView === 'active' && 'Active shows New, Contacted, and Booked leads.'}
+        {inboxView === 'completed' && 'Completed shows every completed job lead. Nothing is deleted.'}
+        {inboxView === 'all' && 'All shows every stored lead, including Completed and Lost.'}
+      </p>
+
+      {inboxView === 'active' && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <SummaryCard
+            label="Overdue follow-ups"
+            value={summary.overdue ?? 0}
+            tone="danger"
+            active={filters.followUp === 'overdue'}
+            onClick={() => setFollowUpQuick(filters.followUp === 'overdue' ? '' : 'overdue')}
+          />
+          <SummaryCard
+            label="Due today"
+            value={summary.dueToday ?? 0}
+            tone="warn"
+            active={filters.followUp === 'today'}
+            onClick={() => setFollowUpQuick(filters.followUp === 'today' ? '' : 'today')}
+          />
+          <SummaryCard
+            label="Due this week"
+            value={summary.dueThisWeek ?? 0}
+            tone="info"
+            active={filters.followUp === 'week'}
+            onClick={() => setFollowUpQuick(filters.followUp === 'week' ? '' : 'week')}
+          />
+        </div>
+      )}
 
       <form
         onSubmit={applyFilters}
         className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-6"
       >
-        <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">Search & filters</p>
+        <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">Search this view</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="sm:col-span-2 lg:col-span-3">
             <label htmlFor="lead-q" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
@@ -239,44 +286,34 @@ export default function LeadsInbox({ onUnauthorized }) {
               value={draft.q}
               onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
               className="input-light"
-              placeholder="Search leads…"
+              placeholder={
+                inboxView === 'completed'
+                  ? 'Search completed leads…'
+                  : inboxView === 'all'
+                    ? 'Search all leads…'
+                    : 'Search active leads…'
+              }
             />
           </div>
-          <div>
-            <label htmlFor="lead-status" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Status
-            </label>
-            <select
-              id="lead-status"
-              value={draft.status}
-              onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}
-              className="input-light"
-            >
-              <option value="">All statuses</option>
-              {LEAD_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="lead-followup" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Follow-up
-            </label>
-            <select
-              id="lead-followup"
-              value={draft.followUp}
-              onChange={(e) => setDraft((d) => ({ ...d, followUp: e.target.value }))}
-              className="input-light"
-            >
-              {FOLLOW_UP_FILTERS.map((o) => (
-                <option key={o.value || 'all'} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {inboxView === 'active' && (
+            <div>
+              <label htmlFor="lead-followup" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
+                Follow-up
+              </label>
+              <select
+                id="lead-followup"
+                value={draft.followUp}
+                onChange={(e) => setDraft((d) => ({ ...d, followUp: e.target.value }))}
+                className="input-light"
+              >
+                {FOLLOW_UP_FILTERS.map((o) => (
+                  <option key={o.value || 'all'} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="lead-source" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
               Source
@@ -323,7 +360,7 @@ export default function LeadsInbox({ onUnauthorized }) {
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="submit" className="btn-royal btn-md !rounded-xl">
-            Apply filters
+            Search
           </button>
           <button type="button" onClick={clearFilters} className="btn-secondary btn-md !rounded-xl">
             Clear
@@ -341,24 +378,38 @@ export default function LeadsInbox({ onUnauthorized }) {
         <div className="rounded-2xl border border-black/[0.06] bg-white px-5 py-12 text-center text-[0.875rem] text-gray-500 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
           Loading leads…
         </div>
-      ) : showFollowUpBoard && !filters.followUp ? (
+      ) : showActiveBoard ? (
         <div className="space-y-4">
-          <div>
-            <h2 className="font-display text-xl font-semibold text-navy-900">Follow-Up</h2>
-            <p className="mt-1 text-[0.8125rem] text-gray-500">
-              Sorted by urgency — overdue first, then today, then upcoming.
-            </p>
-          </div>
-          <FollowUpGroup title="Overdue" leads={grouped.overdue} emptyLabel="No overdue follow-ups." />
-          <FollowUpGroup title="Due Today" leads={grouped.today} emptyLabel="Nothing due today." />
-          <FollowUpGroup title="Upcoming" leads={grouped.upcoming} emptyLabel="No upcoming follow-ups." />
-          <FollowUpGroup title="No Follow-Up Set" leads={grouped.none} emptyLabel="Every lead has a follow-up set." />
+          {hasFollowUpBuckets ? (
+            <>
+              <div>
+                <h2 className="font-display text-xl font-semibold text-navy-900">Follow-Up</h2>
+                <p className="mt-1 text-[0.8125rem] text-gray-500">
+                  Overdue first, then today, then upcoming. Other active leads are listed below.
+                </p>
+              </div>
+              {grouped.overdue.length > 0 && (
+                <LeadGroup title="Overdue" leads={grouped.overdue} emptyLabel="No overdue follow-ups." />
+              )}
+              {grouped.dueToday.length > 0 && (
+                <LeadGroup title="Due Today" leads={grouped.dueToday} emptyLabel="Nothing due today." />
+              )}
+              {grouped.upcoming.length > 0 && (
+                <LeadGroup title="Upcoming" leads={grouped.upcoming} emptyLabel="No upcoming follow-ups." />
+              )}
+            </>
+          ) : null}
+          <LeadGroup
+            title={hasFollowUpBuckets ? 'Other active leads' : 'Active leads'}
+            leads={grouped.other}
+            emptyLabel="No active leads (New, Contacted, or Booked) yet."
+          />
         </div>
       ) : (
         <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
           <div className="flex items-center justify-between border-b border-black/[0.06] px-5 py-4 sm:px-6">
             <p className="font-display text-lg font-semibold text-navy-900">
-              {filters.followUp ? 'Filtered leads' : 'Inbox'}
+              {inboxView === 'completed' ? 'Completed leads' : inboxView === 'all' ? 'All leads' : 'Filtered leads'}
             </p>
             <p className="text-[0.8125rem] text-gray-500">
               {`${leads.length} lead${leads.length === 1 ? '' : 's'}`}
@@ -366,7 +417,9 @@ export default function LeadsInbox({ onUnauthorized }) {
           </div>
           {!leads.length ? (
             <div className="px-5 py-12 text-center text-[0.875rem] text-gray-500 sm:px-6">
-              No leads match these filters yet.
+              {inboxView === 'completed'
+                ? 'No completed leads match this search.'
+                : 'No leads match these filters yet.'}
             </div>
           ) : (
             <ul className="divide-y divide-black/[0.04]">
