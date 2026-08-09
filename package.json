@@ -18,6 +18,7 @@
     "test:projects": "node scripts/test-projects-store.mjs",
     "test:reviews": "node scripts/test-reviews-store.mjs",
     "test:leads": "node scripts/test-leads-store.mjs",
+    "test:pigeon": "node scripts/test-pigeon-problems.mjs && node scripts/test-pigeon-submit.mjs",
     "test:sms": "node scripts/test-sms-automations.mjs",
     "test:seo-deploy": "node scripts/test-seo-deploy-hook.mjs"
   },

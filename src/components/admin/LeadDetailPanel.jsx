@@ -397,6 +397,18 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           <Field label="Quoted amount">{formatMoney(lead.quotedAmount)}</Field>
         </div>
 
+        {Array.isArray(lead.problems) && lead.problems.length > 0 && (
+          <div className="mt-8">
+            <Field label="Problems selected">
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-[0.9375rem] leading-relaxed text-gray-700">
+                {lead.problems.map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            </Field>
+          </div>
+        )}
+
         <div className="mt-8">
           <Field label="Customer message">
             <p className="whitespace-pre-wrap text-[0.9375rem] leading-relaxed text-gray-700">
@@ -405,17 +417,26 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </Field>
         </div>
 
+        {lead.photoWarning && (
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[0.875rem] text-amber-950">
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-amber-800 uppercase">
+              Photo upload warning
+            </p>
+            <p className="mt-1">{lead.photoWarning}</p>
+          </div>
+        )}
+
         {Array.isArray(lead.photos) && lead.photos.length > 0 && (
           <div className="mt-8">
             <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">
               Customer photos
             </p>
             <p className="mt-1 text-[0.75rem] text-gray-500">
-              Private uploads for this lead only — not shown on the public site.
+              Uploads for this lead only — not listed on the public site.
             </p>
             <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {lead.photos.map((photo, index) => {
-                const src = leadPhotoAdminUrl(photo.pathname)
+                const src = leadPhotoAdminUrl(photo)
                 const label = photo.originalName || `Photo ${index + 1}`
                 return (
                   <li key={photo.pathname || index} className="overflow-hidden rounded-xl border border-black/[0.06] bg-gray-50">

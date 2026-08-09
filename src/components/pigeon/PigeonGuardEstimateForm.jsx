@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { BUSINESS } from '../../config/business'
 import SmsConsentCheckbox from '../forms/SmsConsentCheckbox'
-import { submitLead } from '../../services/submitLead'
+import { attachLeadPhotos, createCrmLead, sendFormSubmitEmail } from '../../services/submitLead'
 import {
   trackPigeonGuardFormStarted,
   trackPigeonGuardLeadSubmitted,
@@ -13,19 +13,21 @@ import {
   prepareImageForUpload,
   uploadLeadPhoto,
 } from '../../utils/leadPhotos'
-
-const PROBLEM_OPTIONS = [
-  { value: 'Pigeons currently nesting', label: 'Pigeons currently nesting' },
-  { value: 'Droppings/debris', label: 'Droppings/debris' },
-  { value: 'Noise under panels', label: 'Noise under panels' },
-  { value: 'Preventative installation', label: 'Preventative installation' },
-  { value: 'Not sure', label: 'Not sure' },
-]
+import {
+  ALL_PROBLEM_OPTIONS,
+  formatProblemsForMessage,
+  toggleProblemSelection,
+  validateProblemSelection,
+} from '../../utils/pigeonProblems'
+import {
+  createIdempotencyKey,
+  runPigeonGuardSubmission,
+} from '../../utils/pigeonSubmit'
 
 const SUCCESS_MESSAGE =
   'Thanks — Mike will review your information and contact you about your free pigeon guard estimate.'
 
-function validateForm(form) {
+function validateForm(form, problems) {
   const errors = {}
   if (!form.name.trim()) errors.name = 'Full name is required'
   if (!form.phone.trim()) errors.phone = 'Phone is required'
@@ -35,14 +37,15 @@ function validateForm(form) {
   }
   if (!form.address.trim()) errors.address = 'Property address is required'
   if (!form.city.trim()) errors.city = 'City is required'
-  if (!form.problem) errors.problem = 'Select what best describes the problem'
+  const problemCheck = validateProblemSelection(problems)
+  if (!problemCheck.ok) errors.problems = problemCheck.error
   return errors
 }
 
-function buildMessage(form) {
+function buildMessage(form, problems) {
   const lines = [
     'Pigeon Guard estimate request',
-    `Problem: ${form.problem}`,
+    formatProblemsForMessage(problems),
   ]
   if (form.panelCount.trim()) {
     lines.push(`Approximate solar panels: ${form.panelCount.trim()}`)
@@ -61,18 +64,21 @@ export default function PigeonGuardEstimateForm() {
     address: '',
     city: '',
     panelCount: '',
-    problem: '',
     notes: '',
     companyWebsite: '',
   })
+  const [problems, setProblems] = useState([])
   const [smsConsent, setSmsConsent] = useState(false)
   const [photos, setPhotos] = useState([])
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
   const [photoError, setPhotoError] = useState('')
+  const [photoWarning, setPhotoWarning] = useState('')
+  const [sendingLabel, setSendingLabel] = useState('Sending…')
   const submitLock = useRef(false)
   const formStarted = useRef(false)
+  const idempotencyKeyRef = useRef(createIdempotencyKey())
 
   const markStarted = () => {
     if (formStarted.current) return
@@ -84,6 +90,12 @@ export default function PigeonGuardEstimateForm() {
     markStarted()
     setForm((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const handleProblemToggle = (value, checked) => {
+    markStarted()
+    setProblems((prev) => toggleProblemSelection(prev, value, checked))
+    if (errors.problems) setErrors((prev) => ({ ...prev, problems: undefined }))
   }
 
   const handlePhotosSelected = async (e) => {
@@ -130,7 +142,7 @@ export default function PigeonGuardEstimateForm() {
     e.preventDefault()
     if (submitLock.current || status === 'sending' || status === 'success') return
 
-    const validationErrors = validateForm(form)
+    const validationErrors = validateForm(form, problems)
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors)
       return
@@ -138,37 +150,85 @@ export default function PigeonGuardEstimateForm() {
 
     submitLock.current = true
     setStatus('sending')
+    setSendingLabel('Sending…')
     setSubmitError('')
     setPhotoError('')
+    setPhotoWarning('')
 
     try {
-      const uploaded = []
-      for (const prepared of photos) {
-        const meta = await uploadLeadPhoto(prepared)
-        uploaded.push(meta)
-      }
-
-      await submitLead({
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || null,
-        address: form.address.trim(),
-        city: form.city.trim(),
-        service: 'Pigeon Guard',
-        message: buildMessage(form),
-        subject: `Pigeon Guard Estimate Request — ${BUSINESS.name}`,
-        source: 'pigeon_guard_landing',
-        companyWebsite: form.companyWebsite || '',
-        smsConsent: smsConsent === true,
-        photos: uploaded,
-      })
+      const message = buildMessage(form, problems)
+      const result = await runPigeonGuardSubmission(
+        {
+          form,
+          problems,
+          photos,
+          smsConsent,
+          idempotencyKey: idempotencyKeyRef.current,
+          companyWebsite: form.companyWebsite,
+        },
+        {
+          createLead: async ({ form: f, problems: selected, smsConsent: consent, idempotencyKey }) =>
+            createCrmLead({
+              name: f.name.trim(),
+              phone: f.phone.trim(),
+              email: f.email.trim() || null,
+              address: f.address.trim(),
+              city: f.city.trim(),
+              service: 'Pigeon Guard',
+              message,
+              subject: `Pigeon Guard Estimate Request — ${BUSINESS.name}`,
+              source: 'pigeon_guard_landing',
+              companyWebsite: f.companyWebsite || '',
+              smsConsent: consent === true,
+              problems: selected,
+              idempotencyKey,
+              photos: [],
+            }),
+          uploadPhoto: async (prepared, { abortSignal } = {}) => {
+            setSendingLabel('Uploading photos…')
+            return uploadLeadPhoto(prepared, { abortSignal })
+          },
+          deletePhotos: async (orphans) => {
+            const { deleteLeadPhotos } = await import('../../utils/leadPhotos')
+            await deleteLeadPhotos(orphans)
+          },
+          attachPhotos: async (payload) => {
+            setSendingLabel('Finishing…')
+            return attachLeadPhotos(payload)
+          },
+          notifyEmail: async ({ form: f, problems: selected }) =>
+            sendFormSubmitEmail({
+              name: f.name.trim(),
+              phone: f.phone.trim(),
+              email: f.email.trim() || null,
+              address: f.address.trim(),
+              service: 'Pigeon Guard',
+              message: buildMessage(f, selected),
+              subject: `Pigeon Guard Estimate Request — ${BUSINESS.name}`,
+            }),
+          onPhotoProgress: (index, total) => {
+            setSendingLabel(`Uploading photo ${index} of ${total}…`)
+          },
+        },
+      )
 
       trackPigeonGuardLeadSubmitted()
+      setPhotoWarning(result.photoWarning || '')
       setStatus('success')
+      // Fresh key only after success so retries stay idempotent.
+      idempotencyKeyRef.current = createIdempotencyKey()
     } catch (err) {
-      submitLock.current = false
       setStatus('error')
-      setSubmitError(err?.message || 'Something went wrong. Please call us directly or try again.')
+      setSubmitError(
+        err?.code === 'TIMEOUT'
+          ? err.message
+          : err?.message || 'Something went wrong. Please call us directly or try again.',
+      )
+    } finally {
+      // Always release the lock and never leave "Sending…" stuck.
+      submitLock.current = false
+      setStatus((prev) => (prev === 'sending' ? 'error' : prev))
+      setSendingLabel('Sending…')
     }
   }
 
@@ -181,6 +241,11 @@ export default function PigeonGuardEstimateForm() {
       >
         <h3 className="font-display text-xl font-semibold text-navy-900 sm:text-2xl">Request received</h3>
         <p className="mt-3 text-[0.9375rem] leading-relaxed text-gray-700 sm:text-base">{SUCCESS_MESSAGE}</p>
+        {photoWarning && (
+          <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-[0.875rem] text-amber-900" role="status">
+            {photoWarning}
+          </p>
+        )}
         <p className="mt-4 text-[0.875rem] text-gray-500">
           Prefer to talk now? Call Mike at{' '}
           <a href={BUSINESS.phoneHref} className="font-semibold text-royal-700 underline underline-offset-2">
@@ -347,42 +412,45 @@ export default function PigeonGuardEstimateForm() {
         <legend className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           What best describes the problem? <span className="text-amber-500">*</span>
         </legend>
+        <p id="pg-problems-hint" className="mb-2 text-[0.75rem] leading-snug text-gray-600">
+          Select all that apply. “Preventative” and “Not sure” clear the other options.
+        </p>
         <div
           className="space-y-2"
-          role="radiogroup"
+          role="group"
           aria-required="true"
-          aria-describedby={errors.problem ? 'pg-problem-error' : undefined}
+          aria-describedby={errors.problems ? 'pg-problems-error pg-problems-hint' : 'pg-problems-hint'}
         >
-          {PROBLEM_OPTIONS.map((opt) => {
-            const selected = form.problem === opt.value
-            const radioId = `pg-problem-${opt.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+          {ALL_PROBLEM_OPTIONS.map((opt) => {
+            const selected = problems.includes(opt.value)
+            const checkboxId = `pg-problem-${opt.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
             return (
               <label
                 key={opt.value}
-                htmlFor={radioId}
+                htmlFor={checkboxId}
                 className={[
                   'flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-white px-3.5 py-2.5 text-[0.875rem] text-navy-900 transition sm:px-4 sm:py-3',
                   selected ? 'border-royal-300 ring-1 ring-royal-200' : 'border-black/[0.08] hover:border-royal-200',
                 ].join(' ')}
               >
                 <input
-                  id={radioId}
-                  type="radio"
-                  name="pg-problem"
+                  id={checkboxId}
+                  type="checkbox"
+                  name="pg-problems"
                   value={opt.value}
                   checked={selected}
-                  onChange={() => updateField('problem', opt.value)}
+                  onChange={(e) => handleProblemToggle(opt.value, e.target.checked)}
                   onFocus={markStarted}
-                  className="form-radio"
+                  className="form-checkbox"
                 />
                 <span>{opt.label}</span>
               </label>
             )
           })}
         </div>
-        {errors.problem && (
-          <p id="pg-problem-error" className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
-            {errors.problem}
+        {errors.problems && (
+          <p id="pg-problems-error" className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
+            {errors.problems}
           </p>
         )}
       </fieldset>
@@ -408,7 +476,8 @@ export default function PigeonGuardEstimateForm() {
           <span className="font-normal text-gray-400">(optional, up to {MAX_LEAD_PHOTOS})</span>
         </label>
         <p className="mb-1.5 text-[0.75rem] leading-snug text-gray-600">
-          JPG, PNG, HEIC, or WebP · 10 MB max per image. Photos stay private in your estimate request.
+          JPG, PNG, HEIC, or WebP · 10 MB max per image. Photos are attached to your estimate request only
+          (not listed on the public site).
         </p>
         <input
           id="pg-photos"
@@ -456,9 +525,19 @@ export default function PigeonGuardEstimateForm() {
       <SmsConsentCheckbox id="pg-sms-consent" checked={smsConsent} onChange={setSmsConsent} />
 
       {submitError && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-[0.875rem] text-red-700" role="alert">
-          {submitError}
-        </p>
+        <div className="rounded-xl bg-red-50 px-4 py-3 text-[0.875rem] text-red-700" role="alert">
+          <p>{submitError}</p>
+          <button
+            type="button"
+            className="mt-2 font-semibold text-red-800 underline underline-offset-2"
+            onClick={() => {
+              setSubmitError('')
+              setStatus('idle')
+            }}
+          >
+            Try Again
+          </button>
+        </div>
       )}
 
       <button
@@ -467,7 +546,7 @@ export default function PigeonGuardEstimateForm() {
         disabled={status === 'sending'}
         className="btn-royal btn-md w-full !min-h-11 !rounded-xl sm:w-auto"
       >
-        {status === 'sending' ? 'Sending…' : 'Get My Free Pigeon Guard Estimate'}
+        {status === 'sending' ? sendingLabel : 'Get My Free Pigeon Guard Estimate'}
       </button>
     </form>
   )

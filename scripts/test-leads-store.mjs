@@ -78,8 +78,50 @@ function ok(name) {
   assert.equal(r.data.smsConsent, true)
   assert.equal(r.data.photos.length, 1)
   assert.equal(r.data.photos[0].pathname, 'lead-photos/123-roof.jpg')
-  assert.equal(r.data.photos[0].access, 'private')
-  ok('pigeon_guard_landing accepts optional email + private photos')
+  assert.equal(r.data.photos[0].access, 'public')
+  ok('pigeon_guard_landing accepts optional email + lead photos')
+}
+
+{
+  const multi = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    problems: ['Pigeons currently nesting', 'Droppings/debris'],
+    idempotencyKey: 'pg_abc123',
+    photoWarning: 'Photos could not be uploaded',
+  })
+  assert.equal(multi.ok, true)
+  assert.deepEqual(multi.data.problems, ['Pigeons currently nesting', 'Droppings/debris'])
+  assert.equal(multi.data.idempotencyKey, 'pg_abc123')
+  assert.equal(multi.data.photoWarning, 'Photos could not be uploaded')
+
+  const emptyProblems = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    problems: [],
+  })
+  assert.equal(emptyProblems.ok, false)
+
+  const legacy = presentLead({
+    id: 'lead_legacy',
+    source: 'pigeon_guard_landing',
+    name: 'Legacy',
+    phone: '2095551212',
+    status: 'New',
+    message: 'Problem: Noise under panels',
+    photos: [],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  })
+  assert.deepEqual(legacy.problems, ['Noise under panels'])
+  ok('pigeon problems array, empty rejection, and legacy string compatibility')
 }
 
 {

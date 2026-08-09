@@ -1,6 +1,9 @@
 import { handleUpload } from '@vercel/blob/client'
 import { get as getBlob } from '@vercel/blob'
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
+
+/** Keep Preview/Production lead API under a hard ceiling so clients aren't left waiting forever. */
+export const maxDuration = 30
 import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
 import { handleSmsInbound, handleSmsStatusCallback } from '../lib/smsInbound.mjs'
 import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
@@ -11,6 +14,7 @@ import {
   MAX_LEAD_PHOTO_BYTES,
 } from '../lib/leadPhotos.mjs'
 import {
+  attachLeadPhotosFromClient,
   checkLeadIngestRateLimit,
   createLeadFromIngest,
   getLead,
@@ -74,7 +78,8 @@ function parseBody(req) {
  * Public:
  * - POST /api/leads  → create lead or link booking onto existing Instant Quote lead
  *   Response: { ok, id } (no PII). Optional linkedLeadId for quote→booking continuity.
- * - POST /api/leads/blob-upload (rewrite) → private customer photo upload tokens
+ * - POST /api/leads/blob-upload (rewrite) → customer photo upload tokens
+ * - POST /api/leads/attach-photos (rewrite) → attach uploaded photos (idempotency-gated)
  *
  * Website customer reviews (same function via rewrite /api/reviews → ?resource=website-reviews):
  * - POST/GET/PATCH/DELETE handled by handleWebsiteReviewsRequest
@@ -136,11 +141,12 @@ async function handleLeadBlobUpload(req, res) {
           allowedContentTypes: LEAD_PHOTO_CONTENT_TYPES,
           maximumSizeInBytes: MAX_LEAD_PHOTO_BYTES,
           addRandomSuffix: true,
+          // Omit onUploadCompleted — Preview Deployment Protection (SSO) blocks
+          // Vercel Blob's server callback and can leave client upload() hanging.
           tokenPayload: JSON.stringify({ purpose: 'lead-photo' }),
+          // Keep token valid long enough for mobile/HEIC uploads on slow networks.
+          validUntil: Date.now() + 60 * 60 * 1000,
         }
-      },
-      onUploadCompleted: async () => {
-        // Client attaches URLs on lead ingest. Callback may not run on localhost.
       },
     })
     return json(res, 200, result)
@@ -170,8 +176,10 @@ async function handleLeadPhotoProxy(req, res) {
   }
 
   try {
+    // Shared store uses public access (same as completed-jobs). Proxy still keeps
+    // listing private and works for admin detail when needed.
     const result = await getBlob(pathname, {
-      access: 'private',
+      access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN,
     })
     if (!result?.stream) {
@@ -238,7 +246,7 @@ export default async function handler(req, res) {
     return handleSmsStatusCallback(req, res, { json })
   }
 
-  // Private customer photo upload tokens (rewrite /api/leads/blob-upload).
+  // Customer photo upload tokens (rewrite /api/leads/blob-upload).
   if (resource === 'blob-upload') {
     return handleLeadBlobUpload(req, res)
   }
@@ -255,8 +263,41 @@ export default async function handler(req, res) {
     })
   }
 
+  // ——— Public: attach photos after client Blob upload (idempotency-gated) ———
+  if (req.method === 'POST' && resource === 'attach-photos') {
+    const ip = getClientIp(req)
+    try {
+      const rate = await checkLeadIngestRateLimit(ip, { limit: 30, windowSec: 3600 })
+      if (!rate.allowed) {
+        return json(res, 429, { error: 'Too many requests. Please try again later.' })
+      }
+    } catch (err) {
+      console.error('[leads/attach-photos] rate limit error:', err?.message || err)
+    }
+
+    try {
+      const body = parseBody(req)
+      const attached = await attachLeadPhotosFromClient(body)
+      console.info('[leads] photos attached', {
+        id: attached.id,
+        photoCount: Array.isArray(attached.photos) ? attached.photos.length : 0,
+        photoWarning: Boolean(attached.photoWarning),
+      })
+      return json(res, 200, {
+        ok: true,
+        id: attached.id,
+        photoCount: Array.isArray(attached.photos) ? attached.photos.length : 0,
+        photoWarning: attached.photoWarning || null,
+      })
+    } catch (err) {
+      console.error('[leads/attach-photos]', err?.message || err)
+      const status = err?.status || 500
+      return json(res, status, { error: err?.message || 'Unable to attach photos' })
+    }
+  }
+
   // ——— Public create / link ———
-  if (req.method === 'POST') {
+  if (req.method === 'POST' && !resource) {
     const ip = getClientIp(req)
     try {
       const rate = await checkLeadIngestRateLimit(ip)
@@ -285,13 +326,20 @@ export default async function handler(req, res) {
         id: created.id,
         source: validated.data.source,
         linked: Boolean(created.linked),
+        idempotent: Boolean(created.idempotent),
         smsConsent: validated.data.smsConsent === true,
+        problemCount: Array.isArray(validated.data.problems) ? validated.data.problems.length : 0,
       })
       // SMS must never block or fail the lead save. Instant Quote only for new-lead texts.
-      if (!created.linked && validated.data.source === 'instant_quote') {
+      if (!created.linked && !created.idempotent && validated.data.source === 'instant_quote') {
         safeSms('new-lead', runNewLeadSmsAutomations(created.id))
       }
-      return json(res, 201, { ok: true, id: created.id, linked: Boolean(created.linked) })
+      return json(res, 201, {
+        ok: true,
+        id: created.id,
+        linked: Boolean(created.linked),
+        idempotent: Boolean(created.idempotent),
+      })
     } catch (err) {
       console.error('[leads] storage error:', err?.message || err)
       const status = err?.status || 500
