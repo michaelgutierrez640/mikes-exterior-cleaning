@@ -3,8 +3,9 @@ import { BUSINESS } from '../../config/business'
 import SmsConsentCheckbox from '../forms/SmsConsentCheckbox'
 import { attachLeadPhotos, createCrmLead, sendFormSubmitEmail } from '../../services/submitLead'
 import {
+  trackPigeonGuardFormFailed,
   trackPigeonGuardFormStarted,
-  trackPigeonGuardLeadSubmitted,
+  trackPigeonGuardFormSubmitted,
   trackPigeonGuardPhotoAdded,
 } from '../../utils/analytics'
 import {
@@ -213,12 +214,20 @@ export default function PigeonGuardEstimateForm() {
         },
       )
 
-      trackPigeonGuardLeadSubmitted()
+      // Track Lead / form_submitted only after CRM create confirmed (lead id present).
+      if (result?.id && !result?.honeypot) {
+        trackPigeonGuardFormSubmitted({ city: form.city, problems })
+      }
       setPhotoWarning(result.photoWarning || '')
       setStatus('success')
       // Fresh key only after success so retries stay idempotent.
       idempotencyKeyRef.current = createIdempotencyKey()
     } catch (err) {
+      trackPigeonGuardFormFailed({
+        city: form.city,
+        problems,
+        reason: err?.code === 'TIMEOUT' ? 'timeout' : 'submit_error',
+      })
       setStatus('error')
       setSubmitError(
         err?.code === 'TIMEOUT'

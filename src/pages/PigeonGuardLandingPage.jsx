@@ -14,6 +14,7 @@ import ServiceBreadcrumbs from '../components/service/ServiceBreadcrumbs'
 import PigeonGuardEstimateForm from '../components/pigeon/PigeonGuardEstimateForm'
 import {
   trackPigeonGuardCallClicked,
+  trackPigeonGuardEstimateClicked,
   trackPigeonGuardPageView,
 } from '../utils/analytics'
 import { scrollToPigeonEstimateForm } from '../utils/scroll'
@@ -48,11 +49,18 @@ const BENEFITS = [
 const SECTION = 'py-8 sm:py-12 lg:py-14'
 const BODY = 'text-[0.9375rem] leading-relaxed text-gray-700 sm:text-base sm:leading-[1.7]'
 
-function EstimateCtaButton({ className = '', children = 'Get My Free Pigeon Guard Estimate' }) {
+function EstimateCtaButton({
+  className = '',
+  children = 'Get My Free Pigeon Guard Estimate',
+  sourceHint = 'pigeon_guard_estimate',
+}) {
   return (
     <a
       href="#estimate-form"
-      onClick={scrollToPigeonEstimateForm}
+      onClick={(e) => {
+        trackPigeonGuardEstimateClicked(sourceHint)
+        scrollToPigeonEstimateForm(e)
+      }}
       className={`btn-royal btn-md group ${className}`}
     >
       {children}
@@ -135,12 +143,12 @@ export default function PigeonGuardLandingPage() {
             id="pigeon-hero-ctas"
             className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7 sm:gap-4"
           >
-            <EstimateCtaButton className="!rounded-xl" />
+            <EstimateCtaButton className="!rounded-xl" sourceHint="pigeon_guard_hero_estimate" />
             <CallButton
               variant="secondary"
               className="!rounded-xl"
-              sourceHint="pigeon_guard_landing"
-              onClick={() => trackPigeonGuardCallClicked('pigeon_guard_hero')}
+              sourceHint="pigeon_guard_hero_call"
+              onClick={() => trackPigeonGuardCallClicked('pigeon_guard_hero_call')}
             >
               Call Mike
             </CallButton>
@@ -199,7 +207,7 @@ export default function PigeonGuardLandingPage() {
             </figure>
           </ScrollReveal>
           <ScrollReveal className="mt-7 flex justify-center sm:mt-8">
-            <EstimateCtaButton className="!rounded-xl !px-6" />
+            <EstimateCtaButton className="!rounded-xl !px-6" sourceHint="pigeon_guard_midpage_estimate" />
           </ScrollReveal>
         </div>
       </section>

@@ -1,3 +1,17 @@
+import {
+  PIGEON_PATH,
+  PIGEON_SERVICE,
+  buildPigeonTrackingParams as buildPigeonTrackingParamsBase,
+} from './pigeonTracking'
+
+export {
+  PIGEON_PATH,
+  PIGEON_PROBLEM_TRACKING_KEYS,
+  PIGEON_SERVICE,
+  normalizeCityForTracking,
+  normalizePigeonProblemsForTracking,
+} from './pigeonTracking'
+
 const GA_ID = import.meta.env.VITE_GA_MEASUREMENT_ID?.trim() || ''
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID?.trim() || ''
 const INTERNAL_ENDPOINT = '/api/track-event'
@@ -268,64 +282,239 @@ function safePigeonTrack(fn) {
   }
 }
 
+/**
+ * Non-sensitive pigeon conversion params for GA4 / Meta / first-party.
+ * Never includes name, phone, email, street address, or notes.
+ */
+export function buildPigeonTrackingParams({ city, problems, sourceHint } = {}) {
+  return buildPigeonTrackingParamsBase({
+    city,
+    problems,
+    sourceHint,
+    utm: getUtmParams(),
+  })
+}
+
+function sessionFlagKey(name) {
+  return `mikes_pg_${name}`
+}
+
+function hasSessionFlag(name) {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.sessionStorage.getItem(sessionFlagKey(name)) === '1'
+  } catch {
+    return false
+  }
+}
+
+function setSessionFlag(name) {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(sessionFlagKey(name), '1')
+  } catch {
+    // ignore
+  }
+}
+
+/** Retry briefly — GA/Meta scripts are deferred until idle after first paint. */
+function whenAnalyticsReady(check, cb, { attempts = 40, intervalMs = 250 } = {}) {
+  if (typeof window === 'undefined') return
+  if (check()) {
+    cb()
+    return
+  }
+  let n = 0
+  const timer = window.setInterval(() => {
+    n += 1
+    if (check()) {
+      window.clearInterval(timer)
+      cb()
+      return
+    }
+    if (n >= attempts) window.clearInterval(timer)
+  }, intervalMs)
+}
+
+function trackGaPigeonEvent(eventName, params) {
+  if (!GA_ID || !hasGtag()) return false
+  window.gtag('event', eventName, params)
+  return true
+}
+
+function trackMetaStandardEvent(eventName, params) {
+  if (!META_PIXEL_ID || !hasFbq()) return false
+  window.fbq('track', eventName, params)
+  return true
+}
+
+function trackPigeonInternal(type, params = {}, sourceHint = 'pigeon_guard_landing') {
+  trackInternalEvent(type, {
+    path: PIGEON_PATH,
+    sourceHint,
+    service: PIGEON_SERVICE,
+    city: params.city || null,
+    // First-party store already accepts utm* from getUtmParams via trackInternalEvent.
+  })
+}
+
 export function trackPigeonGuardPageView() {
   safePigeonTrack(() => {
-    trackEvent('pigeon_guard_page_view', { page: '/services/pigeon-guard' })
-    trackInternalEvent('pigeon_guard_page_view', {
-      path: '/services/pigeon-guard',
-      sourceHint: 'pigeon_guard_landing',
-      service: 'Pigeon Guard',
-    })
+    const params = buildPigeonTrackingParams({ sourceHint: 'pigeon_guard_landing' })
+
+    // First-party once per session (Production hosts only inside trackInternalEvent).
+    if (!hasSessionFlag('internal_page_view')) {
+      setSessionFlag('internal_page_view')
+      trackPigeonInternal('pigeon_guard_page_view', params, 'pigeon_guard_landing')
+    }
+
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => {
+        if (hasSessionFlag('ga_page_view')) return
+        if (trackGaPigeonEvent('pigeon_guard_page_view', params)) setSessionFlag('ga_page_view')
+      },
+    )
+
+    // Meta: ViewContent on landing load (not Lead). Deduped for React remounts.
+    whenAnalyticsReady(
+      () => Boolean(META_PIXEL_ID && hasFbq()),
+      () => {
+        if (hasSessionFlag('meta_view_content')) return
+        if (
+          trackMetaStandardEvent('ViewContent', {
+            content_name: 'Solar Panel Pigeon Guard',
+            content_category: PIGEON_SERVICE,
+            ...params,
+          })
+        ) {
+          setSessionFlag('meta_view_content')
+        }
+      },
+    )
+  })
+}
+
+export function trackPigeonGuardEstimateClicked(sourceHint = 'pigeon_guard_estimate') {
+  safePigeonTrack(() => {
+    const params = buildPigeonTrackingParams({ sourceHint })
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => trackGaPigeonEvent('pigeon_guard_estimate_clicked', params),
+    )
+    trackPigeonInternal('pigeon_guard_estimate_clicked', params, sourceHint)
   })
 }
 
 export function trackPigeonGuardFormStarted() {
   safePigeonTrack(() => {
-    trackEvent('pigeon_guard_form_started', { page: '/services/pigeon-guard' })
-    trackInternalEvent('pigeon_guard_form_started', {
-      path: '/services/pigeon-guard',
-      sourceHint: 'pigeon_guard_form',
-      service: 'Pigeon Guard',
-    })
+    if (hasSessionFlag('form_started')) return
+    setSessionFlag('form_started')
+    const params = buildPigeonTrackingParams({ sourceHint: 'pigeon_guard_form' })
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => trackGaPigeonEvent('pigeon_guard_form_started', params),
+    )
+    trackPigeonInternal('pigeon_guard_form_started', params, 'pigeon_guard_form')
   })
 }
 
 export function trackPigeonGuardPhotoAdded(count = 1) {
   safePigeonTrack(() => {
-    trackEvent('pigeon_guard_photo_added', { photo_count: count })
-    trackInternalEvent('pigeon_guard_photo_added', {
-      path: '/services/pigeon-guard',
-      sourceHint: 'pigeon_guard_form',
-      service: 'Pigeon Guard',
-    })
+    // Photos are disabled in Production; keep as a no-op-safe hook if re-enabled later.
+    const params = { ...buildPigeonTrackingParams({ sourceHint: 'pigeon_guard_form' }), photo_count: count }
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => trackGaPigeonEvent('pigeon_guard_photo_added', params),
+    )
+    trackPigeonInternal('pigeon_guard_photo_added', params, 'pigeon_guard_form')
   })
 }
 
-export function trackPigeonGuardLeadSubmitted() {
+/**
+ * Fire only after CRM lead API confirms creation (has lead id).
+ * Meta Lead fires here only — never on CTA click or form_started.
+ */
+export function trackPigeonGuardFormSubmitted({ city, problems } = {}) {
   safePigeonTrack(() => {
-    trackEvent('pigeon_guard_lead_submitted', { page: '/services/pigeon-guard' })
-    trackInternalEvent('pigeon_guard_lead_submitted', {
-      path: '/services/pigeon-guard',
+    if (hasSessionFlag('form_submitted')) return
+    setSessionFlag('form_submitted')
+    const params = buildPigeonTrackingParams({
+      city,
+      problems,
       sourceHint: 'pigeon_guard_form',
-      service: 'Pigeon Guard',
     })
-    if (hasFbq() && META_PIXEL_ID) {
-      window.fbq('track', 'Lead', { content_name: 'Pigeon Guard Estimate' })
-    }
-    if (hasGtag() && GA_ID) {
-      window.gtag('event', 'generate_lead', { currency: 'USD' })
-    }
+
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => {
+        trackGaPigeonEvent('pigeon_guard_form_submitted', params)
+        // Compatibility with existing GA lead goals, if configured.
+        trackGaPigeonEvent('generate_lead', { currency: 'USD', ...params })
+      },
+    )
+
+    whenAnalyticsReady(
+      () => Boolean(META_PIXEL_ID && hasFbq()),
+      () => {
+        trackMetaStandardEvent('Lead', {
+          content_name: 'Pigeon Guard Estimate',
+          content_category: PIGEON_SERVICE,
+          ...params,
+        })
+      },
+    )
+
+    trackPigeonInternal('pigeon_guard_form_submitted', params, 'pigeon_guard_form')
+    // Keep legacy first-party name for any existing dashboards/reports.
+    trackPigeonInternal('pigeon_guard_lead_submitted', params, 'pigeon_guard_form')
+  })
+}
+
+/** @deprecated Use trackPigeonGuardFormSubmitted */
+export function trackPigeonGuardLeadSubmitted(opts) {
+  trackPigeonGuardFormSubmitted(opts)
+}
+
+export function trackPigeonGuardFormFailed({ city, problems, reason } = {}) {
+  safePigeonTrack(() => {
+    const params = buildPigeonTrackingParams({
+      city,
+      problems,
+      sourceHint: 'pigeon_guard_form',
+    })
+    const failReason = String(reason || 'unknown')
+      .replace(/[^\w.\- :]/g, '')
+      .slice(0, 80)
+    if (failReason) params.fail_reason = failReason
+
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => trackGaPigeonEvent('pigeon_guard_form_failed', params),
+    )
+    trackPigeonInternal('pigeon_guard_form_failed', params, 'pigeon_guard_form')
+    // Do not fire Meta Lead on failure.
   })
 }
 
 export function trackPigeonGuardCallClicked(sourceHint = 'pigeon_guard_call') {
   safePigeonTrack(() => {
-    trackEvent('pigeon_guard_call_clicked', { page: '/services/pigeon-guard' })
-    trackInternalEvent('pigeon_guard_call_clicked', {
-      path: '/services/pigeon-guard',
-      sourceHint: String(sourceHint || 'pigeon_guard_call').slice(0, 100),
-      service: 'Pigeon Guard',
-    })
+    const params = buildPigeonTrackingParams({ sourceHint })
+    whenAnalyticsReady(
+      () => Boolean(GA_ID && hasGtag()),
+      () => trackGaPigeonEvent('pigeon_guard_call_clicked', params),
+    )
+    whenAnalyticsReady(
+      () => Boolean(META_PIXEL_ID && hasFbq()),
+      () => {
+        trackMetaStandardEvent('Contact', {
+          content_name: 'Pigeon Guard Call',
+          content_category: PIGEON_SERVICE,
+          ...params,
+        })
+      },
+    )
+    trackPigeonInternal('pigeon_guard_call_clicked', params, sourceHint)
   })
 }
 
