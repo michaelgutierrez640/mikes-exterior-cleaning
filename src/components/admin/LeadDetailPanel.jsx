@@ -432,7 +432,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               Customer photos
             </p>
             <p className="mt-1 text-[0.75rem] text-gray-500">
-              Uploads for this lead only — not listed on the public site.
+              Streamed through an authenticated Admin endpoint — raw Blob URLs are never shown.
             </p>
             <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {lead.photos.map((photo, index) => {

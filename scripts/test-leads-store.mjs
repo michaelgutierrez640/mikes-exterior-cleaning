@@ -51,7 +51,7 @@ function ok(name) {
 }
 
 {
-  const r = validateLeadIngest({
+  const withPhotos = validateLeadIngest({
     source: 'pigeon_guard_landing',
     name: 'Sam Rivera',
     phone: '2095551212',
@@ -71,15 +71,29 @@ function ok(name) {
       },
     ],
   })
-  assert.equal(r.ok, true)
-  assert.equal(r.data.source, 'pigeon_guard_landing')
-  assert.equal(r.data.email, null)
-  assert.equal(r.data.city, 'Modesto')
-  assert.equal(r.data.smsConsent, true)
-  assert.equal(r.data.photos.length, 1)
-  assert.equal(r.data.photos[0].pathname, 'lead-photos/123-roof.jpg')
-  assert.equal(r.data.photos[0].access, 'public')
-  ok('pigeon_guard_landing accepts optional email + lead photos')
+  // Uploads are disabled without a dedicated private store env — ingest must reject photo payloads.
+  assert.equal(withPhotos.ok, false)
+  assert.match(String(withPhotos.error || ''), /disabled|private/i)
+  ok('pigeon_guard_landing rejects photos while private store is not configured')
+}
+
+{
+  const noPhotos = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    email: '',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    message: 'Problem: Pigeons currently nesting',
+    smsConsent: true,
+  })
+  assert.equal(noPhotos.ok, true)
+  assert.equal(noPhotos.data.email, null)
+  assert.equal(noPhotos.data.city, 'Modesto')
+  assert.equal(noPhotos.data.smsConsent, true)
+  ok('pigeon_guard_landing accepts optional email without photos')
 }
 
 {
@@ -116,12 +130,24 @@ function ok(name) {
     phone: '2095551212',
     status: 'New',
     message: 'Problem: Noise under panels',
-    photos: [],
+    photos: [
+      {
+        pathname: 'lead-photos/secret.jpg',
+        url: 'https://example.public.blob.vercel-storage.com/lead-photos/secret.jpg',
+        contentType: 'image/jpeg',
+        originalName: 'secret.jpg',
+        access: 'public',
+      },
+    ],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   })
   assert.deepEqual(legacy.problems, ['Noise under panels'])
-  ok('pigeon problems array, empty rejection, and legacy string compatibility')
+  assert.equal(legacy.photos.length, 1)
+  assert.equal(legacy.photos[0].pathname, 'lead-photos/secret.jpg')
+  assert.equal(legacy.photos[0].url, undefined)
+  assert.equal(legacy.photos[0].access, 'private')
+  ok('pigeon problems array, empty rejection, legacy string compatibility, photo URL redaction')
 }
 
 {

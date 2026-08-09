@@ -8,6 +8,8 @@ import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
 import { handleSmsInbound, handleSmsStatusCallback } from '../lib/smsInbound.mjs'
 import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
 import {
+  getLeadPhotosBlobToken,
+  isLeadPhotoUploadEnabled,
   isSafeLeadPhotoPathname,
   LEAD_PHOTO_CONTENT_TYPES,
   LEAD_PHOTO_PATH_PREFIX,
@@ -19,7 +21,6 @@ import {
   createLeadFromIngest,
   getLead,
   isLeadsStorageConfigured,
-  listLeadsWithSummary,
   normalizeLeadId,
   permanentlyDeleteLead,
   presentLead,
@@ -28,6 +29,7 @@ import {
   toLeadListItem,
   updateLead,
   validateLeadIngest,
+  listLeadsWithSummary,
 } from '../lib/leadsStore.mjs'
 
 function safeSms(label, promise) {
@@ -103,10 +105,20 @@ async function handleLeadBlobUpload(req, res) {
     return json(res, 405, { error: 'Method not allowed' })
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Hard gate: never write customer photos into the shared PUBLIC Blob store.
+  if (!isLeadPhotoUploadEnabled()) {
     return json(res, 503, {
-      error: 'Blob storage not configured',
-      hint: 'Add BLOB_READ_WRITE_TOKEN in Vercel (Storage → Blob)',
+      error: 'Customer photo uploads are disabled',
+      hint:
+        'Create a dedicated PRIVATE Vercel Blob store for lead photos, then set LEAD_PHOTOS_ENABLED=true, LEAD_PHOTOS_ACCESS=private, and LEAD_PHOTOS_BLOB_READ_WRITE_TOKEN. The shared public store used for completed-jobs cannot keep customer photos private.',
+    })
+  }
+
+  const token = getLeadPhotosBlobToken()
+  if (!token) {
+    return json(res, 503, {
+      error: 'Private lead-photo Blob store not configured',
+      hint: 'Set LEAD_PHOTOS_BLOB_READ_WRITE_TOKEN from a PRIVATE Blob store',
     })
   }
 
@@ -126,7 +138,7 @@ async function handleLeadBlobUpload(req, res) {
     const result = await handleUpload({
       body,
       request: req,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
+      token,
       onBeforeGenerateToken: async (pathname) => {
         const safePath = String(pathname || '')
           .replace(/[^a-zA-Z0-9._/-]/g, '-')
@@ -143,7 +155,7 @@ async function handleLeadBlobUpload(req, res) {
           addRandomSuffix: true,
           // Omit onUploadCompleted — Preview Deployment Protection (SSO) blocks
           // Vercel Blob's server callback and can leave client upload() hanging.
-          tokenPayload: JSON.stringify({ purpose: 'lead-photo' }),
+          tokenPayload: JSON.stringify({ purpose: 'lead-photo', access: 'private' }),
           // Keep token valid long enough for mobile/HEIC uploads on slow networks.
           validUntil: Date.now() + 60 * 60 * 1000,
         }
@@ -166,7 +178,9 @@ async function handleLeadPhotoProxy(req, res) {
   const auth = requireAdmin(req)
   if (!auth.ok) return json(res, auth.status, { error: auth.error })
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Prefer dedicated private lead-photos token; fall back only for legacy objects.
+  const token = getLeadPhotosBlobToken() || process.env.BLOB_READ_WRITE_TOKEN
+  if (!token) {
     return json(res, 503, { error: 'Blob storage not configured' })
   }
 
@@ -176,12 +190,20 @@ async function handleLeadPhotoProxy(req, res) {
   }
 
   try {
-    // Shared store uses public access (same as completed-jobs). Proxy still keeps
-    // listing private and works for admin detail when needed.
-    const result = await getBlob(pathname, {
-      access: 'public',
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    })
+    // Authenticated Admin-only stream. Private stores require access:'private'.
+    // Legacy objects on the public store may still be readable with access:'public'.
+    let result
+    try {
+      result = await getBlob(pathname, {
+        access: 'private',
+        token,
+      })
+    } catch {
+      result = await getBlob(pathname, {
+        access: 'public',
+        token,
+      })
+    }
     if (!result?.stream) {
       return json(res, 404, { error: 'Photo not found' })
     }
@@ -265,6 +287,13 @@ export default async function handler(req, res) {
 
   // ——— Public: attach photos after client Blob upload (idempotency-gated) ———
   if (req.method === 'POST' && resource === 'attach-photos') {
+    if (!isLeadPhotoUploadEnabled()) {
+      return json(res, 503, {
+        error: 'Customer photo uploads are disabled',
+        hint: 'Configure a dedicated PRIVATE Blob store before attaching lead photos.',
+      })
+    }
+
     const ip = getClientIp(req)
     try {
       const rate = await checkLeadIngestRateLimit(ip, { limit: 30, windowSec: 3600 })
