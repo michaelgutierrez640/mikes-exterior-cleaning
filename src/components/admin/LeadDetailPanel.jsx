@@ -99,7 +99,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [detailsDraft, setDetailsDraft] = useState(emptyDetailsDraft())
-  const [noteDraft, setNoteDraft] = useState('')
   const [followUpDateDraft, setFollowUpDateDraft] = useState('')
   const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -198,29 +197,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     }
 
     return persistDetails(buildDetailsPayload())
-  }
-
-  async function handleAddNote(e) {
-    e.preventDefault()
-    const text = noteDraft.trim()
-    if (!lead || !text) return
-    setSaving(true)
-    setMessage('')
-    setError('')
-    try {
-      const updated = await updateAdminLead(lead.id, { note: text })
-      setLead(updated)
-      setNoteDraft('')
-      setMessage('Note added.')
-    } catch (err) {
-      if (err.unauthorized) {
-        onUnauthorized?.()
-        return
-      }
-      setError(err.message || 'Failed to add note')
-    } finally {
-      setSaving(false)
-    }
   }
 
   async function handleFollowUpSave(e) {
@@ -353,7 +329,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   const phoneLink = telHref(lead.phone)
   const emailLink = mailtoHref(lead.email)
-  const notes = Array.isArray(lead.notes) ? [...lead.notes].reverse() : []
   const history = Array.isArray(lead.statusHistory) ? [...lead.statusHistory].reverse() : []
   const followUpBadge = getFollowUpBadgeClient(lead)
   const requiresAppointment = detailsDraft.status === 'Booked'
@@ -894,49 +869,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </button>
         </div>
       </form>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form
-          onSubmit={handleAddNote}
-          className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
-        >
-          <h3 className="font-display text-lg font-semibold text-navy-900">Add private note</h3>
-          <label htmlFor="lead-note" className="mt-4 mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-            Chronological note
-          </label>
-          <textarea
-            id="lead-note"
-            rows={4}
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            className="input-light resize-none"
-            placeholder="Call notes, estimate details, follow-up plans…"
-          />
-          <button
-            type="submit"
-            disabled={saving || !noteDraft.trim()}
-            className="btn-royal btn-md mt-4 !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Add note'}
-          </button>
-        </form>
-
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-          <h3 className="font-display text-lg font-semibold text-navy-900">Notes</h3>
-          {!notes.length ? (
-            <p className="mt-4 text-[0.875rem] text-gray-500">No notes yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {notes.map((n) => (
-                <li key={n.id} className="rounded-xl bg-gray-50 px-4 py-3">
-                  <p className="whitespace-pre-wrap text-[0.875rem] text-gray-700">{n.text}</p>
-                  <p className="mt-2 text-[0.75rem] text-gray-400">{formatLeadDate(n.at)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
 
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <h3 className="font-display text-lg font-semibold text-navy-900">Status history</h3>
