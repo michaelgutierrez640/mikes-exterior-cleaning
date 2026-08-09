@@ -44,6 +44,10 @@ const BENEFITS = [
   'Professional local installation',
 ]
 
+/** Landing-page sections: tighter than global .service-section, still breathable. */
+const SECTION = 'py-10 sm:py-14 lg:py-16'
+const BODY = 'text-[0.9375rem] leading-relaxed text-gray-700 sm:text-base sm:leading-[1.7]'
+
 function EstimateCtaButton({ className = '', children = 'Get My Free Pigeon Guard Estimate' }) {
   return (
     <a
@@ -96,7 +100,7 @@ export default function PigeonGuardLandingPage() {
 
       {/* 1. Focused hero */}
       <section
-        className="relative flex min-h-[72vh] items-end overflow-hidden bg-navy-950 sm:min-h-[78vh]"
+        className="relative flex min-h-[64vh] items-end overflow-hidden bg-navy-950 sm:min-h-[70vh]"
         aria-labelledby="pigeon-hero-heading"
       >
         <ResponsiveImage
@@ -113,21 +117,21 @@ export default function PigeonGuardLandingPage() {
         <div className="absolute inset-0 bg-navy-950/60" />
         <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/50 to-navy-950/20" />
 
-        <div className="section-container relative w-full pb-12 pt-28 sm:pb-16 sm:pt-32">
+        <div className="section-container relative w-full pb-10 pt-28 sm:pb-14 sm:pt-32">
           <ServiceBreadcrumbs serviceName={serviceName} variant="dark" />
-          <p className="mt-5 text-[0.75rem] font-semibold tracking-[0.18em] text-royal-200/90 uppercase sm:mt-6">
+          <p className="mt-4 text-[0.75rem] font-semibold tracking-[0.18em] text-royal-200/90 uppercase sm:mt-5">
             Solar Panel Pigeon Guard · Bird Proofing
           </p>
           <h1
             id="pigeon-hero-heading"
-            className="font-display mt-3 max-w-3xl text-[1.875rem] font-semibold leading-[1.12] text-white sm:text-4xl lg:text-[2.75rem]"
+            className="font-display mt-3 max-w-3xl text-[1.75rem] font-semibold leading-[1.12] text-white sm:text-4xl lg:text-[2.75rem]"
           >
             {hero.h1}
           </h1>
-          <p className="mt-4 max-w-2xl text-[0.9375rem] leading-relaxed text-white/78 sm:mt-5 sm:text-lg">
+          <p className="mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-white/85 sm:mt-4 sm:text-lg">
             {hero.subtitle}
           </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7 sm:gap-4">
             <EstimateCtaButton className="!rounded-xl" />
             <CallButton
               variant="secondary"
@@ -142,13 +146,13 @@ export default function PigeonGuardLandingPage() {
       </section>
 
       {/* 2. Problem */}
-      <section className="service-section bg-white" aria-labelledby="pigeon-problem">
+      <section className={`${SECTION} bg-white`} aria-labelledby="pigeon-problem">
         <div className="section-container max-w-3xl">
           <ScrollReveal>
             <h2 id="pigeon-problem" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               Why pigeons under solar panels are a problem
             </h2>
-            <div className="service-prose mt-6">
+            <div className={`mt-4 space-y-4 ${BODY}`}>
               <p>
                 Pigeons nest in the sheltered gap beneath rooftop solar panels. Nesting brings droppings, noise,
                 nesting debris, and mess onto the roof and around the array.
@@ -163,19 +167,19 @@ export default function PigeonGuardLandingPage() {
         </div>
       </section>
 
-      {/* 3. Real proof */}
-      <section className="service-section bg-section-services" aria-labelledby="pigeon-proof">
-        <div className="section-container">
-          <ScrollReveal className="section-header max-w-2xl">
-            <h2 id="pigeon-proof" className="section-title">
+      {/* 3. Real proof + mid-page CTA */}
+      <section className={`${SECTION} bg-section-services`} aria-labelledby="pigeon-proof">
+        <div className="section-container max-w-4xl">
+          <ScrollReveal className="max-w-2xl">
+            <h2 id="pigeon-proof" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               Real pigeon guard installation
             </h2>
-            <p className="mt-3 text-[0.9375rem] leading-relaxed text-gray-600">
+            <p className={`mt-3 ${BODY}`}>
               A completed Solar Panel Pigeon Guard project from Mike&apos;s Exterior Cleaning — mesh installed along the
               panel perimeter to block nesting access.
             </p>
           </ScrollReveal>
-          <ScrollReveal className="section-content mt-8">
+          <ScrollReveal className="mt-5 sm:mt-6">
             <figure className="overflow-hidden rounded-[1.25rem]">
               <ResponsiveImage
                 src={heroImage?.src ?? hero.image}
@@ -185,36 +189,42 @@ export default function PigeonGuardLandingPage() {
                 className="aspect-[16/10] w-full object-cover"
                 style={heroImage?.objectPosition ? { objectPosition: heroImage.objectPosition } : undefined}
                 loading="lazy"
-                sizes="(max-width: 1024px) 100vw, 960px"
+                sizes="(max-width: 1024px) 100vw, 896px"
               />
-              <figcaption className="mt-3 text-[0.8125rem] text-gray-500">
+              <figcaption className="mt-2.5 text-[0.8125rem] text-gray-600">
                 Pigeon guard mesh installed along solar panels on a residential roof.
               </figcaption>
             </figure>
+          </ScrollReveal>
+          <ScrollReveal className="mt-7 flex justify-center sm:mt-8">
+            <EstimateCtaButton className="!rounded-xl !px-6" />
           </ScrollReveal>
         </div>
       </section>
 
       {/* 4. How it works */}
-      <section className="service-section bg-white" aria-labelledby="pigeon-how">
-        <div className="section-container max-w-3xl">
+      <section className={`${SECTION} bg-white`} aria-labelledby="pigeon-how">
+        <div className="section-container max-w-4xl">
           <ScrollReveal>
             <h2 id="pigeon-how" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               How it works
             </h2>
-            <ol className="mt-8 space-y-5">
+            <ol className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2 sm:gap-4">
               {HOW_IT_WORKS.map((step, i) => (
-                <li key={step.title} className="flex gap-4">
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-royal-50 text-[0.875rem] font-semibold text-royal-800"
-                    aria-hidden="true"
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
+                <li
+                  key={step.title}
+                  className="rounded-[1rem] border border-black/[0.06] bg-gray-50/80 p-5 sm:p-6"
+                >
+                  <div className="flex items-baseline gap-3">
+                    <span
+                      className="font-display text-lg font-semibold tabular-nums text-royal-700"
+                      aria-hidden="true"
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
                     <h3 className="text-[1rem] font-semibold text-navy-900">{step.title}</h3>
-                    <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-gray-600">{step.text}</p>
                   </div>
+                  <p className={`mt-2.5 ${BODY}`}>{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -223,24 +233,24 @@ export default function PigeonGuardLandingPage() {
       </section>
 
       {/* 5. Benefits */}
-      <section className="service-section bg-section-services" aria-labelledby="pigeon-benefits">
-        <div className="section-container max-w-3xl">
+      <section className={`${SECTION} bg-section-services`} aria-labelledby="pigeon-benefits">
+        <div className="section-container max-w-4xl">
           <ScrollReveal>
             <h2 id="pigeon-benefits" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               What Solar Panel Pigeon Guard does
             </h2>
-            <ul className="mt-8 space-y-3">
+            <ul className="mt-5 grid gap-3 sm:mt-6 sm:grid-cols-2">
               {BENEFITS.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-3 text-[0.9375rem] leading-relaxed text-gray-700 sm:text-base"
+                  className="rounded-[1rem] border border-royal-100/80 bg-white px-5 py-4 text-[0.9375rem] font-medium leading-snug text-navy-900 shadow-[0_1px_2px_rgba(10,22,40,0.04)] sm:text-base"
                 >
-                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-royal-600" aria-hidden="true" />
-                  <span>{item}</span>
+                  <span className="mr-2.5 inline-block h-1.5 w-1.5 rounded-full bg-royal-600 align-middle" aria-hidden="true" />
+                  {item}
                 </li>
               ))}
             </ul>
-            <p className="mt-6 text-[0.9375rem] leading-relaxed text-gray-600">
+            <p className={`mt-5 ${BODY}`}>
               Also need panels washed? See{' '}
               <Link to="/services/solar-panel-cleaning" className="font-semibold text-royal-700 underline underline-offset-2">
                 Solar Panel Cleaning
@@ -255,10 +265,10 @@ export default function PigeonGuardLandingPage() {
         </div>
       </section>
 
-      {/* 6. Estimate form */}
+      {/* 6. Estimate form — extra bottom space so sticky mobile CTA never covers controls */}
       <section
         id="estimate-form"
-        className="service-section scroll-mt-24 bg-white pb-28 lg:pb-16"
+        className={`${SECTION} scroll-mt-24 bg-white pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16`}
         aria-labelledby="pigeon-estimate"
       >
         <div className="section-container max-w-2xl">
@@ -266,11 +276,11 @@ export default function PigeonGuardLandingPage() {
             <h2 id="pigeon-estimate" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               Get your free pigeon guard estimate
             </h2>
-            <p className="mt-3 text-[0.9375rem] leading-relaxed text-gray-600">
+            <p className={`mt-3 ${BODY}`}>
               Tell Mike what you&apos;re seeing under your solar panels. Photos help when you have them — they&apos;re
               optional.
             </p>
-            <div className="mt-8">
+            <div className="mt-6 sm:mt-7">
               <PigeonGuardEstimateForm />
             </div>
           </ScrollReveal>
@@ -278,17 +288,20 @@ export default function PigeonGuardLandingPage() {
       </section>
 
       {faqs?.length > 0 && (
-        <section className="service-section bg-section-faq" aria-labelledby="pigeon-faq">
+        <section
+          className={`${SECTION} bg-section-faq pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-16`}
+          aria-labelledby="pigeon-faq"
+        >
           <div className="section-container max-w-2xl">
             <ScrollReveal>
               <h2 id="pigeon-faq" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
                 Pigeon Guard questions
               </h2>
-              <div className="mt-8 space-y-5">
+              <div className="mt-5 space-y-4 sm:mt-6 sm:space-y-5">
                 {faqs.map((faq) => (
                   <div key={faq.q}>
                     <h3 className="text-[1rem] font-semibold text-navy-900">{faq.q}</h3>
-                    <p className="mt-2 text-[0.9375rem] leading-relaxed text-gray-600">{faq.a}</p>
+                    <p className={`mt-1.5 ${BODY}`}>{faq.a}</p>
                   </div>
                 ))}
               </div>
