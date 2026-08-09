@@ -9,7 +9,10 @@ import {
   isLeadsStorageConfigured,
   listLeadsWithSummary,
   normalizeLeadId,
+  permanentlyDeleteLead,
   presentLead,
+  restoreLead,
+  softDeleteLead,
   toLeadListItem,
   updateLead,
   validateLeadIngest,
@@ -190,16 +193,44 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       if (!itemId) return json(res, 400, { error: 'Missing lead id' })
       const body = parseBody(req)
+
+      // Soft-delete / restore — no SMS or other automations.
+      if (body.softDelete === true || body.moveToTrash === true) {
+        const lead = await softDeleteLead(itemId, { deletedBy: 'admin' })
+        console.info('[leads] moved to trash', { id: lead.id })
+        return json(res, 200, { lead })
+      }
+      if (body.restore === true) {
+        const lead = await restoreLead(itemId)
+        console.info('[leads] restored from trash', { id: lead.id })
+        return json(res, 200, { lead })
+      }
+
       const before = await getLead(itemId)
       // Pass through only defined keys — updateLead ignores unspecified fields.
       const lead = await updateLead(itemId, body)
       console.info('[leads] updated', { id: lead.id, status: lead.status })
-      // Booking confirm / reschedule / review scheduling — never blocks the admin save.
-      safeSms('lead-update', runLeadUpdateSmsAutomations(before ? presentLead(before) : null, lead))
+      // Never run automations for trashed leads.
+      if (!lead.deletedAt) {
+        safeSms('lead-update', runLeadUpdateSmsAutomations(before ? presentLead(before) : null, lead))
+      }
       return json(res, 200, { lead })
     }
 
-    res.setHeader('Allow', 'GET, POST, PATCH')
+    if (req.method === 'DELETE') {
+      if (!itemId) return json(res, 400, { error: 'Missing lead id' })
+      const body = parseBody(req)
+      if (String(body.confirm || '').trim() !== 'DELETE') {
+        return json(res, 400, {
+          error: 'Permanent deletion requires confirm: "DELETE"',
+        })
+      }
+      const result = await permanentlyDeleteLead(itemId)
+      console.info('[leads] permanently deleted', { id: result.id })
+      return json(res, 200, result)
+    }
+
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE')
     return json(res, 405, { error: 'Method not allowed' })
   } catch (err) {
     console.error('[leads]', err?.message || err)

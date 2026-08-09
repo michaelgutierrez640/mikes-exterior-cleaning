@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { fetchAdminLead, updateAdminLead } from '../../services/adminApi'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  fetchAdminLead,
+  permanentlyDeleteAdminLead,
+  restoreAdminLead,
+  trashAdminLead,
+  updateAdminLead,
+} from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
   APPOINTMENT_STATUSES,
@@ -87,6 +93,7 @@ function moneyOrNull(value) {
 }
 
 export default function LeadDetailPanel({ leadId, onUnauthorized }) {
+  const navigate = useNavigate()
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -97,6 +104,9 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [bookedConfirmOpen, setBookedConfirmOpen] = useState(false)
+  const [trashConfirmOpen, setTrashConfirmOpen] = useState(false)
+  const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false)
+  const [permanentDeleteConfirmText, setPermanentDeleteConfirmText] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -256,6 +266,67 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
         return
       }
       setError(err.message || 'Failed to clear follow-up')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleMoveToTrash() {
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await trashAdminLead(lead.id)
+      setLead(updated)
+      setTrashConfirmOpen(false)
+      setMessage('Lead moved to Trash.')
+      navigate('/admin/leads?inboxView=trash')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to move lead to Trash')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRestore() {
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await restoreAdminLead(lead.id)
+      setLead(updated)
+      setMessage('Lead restored.')
+      navigate('/admin/leads')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to restore lead')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handlePermanentDelete() {
+    if (permanentDeleteConfirmText.trim() !== 'DELETE') return
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      await permanentlyDeleteAdminLead(lead.id)
+      setPermanentDeleteOpen(false)
+      navigate('/admin/leads?inboxView=trash')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to permanently delete lead')
     } finally {
       setSaving(false)
     }
@@ -888,6 +959,146 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </ol>
         )}
       </div>
+
+      <div className="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
+        <h3 className="font-display text-lg font-semibold text-red-800">Danger zone</h3>
+        {lead.deletedAt ? (
+          <>
+            <p className="mt-2 text-[0.875rem] text-red-900/80">
+              This lead is in Trash
+              {lead.deletedAt ? ` (moved ${formatLeadDate(lead.deletedAt)}` : ''}
+              {lead.deletedBy ? ` by ${lead.deletedBy}` : ''}
+              {lead.deletedAt ? ')' : ''}. Restoring puts it back in normal admin views. Permanent deletion cannot be
+              undone.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleRestore}
+                className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? 'Working…' : 'Restore lead'}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  setPermanentDeleteConfirmText('')
+                  setPermanentDeleteOpen(true)
+                }}
+                className="rounded-xl bg-red-700 px-4 py-2.5 text-[0.875rem] font-semibold text-white shadow-sm hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Permanently delete…
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-[0.875rem] text-red-900/80">
+              Move this lead to Trash to hide it from Active, Completed, All, search, follow-ups, and reports. You can
+              restore it later from Trash.
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setTrashConfirmOpen(true)}
+              className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Move to Trash
+            </button>
+          </>
+        )}
+      </div>
+
+      {trashConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trash-confirm-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 id="trash-confirm-title" className="font-display text-xl font-semibold text-navy-900">
+              Move to Trash
+            </h3>
+            <p className="mt-2 text-[0.875rem] text-gray-600">
+              Move {lead.name || 'this lead'} to Trash? This will remove the lead from all normal admin views.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-md !rounded-xl"
+                disabled={saving}
+                onClick={() => setTrashConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                disabled={saving}
+                onClick={handleMoveToTrash}
+              >
+                {saving ? 'Moving…' : 'Move to Trash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {permanentDeleteOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="permanent-delete-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 id="permanent-delete-title" className="font-display text-xl font-semibold text-navy-900">
+              Permanently delete lead
+            </h3>
+            <p className="mt-2 text-[0.875rem] text-gray-600">
+              This permanently deletes {lead.name || 'this lead'} and its SMS consent history, opt-out history, message
+              thread, and automation timestamps. Other leads with the same phone or email are not affected. This cannot
+              be undone.
+            </p>
+            <label htmlFor="permanent-delete-confirm" className="mt-5 mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
+              Type DELETE to confirm
+            </label>
+            <input
+              id="permanent-delete-confirm"
+              type="text"
+              value={permanentDeleteConfirmText}
+              onChange={(e) => setPermanentDeleteConfirmText(e.target.value)}
+              className="input-light"
+              autoComplete="off"
+              placeholder="DELETE"
+            />
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-md !rounded-xl"
+                disabled={saving}
+                onClick={() => {
+                  setPermanentDeleteOpen(false)
+                  setPermanentDeleteConfirmText('')
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-red-700 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={saving || permanentDeleteConfirmText.trim() !== 'DELETE'}
+                onClick={handlePermanentDelete}
+              >
+                {saving ? 'Deleting…' : 'Permanently delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-[0.75rem] text-gray-400">
         Lead ID <span className="font-mono">{lead.id}</span> · Updated {formatLeadDate(lead.updatedAt)}
