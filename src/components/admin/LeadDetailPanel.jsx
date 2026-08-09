@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { fetchAdminLead, updateAdminLead } from '../../services/adminApi'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  fetchAdminLead,
+  permanentlyDeleteAdminLead,
+  restoreAdminLead,
+  trashAdminLead,
+  updateAdminLead,
+} from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
   APPOINTMENT_STATUSES,
@@ -87,16 +93,19 @@ function moneyOrNull(value) {
 }
 
 export default function LeadDetailPanel({ leadId, onUnauthorized }) {
+  const navigate = useNavigate()
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [detailsDraft, setDetailsDraft] = useState(emptyDetailsDraft())
-  const [noteDraft, setNoteDraft] = useState('')
   const [followUpDateDraft, setFollowUpDateDraft] = useState('')
   const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [bookedConfirmOpen, setBookedConfirmOpen] = useState(false)
+  const [trashConfirmOpen, setTrashConfirmOpen] = useState(false)
+  const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false)
+  const [permanentDeleteConfirmText, setPermanentDeleteConfirmText] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -190,29 +199,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     return persistDetails(buildDetailsPayload())
   }
 
-  async function handleAddNote(e) {
-    e.preventDefault()
-    const text = noteDraft.trim()
-    if (!lead || !text) return
-    setSaving(true)
-    setMessage('')
-    setError('')
-    try {
-      const updated = await updateAdminLead(lead.id, { note: text })
-      setLead(updated)
-      setNoteDraft('')
-      setMessage('Note added.')
-    } catch (err) {
-      if (err.unauthorized) {
-        onUnauthorized?.()
-        return
-      }
-      setError(err.message || 'Failed to add note')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   async function handleFollowUpSave(e) {
     e.preventDefault()
     if (!lead) return
@@ -261,6 +247,67 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     }
   }
 
+  async function handleMoveToTrash() {
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await trashAdminLead(lead.id)
+      setLead(updated)
+      setTrashConfirmOpen(false)
+      setMessage('Lead moved to Trash.')
+      navigate('/admin/leads?inboxView=trash')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to move lead to Trash')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRestore() {
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      const updated = await restoreAdminLead(lead.id)
+      setLead(updated)
+      setMessage('Lead restored.')
+      navigate('/admin/leads')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to restore lead')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handlePermanentDelete() {
+    if (permanentDeleteConfirmText.trim() !== 'DELETE') return
+    setSaving(true)
+    setMessage('')
+    setError('')
+    try {
+      await permanentlyDeleteAdminLead(lead.id)
+      setPermanentDeleteOpen(false)
+      navigate('/admin/leads?inboxView=trash')
+    } catch (err) {
+      if (err.unauthorized) {
+        onUnauthorized?.()
+        return
+      }
+      setError(err.message || 'Failed to permanently delete lead')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-black/[0.06] bg-white p-8 text-center text-[0.875rem] text-gray-500 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
@@ -282,7 +329,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   const phoneLink = telHref(lead.phone)
   const emailLink = mailtoHref(lead.email)
-  const notes = Array.isArray(lead.notes) ? [...lead.notes].reverse() : []
   const history = Array.isArray(lead.statusHistory) ? [...lead.statusHistory].reverse() : []
   const followUpBadge = getFollowUpBadgeClient(lead)
   const requiresAppointment = detailsDraft.status === 'Booked'
@@ -576,7 +622,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               Confirm booking
             </h3>
             <p className="mt-2 text-[0.875rem] text-gray-600">
-              Save this lead as <strong>Booked</strong>? No SMS or email will be sent to the customer yet.
+              Save this lead as <strong>Booked</strong>? When SMS is activated, customers who opted in
+              receive one booking confirmation (not on every later edit).
             </p>
             <dl className="mt-5 space-y-2 rounded-xl bg-gray-50 px-4 py-3 text-[0.875rem] text-navy-900">
               <div className="flex justify-between gap-3">
@@ -630,6 +677,112 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </div>
         </div>
       )}
+
+      <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
+        <h3 className="font-display text-lg font-semibold text-navy-900">SMS automation</h3>
+        <p className="mt-1 text-[0.8125rem] text-gray-500">
+          Read-only consent, opt-out history, and message thread. Real texts send only after SMS is activated in
+          Vercel.
+        </p>
+        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+          <Field label="Customer SMS consent">
+            {lead.smsConsent ? `Yes${lead.smsConsentAt ? ` · ${formatLeadDate(lead.smsConsentAt)}` : ''}` : 'No'}
+          </Field>
+          <Field label="Consent source / phone">
+            {[lead.smsConsentSource || null, lead.smsConsentPhone || lead.phone || null]
+              .filter(Boolean)
+              .join(' · ') || '—'}
+          </Field>
+          <Field label="Opted out (active)">
+            {lead.smsOptedOut ? `Yes${lead.smsOptedOutAt ? ` · ${formatLeadDate(lead.smsOptedOutAt)}` : ''}` : 'No'}
+          </Field>
+          <Field label="Quote confirmation SMS">
+            {lead.automationState?.quoteReceivedSmsAt
+              ? formatLeadDate(lead.automationState.quoteReceivedSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Owner new-lead SMS">
+            {lead.automationState?.ownerNewLeadSmsAt
+              ? formatLeadDate(lead.automationState.ownerNewLeadSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Booking confirmation SMS">
+            {lead.automationState?.bookingConfirmSmsAt
+              ? formatLeadDate(lead.automationState.bookingConfirmSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Appointment reminder SMS">
+            {lead.automationState?.reminderSmsAt
+              ? formatLeadDate(lead.automationState.reminderSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Review request due">
+            {lead.automationState?.reviewRequestDueAt
+              ? formatLeadDate(lead.automationState.reviewRequestDueAt)
+              : '—'}
+          </Field>
+          <Field label="Review request SMS">
+            {lead.automationState?.reviewRequestSmsAt
+              ? formatLeadDate(lead.automationState.reviewRequestSmsAt)
+              : '—'}
+          </Field>
+          <Field label="Last SMS error">
+            <span className="break-all text-[0.8125rem]">{lead.smsLastError || '—'}</span>
+          </Field>
+        </div>
+
+        {(lead.smsOptOutHistory || []).length > 0 && (
+          <div className="mt-8">
+            <h4 className="text-[0.8125rem] font-semibold uppercase tracking-wide text-gray-500">
+              Opt-out / resubscribe history
+            </h4>
+            <ul className="mt-3 space-y-2">
+              {[...(lead.smsOptOutHistory || [])].reverse().map((event, idx) => (
+                <li
+                  key={`${event.at || 'evt'}-${idx}`}
+                  className="rounded-xl bg-gray-50 px-4 py-3 text-[0.8125rem] text-navy-900"
+                >
+                  <span className="font-medium capitalize">{event.event?.replace('_', ' ') || 'event'}</span>
+                  {event.keyword ? ` · ${event.keyword}` : ''}
+                  {event.at ? ` · ${formatLeadDate(event.at)}` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-8">
+          <h4 className="text-[0.8125rem] font-semibold uppercase tracking-wide text-gray-500">
+            Message thread
+          </h4>
+          {(lead.smsThread || []).length === 0 ? (
+            <p className="mt-3 text-[0.8125rem] text-gray-400">No SMS messages stored for this lead yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {[...(lead.smsThread || [])].map((msg) => (
+                <li
+                  key={msg.id || `${msg.at}-${msg.direction}`}
+                  className={`rounded-xl px-4 py-3 text-[0.8125rem] ${
+                    msg.direction === 'inbound'
+                      ? 'bg-royal-50/70 text-navy-900'
+                      : 'bg-gray-50 text-navy-900'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-gray-500">
+                    <span className="font-semibold uppercase tracking-wide text-navy-800">
+                      {msg.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+                    </span>
+                    {msg.kind ? <span>· {msg.kind}</span> : null}
+                    {msg.at ? <span>· {formatLeadDate(msg.at)}</span> : null}
+                    {msg.status ? <span>· {msg.status}</span> : null}
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-wrap break-words">{msg.body || '—'}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <h3 className="font-display text-lg font-semibold text-navy-900">Attribution</h3>
@@ -717,49 +870,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
         </div>
       </form>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form
-          onSubmit={handleAddNote}
-          className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7"
-        >
-          <h3 className="font-display text-lg font-semibold text-navy-900">Add private note</h3>
-          <label htmlFor="lead-note" className="mt-4 mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-            Chronological note
-          </label>
-          <textarea
-            id="lead-note"
-            rows={4}
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            className="input-light resize-none"
-            placeholder="Call notes, estimate details, follow-up plans…"
-          />
-          <button
-            type="submit"
-            disabled={saving || !noteDraft.trim()}
-            className="btn-royal btn-md mt-4 !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Add note'}
-          </button>
-        </form>
-
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
-          <h3 className="font-display text-lg font-semibold text-navy-900">Notes</h3>
-          {!notes.length ? (
-            <p className="mt-4 text-[0.875rem] text-gray-500">No notes yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {notes.map((n) => (
-                <li key={n.id} className="rounded-xl bg-gray-50 px-4 py-3">
-                  <p className="whitespace-pre-wrap text-[0.875rem] text-gray-700">{n.text}</p>
-                  <p className="mt-2 text-[0.75rem] text-gray-400">{formatLeadDate(n.at)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <h3 className="font-display text-lg font-semibold text-navy-900">Status history</h3>
         {!history.length ? (
@@ -781,6 +891,146 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           </ol>
         )}
       </div>
+
+      <div className="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
+        <h3 className="font-display text-lg font-semibold text-red-800">Danger zone</h3>
+        {lead.deletedAt ? (
+          <>
+            <p className="mt-2 text-[0.875rem] text-red-900/80">
+              This lead is in Trash
+              {lead.deletedAt ? ` (moved ${formatLeadDate(lead.deletedAt)}` : ''}
+              {lead.deletedBy ? ` by ${lead.deletedBy}` : ''}
+              {lead.deletedAt ? ')' : ''}. Restoring puts it back in normal admin views. Permanent deletion cannot be
+              undone.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleRestore}
+                className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? 'Working…' : 'Restore lead'}
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => {
+                  setPermanentDeleteConfirmText('')
+                  setPermanentDeleteOpen(true)
+                }}
+                className="rounded-xl bg-red-700 px-4 py-2.5 text-[0.875rem] font-semibold text-white shadow-sm hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Permanently delete…
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-[0.875rem] text-red-900/80">
+              Move this lead to Trash to hide it from Active, Completed, All, search, follow-ups, and reports. You can
+              restore it later from Trash.
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setTrashConfirmOpen(true)}
+              className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Move to Trash
+            </button>
+          </>
+        )}
+      </div>
+
+      {trashConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trash-confirm-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 id="trash-confirm-title" className="font-display text-xl font-semibold text-navy-900">
+              Move to Trash
+            </h3>
+            <p className="mt-2 text-[0.875rem] text-gray-600">
+              Move {lead.name || 'this lead'} to Trash? This will remove the lead from all normal admin views.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-md !rounded-xl"
+                disabled={saving}
+                onClick={() => setTrashConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                disabled={saving}
+                onClick={handleMoveToTrash}
+              >
+                {saving ? 'Moving…' : 'Move to Trash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {permanentDeleteOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-navy-950/50 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="permanent-delete-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <h3 id="permanent-delete-title" className="font-display text-xl font-semibold text-navy-900">
+              Permanently delete lead
+            </h3>
+            <p className="mt-2 text-[0.875rem] text-gray-600">
+              This permanently deletes {lead.name || 'this lead'} and its SMS consent history, opt-out history, message
+              thread, and automation timestamps. Other leads with the same phone or email are not affected. This cannot
+              be undone.
+            </p>
+            <label htmlFor="permanent-delete-confirm" className="mt-5 mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
+              Type DELETE to confirm
+            </label>
+            <input
+              id="permanent-delete-confirm"
+              type="text"
+              value={permanentDeleteConfirmText}
+              onChange={(e) => setPermanentDeleteConfirmText(e.target.value)}
+              className="input-light"
+              autoComplete="off"
+              placeholder="DELETE"
+            />
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary btn-md !rounded-xl"
+                disabled={saving}
+                onClick={() => {
+                  setPermanentDeleteOpen(false)
+                  setPermanentDeleteConfirmText('')
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-red-700 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={saving || permanentDeleteConfirmText.trim() !== 'DELETE'}
+                onClick={handlePermanentDelete}
+              >
+                {saving ? 'Deleting…' : 'Permanently delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-[0.75rem] text-gray-400">
         Lead ID <span className="font-mono">{lead.id}</span> · Updated {formatLeadDate(lead.updatedAt)}

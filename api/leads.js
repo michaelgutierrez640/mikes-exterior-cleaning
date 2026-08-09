@@ -1,5 +1,7 @@
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
 import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
+import { handleSmsInbound, handleSmsStatusCallback } from '../lib/smsInbound.mjs'
+import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
 import {
   checkLeadIngestRateLimit,
   createLeadFromIngest,
@@ -7,11 +9,35 @@ import {
   isLeadsStorageConfigured,
   listLeadsWithSummary,
   normalizeLeadId,
+  permanentlyDeleteLead,
   presentLead,
+  restoreLead,
+  softDeleteLead,
   toLeadListItem,
   updateLead,
   validateLeadIngest,
 } from '../lib/leadsStore.mjs'
+
+function safeSms(label, promise) {
+  Promise.resolve(promise)
+    .then((result) => {
+      console.info(`[sms] ${label}`, {
+        ok: result?.ok !== false,
+        results: Array.isArray(result?.results)
+          ? result.results.map((r) => ({
+              kind: r.kind,
+              ok: r.ok,
+              skipped: r.skipped || false,
+              dryRun: r.dryRun || false,
+              reason: r.reason || null,
+            }))
+          : undefined,
+      })
+    })
+    .catch((err) => {
+      console.error(`[sms] ${label} failed:`, err?.message || err)
+    })
+}
 
 function getClientIp(req) {
   const xfwd = req.headers['x-forwarded-for']
@@ -64,6 +90,22 @@ export default async function handler(req, res) {
     return handleWebsiteReviewsRequest(req, res)
   }
 
+  // Twilio STOP/START/HELP webhook (rewrite /api/sms/inbound → this resource).
+  if (String(req.query?.resource || '') === 'sms-inbound') {
+    if (!isLeadsStorageConfigured()) {
+      return json(res, 503, { error: 'Leads storage not configured' })
+    }
+    return handleSmsInbound(req, res, { json })
+  }
+
+  // Twilio delivery status callback (rewrite /api/sms/status → this resource).
+  if (String(req.query?.resource || '') === 'sms-status') {
+    if (!isLeadsStorageConfigured()) {
+      return json(res, 503, { error: 'Leads storage not configured' })
+    }
+    return handleSmsStatusCallback(req, res, { json })
+  }
+
   if (!isLeadsStorageConfigured()) {
     return json(res, 503, {
       error: 'Leads storage not configured',
@@ -101,7 +143,12 @@ export default async function handler(req, res) {
         id: created.id,
         source: validated.data.source,
         linked: Boolean(created.linked),
+        smsConsent: validated.data.smsConsent === true,
       })
+      // SMS must never block or fail the lead save. Instant Quote only for new-lead texts.
+      if (!created.linked && validated.data.source === 'instant_quote') {
+        safeSms('new-lead', runNewLeadSmsAutomations(created.id))
+      }
       return json(res, 201, { ok: true, id: created.id, linked: Boolean(created.linked) })
     } catch (err) {
       console.error('[leads] storage error:', err?.message || err)
@@ -146,13 +193,44 @@ export default async function handler(req, res) {
     if (req.method === 'PATCH') {
       if (!itemId) return json(res, 400, { error: 'Missing lead id' })
       const body = parseBody(req)
+
+      // Soft-delete / restore — no SMS or other automations.
+      if (body.softDelete === true || body.moveToTrash === true) {
+        const lead = await softDeleteLead(itemId, { deletedBy: 'admin' })
+        console.info('[leads] moved to trash', { id: lead.id })
+        return json(res, 200, { lead })
+      }
+      if (body.restore === true) {
+        const lead = await restoreLead(itemId)
+        console.info('[leads] restored from trash', { id: lead.id })
+        return json(res, 200, { lead })
+      }
+
+      const before = await getLead(itemId)
       // Pass through only defined keys — updateLead ignores unspecified fields.
       const lead = await updateLead(itemId, body)
       console.info('[leads] updated', { id: lead.id, status: lead.status })
+      // Never run automations for trashed leads.
+      if (!lead.deletedAt) {
+        safeSms('lead-update', runLeadUpdateSmsAutomations(before ? presentLead(before) : null, lead))
+      }
       return json(res, 200, { lead })
     }
 
-    res.setHeader('Allow', 'GET, POST, PATCH')
+    if (req.method === 'DELETE') {
+      if (!itemId) return json(res, 400, { error: 'Missing lead id' })
+      const body = parseBody(req)
+      if (String(body.confirm || '').trim() !== 'DELETE') {
+        return json(res, 400, {
+          error: 'Permanent deletion requires confirm: "DELETE"',
+        })
+      }
+      const result = await permanentlyDeleteLead(itemId)
+      console.info('[leads] permanently deleted', { id: result.id })
+      return json(res, 200, result)
+    }
+
+    res.setHeader('Allow', 'GET, POST, PATCH, DELETE')
     return json(res, 405, { error: 'Method not allowed' })
   } catch (err) {
     console.error('[leads]', err?.message || err)

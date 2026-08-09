@@ -257,7 +257,20 @@ async function collectRoutes(modules, publishedProjects = []) {
       seo: seo.getPrivacyPolicyPageSeo(),
       schemas: seo.getPrivacyPolicyPageSchemas(),
       h1: 'Privacy Policy',
-      crawlLinks: [{ href: '/', label: 'Home' }],
+      crawlLinks: [
+        { href: '/', label: 'Home' },
+        { href: '/terms', label: 'Terms of Service' },
+      ],
+    },
+    {
+      path: '/terms',
+      seo: seo.getTermsPageSeo(),
+      schemas: seo.getTermsPageSchemas(),
+      h1: 'Terms of Service',
+      crawlLinks: [
+        { href: '/', label: 'Home' },
+        { href: '/privacy-policy', label: 'Privacy Policy' },
+      ],
     },
     {
       path: '/resources',

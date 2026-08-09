@@ -144,7 +144,31 @@ function ok(name) {
   assert.equal(presented.appointmentTimezone, 'America/Los_Angeles')
   assert.deepEqual(presented.automationState, DEFAULT_AUTOMATION_STATE)
   assert.equal(presented.quotedAmount, null)
+  assert.equal(presented.smsConsent, false)
+  assert.equal(presented.smsOptedOut, false)
+  assert.equal(presented.smsLastError, null)
   ok('presentLead normalizes legacy records + automation defaults')
+}
+
+{
+  const consented = validateLeadIngest({
+    source: 'instant_quote',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: true,
+  })
+  assert.equal(consented.ok, true)
+  assert.equal(consented.data.smsConsent, true)
+  const unchecked = validateLeadIngest({
+    source: 'booking',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: false,
+  })
+  assert.equal(unchecked.data.smsConsent, false)
+  ok('lead ingest accepts optional SMS consent without requiring it')
 }
 
 {
@@ -263,6 +287,85 @@ function ok(name) {
   assert.ok(partitionedIds.includes(jennifer.id))
   assert.ok(partitioned.other.some((l) => l.id === jennifer.id))
   ok('partition never drops leads with followUpBadge completed')
+}
+
+{
+  const live = {
+    id: 'lead_live_1',
+    name: 'Live Lead',
+    phone: '2095550001',
+    email: 'live@example.com',
+    status: 'New',
+    createdAt: '2026-08-01T00:00:00.000Z',
+  }
+  const twinPhone = {
+    id: 'lead_live_2',
+    name: 'Same Phone Other Lead',
+    phone: '2095550001',
+    email: 'other@example.com',
+    status: 'Contacted',
+    createdAt: '2026-08-02T00:00:00.000Z',
+  }
+  const trashed = {
+    id: 'lead_trash_1',
+    name: 'Trashed Lead',
+    phone: '2095559999',
+    email: 'trash@example.com',
+    status: 'Booked',
+    deletedAt: '2026-08-09T12:00:00.000Z',
+    deletedBy: 'admin',
+    createdAt: '2026-08-03T00:00:00.000Z',
+    smsConsent: true,
+    smsOptOutHistory: [{ event: 'opt_out', at: '2026-08-08T00:00:00.000Z', keyword: 'STOP' }],
+    smsThread: [{ id: 'sms_1', direction: 'inbound', body: 'hi', at: '2026-08-08T00:00:00.000Z' }],
+  }
+
+  assert.equal(matchesInboxView(trashed, 'active'), false)
+  assert.equal(matchesInboxView(trashed, 'completed'), false)
+  assert.equal(matchesInboxView(trashed, 'all'), false)
+  assert.equal(matchesInboxView(trashed, 'trash'), true)
+  assert.equal(matchesInboxView(live, 'trash'), false)
+  ok('trashed leads only match Trash view')
+
+  const pool = [live, twinPhone, trashed]
+  assert.equal(filterLeads(pool, { inboxView: 'active' }).length, 2)
+  assert.equal(filterLeads(pool, { inboxView: 'all' }).length, 2)
+  assert.equal(filterLeads(pool, { inboxView: 'trash' }).length, 1)
+  assert.equal(filterLeads(pool, { inboxView: 'trash' })[0].id, 'lead_trash_1')
+  assert.equal(filterLeads(pool, {}).length, 2) // reports / default exclude trash
+  assert.equal(filterLeads(pool, { inboxView: 'all', q: 'trashed' }).length, 0)
+  assert.equal(filterLeads(pool, { inboxView: 'trash', q: 'trashed' }).length, 1)
+  ok('move to Trash excludes from Active/Completed/All/search/default lists')
+
+  // Soft-delete simulation (store writes deletedAt on one id only)
+  const afterTrash = pool.map((l) =>
+    l.id === 'lead_live_1' ? { ...l, deletedAt: '2026-08-09T13:00:00.000Z', deletedBy: 'admin' } : l,
+  )
+  assert.equal(filterLeads(afterTrash, { inboxView: 'active' }).some((l) => l.id === 'lead_live_1'), false)
+  assert.equal(filterLeads(afterTrash, { inboxView: 'trash' }).some((l) => l.id === 'lead_live_1'), true)
+  assert.equal(filterLeads(afterTrash, { inboxView: 'active' }).some((l) => l.id === 'lead_live_2'), true)
+  ok('trashing one lead keeps same-phone sibling in normal views')
+
+  // Restore simulation
+  const afterRestore = afterTrash.map((l) =>
+    l.id === 'lead_live_1' ? { ...l, deletedAt: null, deletedBy: null } : l,
+  )
+  assert.equal(filterLeads(afterRestore, { inboxView: 'active' }).some((l) => l.id === 'lead_live_1'), true)
+  assert.equal(filterLeads(afterRestore, { inboxView: 'trash' }).some((l) => l.id === 'lead_live_1'), false)
+  ok('restore returns lead to normal views')
+
+  // Permanent deletion simulation — remove only that id from the pool
+  const afterPermanent = afterTrash.filter((l) => l.id !== 'lead_trash_1')
+  assert.equal(afterPermanent.some((l) => l.id === 'lead_trash_1'), false)
+  assert.equal(afterPermanent.some((l) => l.id === 'lead_live_2'), true)
+  assert.equal(filterLeads(afterPermanent, { inboxView: 'trash' }).length, 1) // live_1 still trashed
+  assert.equal(filterLeads(afterPermanent, { inboxView: 'trash' })[0].id, 'lead_live_1')
+  ok('permanent deletion removes only the targeted lead id')
+
+  const presented = presentLead({ id: 'x', status: 'New', name: 'Pat' })
+  assert.equal(presented.deletedAt, null)
+  assert.equal(presented.deletedBy, null)
+  ok('presentLead defaults deletedAt/deletedBy for legacy leads')
 }
 
 console.log('\nAll leads store tests passed.')

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { fetchAdminLeads } from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
 import {
@@ -17,6 +17,7 @@ const INBOX_VIEWS = [
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
   { value: 'all', label: 'All' },
+  { value: 'trash', label: 'Trash' },
 ]
 
 const SOURCE_OPTIONS = [
@@ -92,7 +93,10 @@ function LeadRow({ lead }) {
               ? ` · Appt ${formatAppointmentDate(lead.appointmentDate)} ${formatAppointmentTime(lead.appointmentStartTime)}`
               : ''}
             {lead.followUpDate ? ` · Follow-up ${formatFollowUpDate(lead.followUpDate)}` : ''}
-            {!lead.followUpDate && !lead.appointmentDate ? ` · ${formatLeadDate(lead.createdAt)}` : ''}
+            {lead.deletedAt ? ` · Trashed ${formatLeadDate(lead.deletedAt)}` : ''}
+            {!lead.followUpDate && !lead.appointmentDate && !lead.deletedAt
+              ? ` · ${formatLeadDate(lead.createdAt)}`
+              : ''}
           </p>
         </Link>
         <div className="flex flex-wrap items-center gap-2">
@@ -158,8 +162,13 @@ function partitionActiveLeads(leads) {
 }
 
 export default function LeadsInbox({ onUnauthorized }) {
-  const [filters, setFilters] = useState(emptyFilters)
-  const [draft, setDraft] = useState(emptyFilters)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialView = (() => {
+    const v = String(searchParams.get('inboxView') || '').trim().toLowerCase()
+    return ['active', 'completed', 'all', 'trash'].includes(v) ? v : 'active'
+  })()
+  const [filters, setFilters] = useState({ ...emptyFilters, inboxView: initialView })
+  const [draft, setDraft] = useState({ ...emptyFilters, inboxView: initialView })
   const [leads, setLeads] = useState([])
   const [summary, setSummary] = useState({ overdue: 0, dueToday: 0, dueThisWeek: 0 })
   const [loading, setLoading] = useState(true)
@@ -187,6 +196,18 @@ export default function LeadsInbox({ onUnauthorized }) {
     load()
   }, [load])
 
+  useEffect(() => {
+    const v = String(searchParams.get('inboxView') || '').trim().toLowerCase()
+    const nextView = ['active', 'completed', 'all', 'trash'].includes(v) ? v : 'active'
+    setFilters((prev) => {
+      if (prev.inboxView === nextView) return prev
+      return { ...emptyFilters, inboxView: nextView }
+    })
+    setDraft((prev) => {
+      if (prev.inboxView === nextView) return prev
+      return { ...emptyFilters, inboxView: nextView }
+    })
+  }, [searchParams])
   function applyFilters(e) {
     e.preventDefault()
     setFilters({ ...draft })
@@ -202,12 +223,14 @@ export default function LeadsInbox({ onUnauthorized }) {
     const next = { ...draft, inboxView: view, followUp: '' }
     setDraft(next)
     setFilters(next)
+    setSearchParams(view === 'active' ? {} : { inboxView: view })
   }
 
   function setFollowUpQuick(value) {
     const next = { ...draft, followUp: value, inboxView: 'active' }
     setDraft(next)
     setFilters(next)
+    setSearchParams({})
   }
 
   const inboxView = filters.inboxView || 'active'
@@ -241,7 +264,9 @@ export default function LeadsInbox({ onUnauthorized }) {
       <p className="text-[0.8125rem] text-gray-500">
         {inboxView === 'active' && 'Active shows New, Contacted, and Booked leads.'}
         {inboxView === 'completed' && 'Completed shows every completed job lead. Nothing is deleted.'}
-        {inboxView === 'all' && 'All shows every stored lead, including Completed and Lost.'}
+        {inboxView === 'all' && 'All shows every live lead, including Completed and Lost (not Trash).'}
+        {inboxView === 'trash' &&
+          'Trash shows soft-deleted leads. Restore them or permanently delete them from the lead page.'}
       </p>
 
       {inboxView === 'active' && (
@@ -290,8 +315,10 @@ export default function LeadsInbox({ onUnauthorized }) {
                 inboxView === 'completed'
                   ? 'Search completed leads…'
                   : inboxView === 'all'
-                    ? 'Search all leads…'
-                    : 'Search active leads…'
+                    ? 'Search all live leads…'
+                    : inboxView === 'trash'
+                      ? 'Search trashed leads…'
+                      : 'Search active leads…'
               }
             />
           </div>
@@ -409,7 +436,13 @@ export default function LeadsInbox({ onUnauthorized }) {
         <div className="rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
           <div className="flex items-center justify-between border-b border-black/[0.06] px-5 py-4 sm:px-6">
             <p className="font-display text-lg font-semibold text-navy-900">
-              {inboxView === 'completed' ? 'Completed leads' : inboxView === 'all' ? 'All leads' : 'Filtered leads'}
+              {inboxView === 'completed'
+                ? 'Completed leads'
+                : inboxView === 'all'
+                  ? 'All leads'
+                  : inboxView === 'trash'
+                    ? 'Trash'
+                    : 'Filtered leads'}
             </p>
             <p className="text-[0.8125rem] text-gray-500">
               {`${leads.length} lead${leads.length === 1 ? '' : 's'}`}
@@ -419,7 +452,9 @@ export default function LeadsInbox({ onUnauthorized }) {
             <div className="px-5 py-12 text-center text-[0.875rem] text-gray-500 sm:px-6">
               {inboxView === 'completed'
                 ? 'No completed leads match this search.'
-                : 'No leads match these filters yet.'}
+                : inboxView === 'trash'
+                  ? 'Trash is empty.'
+                  : 'No leads match these filters yet.'}
             </div>
           ) : (
             <ul className="divide-y divide-black/[0.04]">

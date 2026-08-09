@@ -311,6 +311,30 @@ export async function updateAdminLead(id, payload) {
   return data.lead
 }
 
+export async function trashAdminLead(id) {
+  return updateAdminLead(id, { softDelete: true })
+}
+
+export async function restoreAdminLead(id) {
+  return updateAdminLead(id, { restore: true })
+}
+
+export async function permanentlyDeleteAdminLead(id) {
+  const res = await fetch(`/api/leads?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ confirm: 'DELETE' }),
+  })
+  const data = await parseJson(res)
+  if (res.status === 401) {
+    const err = new Error('Unauthorized')
+    err.unauthorized = true
+    throw err
+  }
+  if (!res.ok) throw new Error(data.error || 'Failed to permanently delete lead')
+  return data
+}
+
 function buildReviewsQuery(filters = {}) {
   const params = new URLSearchParams()
   if (filters.q) params.set('q', filters.q)

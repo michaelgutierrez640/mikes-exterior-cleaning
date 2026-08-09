@@ -119,6 +119,7 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} {BUSINESS.name}. All rights reserved.
             </p>
             <FooterLink href="/privacy-policy">Privacy Policy</FooterLink>
+            <FooterLink href="/terms">Terms of Service</FooterLink>
           </div>
           {(reviewsLink || BUSINESS.social.facebook || BUSINESS.social.instagram) && (
             <div className="flex items-center gap-2.5">

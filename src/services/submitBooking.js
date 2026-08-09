@@ -40,5 +40,6 @@ export async function submitBookingRequest(booking) {
     timeWindow: booking.timeWindow,
     customTime: booking.customTime,
     quotedAmount,
+    smsConsent: booking.smsConsent === true,
   })
 }

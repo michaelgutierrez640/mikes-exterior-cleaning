@@ -597,7 +597,40 @@ export function getPrivacyPolicyPageSchemas() {
       url: absoluteUrl('/privacy-policy'),
       isPartOf: { '@id': `${SITE_URL}/#website` },
       about: { '@id': `${SITE_URL}/#localbusiness` },
-      dateModified: '2026-07-25',
+      dateModified: '2026-08-09',
+    },
+  ]
+}
+
+export function getTermsPageSeo() {
+  return {
+    title: "Terms of Service | Mike's Exterior Cleaning Services",
+    description:
+      "Terms of Service for Mike's Exterior Cleaning Services website, quotes, bookings, and optional SMS appointment updates.",
+    keywords:
+      "terms of service, Mike's Exterior Cleaning Services, SMS terms, Modesto exterior cleaning",
+    canonical: absoluteUrl('/terms'),
+  }
+}
+
+export function getTermsPageSchemas() {
+  return [
+    getOrganizationSchema(),
+    getWebSiteSchema(),
+    getBreadcrumbSchema([
+      { name: 'Home', url: absoluteUrl('/') },
+      { name: 'Terms of Service', url: absoluteUrl('/terms') },
+    ]),
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': `${absoluteUrl('/terms')}#webpage`,
+      name: "Terms of Service | Mike's Exterior Cleaning Services",
+      description: getTermsPageSeo().description,
+      url: absoluteUrl('/terms'),
+      isPartOf: { '@id': `${SITE_URL}/#website` },
+      about: { '@id': `${SITE_URL}/#localbusiness` },
+      dateModified: '2026-08-09',
     },
   ]
 }
