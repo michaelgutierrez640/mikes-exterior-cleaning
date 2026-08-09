@@ -84,8 +84,12 @@ function baseLead(overrides = {}) {
     status: 'New',
     smsConsent: false,
     smsConsentAt: null,
+    smsConsentSource: null,
+    smsConsentPhone: null,
     smsOptedOut: false,
     smsOptedOutAt: null,
+    smsOptOutHistory: [],
+    smsThread: [],
     smsLastError: null,
     appointmentDate: null,
     appointmentStartTime: null,
@@ -136,6 +140,8 @@ function baseLead(overrides = {}) {
   assert.equal(legacy.smsConsent, false)
   assert.equal(legacy.smsOptedOut, false)
   assert.equal(legacy.smsLastError, null)
+  assert.deepEqual(legacy.smsThread, [])
+  assert.deepEqual(legacy.smsOptOutHistory, [])
   assert.equal(legacy.automationState.bookingConfirmForAppointmentKey, null)
   assert.equal(legacy.automationState.reminderForAppointmentKey, null)
   ok('existing leads without SMS fields continue working via presentLead')
@@ -192,6 +198,9 @@ function baseLead(overrides = {}) {
   assert.ok(sender.sent.some((s) => s.kind === 'customer_quote_received'))
   assert.ok(store.get('lead_test_1').automationState.ownerNewLeadSmsAt)
   assert.ok(store.get('lead_test_1').automationState.quoteReceivedSmsAt)
+  assert.equal(store.get('lead_test_1').smsThread.length, 1)
+  assert.equal(store.get('lead_test_1').smsThread[0].direction, 'outbound')
+  assert.equal(store.get('lead_test_1').smsThread[0].kind, 'customer_quote_received')
   ok('customer with consent receives eligible new-lead messages')
 }
 
@@ -416,6 +425,161 @@ function baseLead(overrides = {}) {
   assert.equal(store.get('lead_test_1').automationState.ownerNewLeadSmsAt, null)
   assert.equal(store.get('lead_test_1').automationState.quoteReceivedSmsAt, null)
   ok('with SMS inactive, automations do not stamp or send')
+}
+
+{
+  const consented = validateLeadIngest({
+    source: 'instant_quote',
+    name: 'Alex',
+    phone: '2095551212',
+    email: 'alex@example.com',
+    smsConsent: true,
+  })
+  assert.equal(consented.data.smsConsent, true)
+  // Consent metadata is applied at create time from source + phone
+  const presented = presentLead({
+    ...consented.data,
+    id: 'lead_x',
+    smsConsent: true,
+    smsConsentAt: '2026-08-09T00:00:00.000Z',
+    smsConsentSource: 'instant_quote',
+    smsConsentPhone: '2095551212',
+  })
+  assert.equal(presented.smsConsentSource, 'instant_quote')
+  assert.equal(presented.smsConsentPhone, '2095551212')
+  ok('consent source and phone are presentable in admin')
+}
+
+{
+  const { isStopKeyword, isHelpKeyword, isStartKeyword } = await import('../lib/smsKeywords.mjs')
+  for (const word of ['STOP', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT']) {
+    assert.equal(isStopKeyword(word), true)
+  }
+  assert.equal(isHelpKeyword('HELP'), true)
+  assert.equal(isStartKeyword('START'), true)
+  ok('STOP/HELP/START keywords recognized')
+}
+
+{
+  const {
+    appendSmsOptOutHistory,
+    appendSmsThreadToLead,
+    createSmsThreadEntry,
+  } = await import('../lib/leadsStore.mjs')
+  const lead = baseLead({ smsConsent: true, smsOptedOut: false })
+  appendSmsOptOutHistory(lead, {
+    event: 'opt_out',
+    at: '2026-08-09T01:00:00.000Z',
+    keyword: 'STOP',
+    phone: lead.phone,
+  })
+  lead.smsOptedOut = true
+  lead.smsOptedOutAt = '2026-08-09T01:00:00.000Z'
+  appendSmsOptOutHistory(lead, {
+    event: 'resubscribe',
+    at: '2026-08-09T02:00:00.000Z',
+    keyword: 'START',
+    phone: lead.phone,
+  })
+  lead.smsOptedOut = false
+  lead.smsOptedOutAt = null
+  assert.equal(lead.smsOptOutHistory.length, 2)
+  assert.equal(lead.smsOptOutHistory[0].event, 'opt_out')
+  assert.equal(lead.smsOptOutHistory[1].event, 'resubscribe')
+  appendSmsThreadToLead(
+    lead,
+    createSmsThreadEntry({
+      direction: 'inbound',
+      body: 'Can we move to Friday?',
+      kind: 'customer_reply',
+      at: '2026-08-09T03:00:00.000Z',
+      phone: lead.phone,
+    }),
+  )
+  assert.equal(lead.smsThread.length, 1)
+  assert.equal(lead.smsThread[0].direction, 'inbound')
+  ok('opt-out history permanent and inbound replies storable on lead')
+}
+
+{
+  const { computeTwilioSignature, signaturesMatch, verifyTwilioWebhookSignature } = await import(
+    '../lib/smsTwilioAuth.mjs'
+  )
+  const token = 'test_auth_token_value'
+  const url = 'https://www.mikesexteriorcleaning.com/api/sms/inbound'
+  const params = { From: '+12095551212', Body: 'HELP' }
+  const expected = computeTwilioSignature(token, url, params)
+  assert.equal(signaturesMatch(expected, expected), true)
+  assert.equal(signaturesMatch(expected, 'bogus'), false)
+
+  const prevToken = process.env.TWILIO_AUTH_TOKEN
+  const prevNodeEnv = process.env.NODE_ENV
+  const prevVercelEnv = process.env.VERCEL_ENV
+  process.env.TWILIO_AUTH_TOKEN = token
+  process.env.NODE_ENV = 'production'
+  process.env.VERCEL_ENV = 'production'
+  try {
+    const bad = verifyTwilioWebhookSignature(
+      { headers: { 'x-twilio-signature': 'invalid', host: 'www.mikesexteriorcleaning.com', 'x-forwarded-proto': 'https' } },
+      params,
+      { url },
+    )
+    assert.equal(bad.ok, false)
+    assert.equal(bad.status, 403)
+
+    const good = verifyTwilioWebhookSignature(
+      {
+        headers: {
+          'x-twilio-signature': expected,
+          host: 'www.mikesexteriorcleaning.com',
+          'x-forwarded-proto': 'https',
+        },
+      },
+      params,
+      { url },
+    )
+    assert.equal(good.ok, true)
+  } finally {
+    if (prevToken === undefined) delete process.env.TWILIO_AUTH_TOKEN
+    else process.env.TWILIO_AUTH_TOKEN = prevToken
+    if (prevNodeEnv === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = prevNodeEnv
+    if (prevVercelEnv === undefined) delete process.env.VERCEL_ENV
+    else process.env.VERCEL_ENV = prevVercelEnv
+  }
+  ok('Twilio signature validation accepts valid and rejects invalid in production')
+}
+
+{
+  const { SMS_CONSENT_DISCLOSURE } = await import('../src/components/forms/SmsConsentCheckbox.jsx').catch(() => ({
+    SMS_CONSENT_DISCLOSURE: null,
+  }))
+  // Vite JSX may not load in plain Node; assert the constant via direct file read fallback below.
+  if (!SMS_CONSENT_DISCLOSURE) {
+    const fs = await import('fs')
+    const src = fs.readFileSync(new URL('../src/components/forms/SmsConsentCheckbox.jsx', import.meta.url), 'utf8')
+    assert.match(
+      src,
+      /By checking this box, I agree to receive appointment confirmations, service updates, and follow-up text messages from Mike's Exterior Cleaning Services/,
+    )
+    assert.match(src, /Consent is not a condition of purchase/)
+    assert.match(src, /to="\/privacy-policy"/)
+    assert.match(src, /to="\/terms"/)
+  }
+  ok('consent disclosure uses approved A2P wording with Privacy and Terms links')
+}
+
+{
+  const fs = await import('fs')
+  const envExample = fs.readFileSync(new URL('../.env.example', import.meta.url), 'utf8')
+  assert.match(envExample, /^SMS_ENABLED=false$/m)
+  assert.match(envExample, /^TWILIO_ACCOUNT_SID=$/m)
+  assert.match(envExample, /^TWILIO_AUTH_TOKEN=$/m)
+  assert.match(envExample, /^TWILIO_PHONE_NUMBER=$/m)
+  assert.match(envExample, /^TWILIO_MESSAGING_SERVICE_SID=$/m)
+  assert.match(envExample, /^TWILIO_STATUS_CALLBACK_URL=$/m)
+  assert.doesNotMatch(envExample, /AC[a-f0-9]{20,}/i)
+  ok('env placeholders present with SMS_ENABLED=false and no real secrets')
 }
 
 console.log('\nAll SMS automation tests passed.')

@@ -635,13 +635,19 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <h3 className="font-display text-lg font-semibold text-navy-900">SMS automation</h3>
         <p className="mt-1 text-[0.8125rem] text-gray-500">
-          Read-only delivery state. Real texts send only after SMS is activated in Vercel.
+          Read-only consent, opt-out history, and message thread. Real texts send only after SMS is activated in
+          Vercel.
         </p>
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <Field label="Customer SMS consent">
             {lead.smsConsent ? `Yes${lead.smsConsentAt ? ` · ${formatLeadDate(lead.smsConsentAt)}` : ''}` : 'No'}
           </Field>
-          <Field label="Opted out">
+          <Field label="Consent source / phone">
+            {[lead.smsConsentSource || null, lead.smsConsentPhone || lead.phone || null]
+              .filter(Boolean)
+              .join(' · ') || '—'}
+          </Field>
+          <Field label="Opted out (active)">
             {lead.smsOptedOut ? `Yes${lead.smsOptedOutAt ? ` · ${formatLeadDate(lead.smsOptedOutAt)}` : ''}` : 'No'}
           </Field>
           <Field label="Quote confirmation SMS">
@@ -677,6 +683,58 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           <Field label="Last SMS error">
             <span className="break-all text-[0.8125rem]">{lead.smsLastError || '—'}</span>
           </Field>
+        </div>
+
+        {(lead.smsOptOutHistory || []).length > 0 && (
+          <div className="mt-8">
+            <h4 className="text-[0.8125rem] font-semibold uppercase tracking-wide text-gray-500">
+              Opt-out / resubscribe history
+            </h4>
+            <ul className="mt-3 space-y-2">
+              {[...(lead.smsOptOutHistory || [])].reverse().map((event, idx) => (
+                <li
+                  key={`${event.at || 'evt'}-${idx}`}
+                  className="rounded-xl bg-gray-50 px-4 py-3 text-[0.8125rem] text-navy-900"
+                >
+                  <span className="font-medium capitalize">{event.event?.replace('_', ' ') || 'event'}</span>
+                  {event.keyword ? ` · ${event.keyword}` : ''}
+                  {event.at ? ` · ${formatLeadDate(event.at)}` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-8">
+          <h4 className="text-[0.8125rem] font-semibold uppercase tracking-wide text-gray-500">
+            Message thread
+          </h4>
+          {(lead.smsThread || []).length === 0 ? (
+            <p className="mt-3 text-[0.8125rem] text-gray-400">No SMS messages stored for this lead yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {[...(lead.smsThread || [])].map((msg) => (
+                <li
+                  key={msg.id || `${msg.at}-${msg.direction}`}
+                  className={`rounded-xl px-4 py-3 text-[0.8125rem] ${
+                    msg.direction === 'inbound'
+                      ? 'bg-royal-50/70 text-navy-900'
+                      : 'bg-gray-50 text-navy-900'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.75rem] text-gray-500">
+                    <span className="font-semibold uppercase tracking-wide text-navy-800">
+                      {msg.direction === 'inbound' ? 'Inbound' : 'Outbound'}
+                    </span>
+                    {msg.kind ? <span>· {msg.kind}</span> : null}
+                    {msg.at ? <span>· {formatLeadDate(msg.at)}</span> : null}
+                    {msg.status ? <span>· {msg.status}</span> : null}
+                  </div>
+                  <p className="mt-1.5 whitespace-pre-wrap break-words">{msg.body || '—'}</p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

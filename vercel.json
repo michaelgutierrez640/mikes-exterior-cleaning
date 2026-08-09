@@ -73,6 +73,10 @@
       "destination": "/api/leads?resource=sms-inbound"
     },
     {
+      "source": "/api/sms/status",
+      "destination": "/api/leads?resource=sms-status"
+    },
+    {
       "source": "/api/our-work-gallery",
       "destination": "/api/projects?resource=our-work-gallery"
     },

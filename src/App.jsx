@@ -23,6 +23,7 @@ const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
 const ProjectDetailPage = lazy(() => import('./pages/ProjectDetailPage'))
 const ServiceCityPage = lazy(() => import('./pages/ServiceCityPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))
 const AdminOurWorkGalleryPage = lazy(() => import('./pages/AdminOurWorkGalleryPage'))
 const AdminCustomerReviewsPage = lazy(() => import('./pages/AdminCustomerReviewsPage'))
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/projects" element={<LazyPage><ProjectsPage /></LazyPage>} />
           <Route path="/projects/:slug" element={<LazyPage><ProjectDetailPage /></LazyPage>} />
           <Route path="/privacy-policy" element={<LazyPage><PrivacyPolicyPage /></LazyPage>} />
+          <Route path="/terms" element={<LazyPage><TermsOfServicePage /></LazyPage>} />
           <Route path="/review" element={<LazyPage><ReviewPage /></LazyPage>} />
           <Route path="/admin/dashboard" element={<LazyPage><AdminDashboardPage /></LazyPage>} />
           <Route path="/admin/reports" element={<LazyPage><AdminReportsPage /></LazyPage>} />

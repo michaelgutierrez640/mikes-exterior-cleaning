@@ -1,6 +1,6 @@
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
 import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
-import { handleSmsInbound } from '../lib/smsInbound.mjs'
+import { handleSmsInbound, handleSmsStatusCallback } from '../lib/smsInbound.mjs'
 import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
 import {
   checkLeadIngestRateLimit,
@@ -87,12 +87,20 @@ export default async function handler(req, res) {
     return handleWebsiteReviewsRequest(req, res)
   }
 
-  // Twilio STOP/START webhook (rewrite /api/sms/inbound → this resource).
+  // Twilio STOP/START/HELP webhook (rewrite /api/sms/inbound → this resource).
   if (String(req.query?.resource || '') === 'sms-inbound') {
     if (!isLeadsStorageConfigured()) {
       return json(res, 503, { error: 'Leads storage not configured' })
     }
     return handleSmsInbound(req, res, { json })
+  }
+
+  // Twilio delivery status callback (rewrite /api/sms/status → this resource).
+  if (String(req.query?.resource || '') === 'sms-status') {
+    if (!isLeadsStorageConfigured()) {
+      return json(res, 503, { error: 'Leads storage not configured' })
+    }
+    return handleSmsStatusCallback(req, res, { json })
   }
 
   if (!isLeadsStorageConfigured()) {

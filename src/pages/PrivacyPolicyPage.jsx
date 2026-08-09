@@ -11,7 +11,7 @@ import ScrollReveal from '../components/ScrollReveal'
 import { PhoneLink } from '../components/ui/Button'
 
 const pageSeo = getPrivacyPolicyPageSeo()
-const LAST_UPDATED = 'July 25, 2026'
+const LAST_UPDATED = 'August 9, 2026'
 
 /** Display casing requested for the privacy contact block (same mailbox as BUSINESS.email). */
 const PRIVACY_CONTACT_EMAIL = 'Mikesexteriorcleaning209@gmail.com'
@@ -136,6 +136,32 @@ export default function PrivacyPolicyPage() {
               </ul>
             </Section>
 
+            <Section id="text-messaging-sms" heading="Text Messaging (SMS)">
+              <p>
+                If you provide your mobile phone number and opt in, we may use that number to send transactional
+                text messages related to your quote or service — for example appointment confirmations, schedule
+                updates, reminders, and limited follow-up such as a review request after a completed job.
+              </p>
+              <p>
+                SMS consent is optional and is not required to receive a quote or purchase services. Message
+                frequency varies. Message and data rates may apply. Reply <strong>STOP</strong> to opt out or{' '}
+                <strong>HELP</strong> for help.
+              </p>
+              <p>
+                <strong>
+                  We do not sell mobile information or SMS consent, and we do not share mobile information or SMS
+                  consent with third parties for their marketing purposes.
+                </strong>{' '}
+                We may use service providers (such as our SMS delivery provider) solely to transmit messages and
+                operate our business communications on our behalf.
+              </p>
+              <p>
+                Opt-out requests are recorded in our customer records. After you opt out, we will not send further
+                automated customer SMS unless you later resubscribe (for example by texting START or submitting a
+                new opt-in on our website).
+              </p>
+            </Section>
+
             <Section id="data-retention" heading="Data Retention">
               <p>
                 We retain information only for as long as reasonably necessary to respond to inquiries, provide
@@ -158,6 +184,7 @@ export default function PrivacyPolicyPage() {
                 <li>Request a correction</li>
                 <li>Request deletion, subject to legal or legitimate business exceptions</li>
                 <li>Ask us to stop sending promotional communications</li>
+                <li>Opt out of automated SMS by replying STOP to a text message</li>
               </ul>
               <p>We may need to verify your identity before completing certain requests.</p>
             </Section>
