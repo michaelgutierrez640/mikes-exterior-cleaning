@@ -32,6 +32,7 @@ export default {
         { name: 'Gutter Cleaning', text: 'Hand debris removal, downspout flushing, and flow testing before Modesto\'s rainy season overwhelms clogged channels.', slug: 'gutter-cleaning' },
         { name: 'Solar Panel Cleaning', text: 'Safe roof access and purified water rinsing to restore energy output lost to Central Valley dust and pollen.', slug: 'solar-panel-cleaning' },
         { name: 'Residential Window Cleaning', text: 'Interior and exterior home glass across Modesto neighborhoods — recurring schedules available.', slug: 'residential-window-cleaning' },
+        { name: 'Solar Panel Pigeon Guard', text: 'Bird proofing for Modesto rooftop solar arrays where nesting, droppings, and debris collect under panels.', slug: 'pigeon-guard' },
       ],
     },
     localConditions: {
@@ -59,7 +60,7 @@ export default {
     },
   },
   faqs: [
-    { q: 'What exterior cleaning services do you offer in Modesto?', a: 'We provide window cleaning, pressure washing, gutter cleaning, solar panel cleaning, and residential window cleaning throughout Modesto and Stanislaus County. Every service includes a free on-site estimate.' },
+    { q: 'What exterior cleaning services do you offer in Modesto?', a: 'We provide window cleaning, pressure washing, gutter cleaning, solar panel cleaning, residential window cleaning, and Solar Panel Pigeon Guard throughout Modesto and Stanislaus County. Every service includes a free estimate.' },
     { q: 'How often should Modesto homeowners schedule exterior cleaning?', a: 'Most Modesto homes benefit from window cleaning two to three times yearly, annual gutter cleaning before rainy season, and driveway pressure washing one to two times per year. Properties near farmland may need more frequent service.' },
     { q: 'Are you licensed and insured in Modesto?', a: 'Yes. Mike\'s Exterior Cleaning Services is fully insured on every Modesto job. We are locally owned with a 5.0 Google rating and 44 verified reviews.' },
     { q: 'Do you serve all Modesto neighborhoods?', a: 'Yes — La Loma, College Area, downtown, Pelandale, Del Rio, Wood Colony, Vintage Fairs, and surrounding Modesto communities are all within our regular service area.' },

@@ -12,6 +12,11 @@ const ALLOWED_EVENTS = new Set([
   'text_clicked',
   'book_online_clicked',
   'google_review_clicked',
+  'pigeon_guard_page_view',
+  'pigeon_guard_form_started',
+  'pigeon_guard_photo_added',
+  'pigeon_guard_lead_submitted',
+  'pigeon_guard_call_clicked',
 ])
 
 function json(res, status, payload) {

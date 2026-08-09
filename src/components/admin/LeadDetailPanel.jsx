@@ -22,6 +22,7 @@ import {
   moneyInputValue,
   telHref,
 } from './leadHelpers'
+import { leadPhotoAdminUrl } from '../../utils/leadPhotos'
 
 function todayPacificKey() {
   return new Intl.DateTimeFormat('en-CA', {
@@ -403,6 +404,38 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
             </p>
           </Field>
         </div>
+
+        {Array.isArray(lead.photos) && lead.photos.length > 0 && (
+          <div className="mt-8">
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-500 uppercase">
+              Customer photos
+            </p>
+            <p className="mt-1 text-[0.75rem] text-gray-500">
+              Private uploads for this lead only — not shown on the public site.
+            </p>
+            <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {lead.photos.map((photo, index) => {
+                const src = leadPhotoAdminUrl(photo.pathname)
+                const label = photo.originalName || `Photo ${index + 1}`
+                return (
+                  <li key={photo.pathname || index} className="overflow-hidden rounded-xl border border-black/[0.06] bg-gray-50">
+                    <a href={src} target="_blank" rel="noreferrer" className="block">
+                      <img
+                        src={src}
+                        alt={label}
+                        className="aspect-square w-full object-cover"
+                        loading="lazy"
+                      />
+                    </a>
+                    <p className="truncate px-2 py-1.5 text-[0.7rem] text-gray-500" title={label}>
+                      {label}
+                    </p>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
       </div>
 
       <form

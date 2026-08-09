@@ -25,6 +25,7 @@ const SOURCE_OPTIONS = [
   { value: 'instant_quote', label: 'Instant Quote' },
   { value: 'contact', label: 'Contact' },
   { value: 'booking', label: 'Booking' },
+  { value: 'pigeon_guard_landing', label: 'Pigeon Guard Landing' },
 ]
 
 const FOLLOW_UP_FILTERS = [

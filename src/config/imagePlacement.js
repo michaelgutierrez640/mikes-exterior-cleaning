@@ -152,7 +152,7 @@ export const CATEGORY_TITLES = {
   'roof-cleaning': 'Roof Cleaning',
   'gutter-cleaning': 'Gutter Cleaning',
   'luxury-homes': 'Luxury Homes',
-  'pigeon-guard': 'Pigeon Guard',
+  'pigeon-guard': 'Solar Panel Pigeon Guard',
 }
 
 export const GALLERY_CATEGORY_ORDER = [

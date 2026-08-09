@@ -259,6 +259,76 @@ export function trackPhoneClick(sourceHint = 'phone_link') {
   trackInternalEvent('phone_clicked', { sourceHint: String(sourceHint || 'phone_link').slice(0, 100) })
 }
 
+/** Safe pigeon-guard landing trackers — never throw into form/CTA handlers. */
+function safePigeonTrack(fn) {
+  try {
+    fn()
+  } catch {
+    // Tracking must never block lead submission or CTA clicks.
+  }
+}
+
+export function trackPigeonGuardPageView() {
+  safePigeonTrack(() => {
+    trackEvent('pigeon_guard_page_view', { page: '/services/pigeon-guard' })
+    trackInternalEvent('pigeon_guard_page_view', {
+      path: '/services/pigeon-guard',
+      sourceHint: 'pigeon_guard_landing',
+      service: 'Pigeon Guard',
+    })
+  })
+}
+
+export function trackPigeonGuardFormStarted() {
+  safePigeonTrack(() => {
+    trackEvent('pigeon_guard_form_started', { page: '/services/pigeon-guard' })
+    trackInternalEvent('pigeon_guard_form_started', {
+      path: '/services/pigeon-guard',
+      sourceHint: 'pigeon_guard_form',
+      service: 'Pigeon Guard',
+    })
+  })
+}
+
+export function trackPigeonGuardPhotoAdded(count = 1) {
+  safePigeonTrack(() => {
+    trackEvent('pigeon_guard_photo_added', { photo_count: count })
+    trackInternalEvent('pigeon_guard_photo_added', {
+      path: '/services/pigeon-guard',
+      sourceHint: 'pigeon_guard_form',
+      service: 'Pigeon Guard',
+    })
+  })
+}
+
+export function trackPigeonGuardLeadSubmitted() {
+  safePigeonTrack(() => {
+    trackEvent('pigeon_guard_lead_submitted', { page: '/services/pigeon-guard' })
+    trackInternalEvent('pigeon_guard_lead_submitted', {
+      path: '/services/pigeon-guard',
+      sourceHint: 'pigeon_guard_form',
+      service: 'Pigeon Guard',
+    })
+    if (hasFbq() && META_PIXEL_ID) {
+      window.fbq('track', 'Lead', { content_name: 'Pigeon Guard Estimate' })
+    }
+    if (hasGtag() && GA_ID) {
+      window.gtag('event', 'generate_lead', { currency: 'USD' })
+    }
+  })
+}
+
+export function trackPigeonGuardCallClicked(sourceHint = 'pigeon_guard_call') {
+  safePigeonTrack(() => {
+    trackEvent('pigeon_guard_call_clicked', { page: '/services/pigeon-guard' })
+    trackInternalEvent('pigeon_guard_call_clicked', {
+      path: '/services/pigeon-guard',
+      sourceHint: String(sourceHint || 'pigeon_guard_call').slice(0, 100),
+      service: 'Pigeon Guard',
+    })
+  })
+}
+
 /**
  * Count at most one Instant Quote start per browser session.
  * Call from the Instant Quote calculator mount only (not from CTA buttons).

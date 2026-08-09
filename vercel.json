@@ -77,6 +77,10 @@
       "destination": "/api/leads?resource=sms-status"
     },
     {
+      "source": "/api/leads/blob-upload",
+      "destination": "/api/leads?resource=blob-upload"
+    },
+    {
       "source": "/api/our-work-gallery",
       "destination": "/api/projects?resource=our-work-gallery"
     },

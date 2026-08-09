@@ -17,3 +17,8 @@ export function scrollToHash(hash) {
   const top = el.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
   window.scrollTo({ top, behavior: 'smooth' })
 }
+
+export function scrollToPigeonEstimateForm(e) {
+  if (e) e.preventDefault()
+  scrollToHash('estimate-form')
+}

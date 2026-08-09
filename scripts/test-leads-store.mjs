@@ -52,6 +52,59 @@ function ok(name) {
 
 {
   const r = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    email: '',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    message: 'Problem: Pigeons currently nesting',
+    smsConsent: true,
+    photos: [
+      {
+        pathname: 'lead-photos/123-roof.jpg',
+        url: 'https://example.public.blob.vercel-storage.com/lead-photos/123-roof.jpg',
+        contentType: 'image/jpeg',
+        size: 120000,
+        originalName: 'roof.jpg',
+      },
+    ],
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.data.source, 'pigeon_guard_landing')
+  assert.equal(r.data.email, null)
+  assert.equal(r.data.city, 'Modesto')
+  assert.equal(r.data.smsConsent, true)
+  assert.equal(r.data.photos.length, 1)
+  assert.equal(r.data.photos[0].pathname, 'lead-photos/123-roof.jpg')
+  assert.equal(r.data.photos[0].access, 'private')
+  ok('pigeon_guard_landing accepts optional email + private photos')
+}
+
+{
+  const missingCity = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: '',
+  })
+  assert.equal(missingCity.ok, false)
+  const badPhoto = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    photos: [{ pathname: 'completed-jobs/x.jpg', url: 'https://example.com/x.jpg' }],
+  })
+  assert.equal(badPhoto.ok, false)
+  ok('pigeon_guard_landing requires city and rejects non-lead photo paths')
+}
+
+{
+  const r = validateLeadIngest({
     source: 'booking',
     name: 'Alex',
     phone: '2095551212',

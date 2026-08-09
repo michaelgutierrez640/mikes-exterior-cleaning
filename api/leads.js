@@ -1,7 +1,15 @@
+import { handleUpload } from '@vercel/blob/client'
+import { get as getBlob } from '@vercel/blob'
 import { json, requireAdmin } from '../lib/adminAuth.mjs'
 import { handleWebsiteReviewsRequest } from '../lib/reviewsApiHandler.mjs'
 import { handleSmsInbound, handleSmsStatusCallback } from '../lib/smsInbound.mjs'
 import { runLeadUpdateSmsAutomations, runNewLeadSmsAutomations } from '../lib/smsAutomations.mjs'
+import {
+  isSafeLeadPhotoPathname,
+  LEAD_PHOTO_CONTENT_TYPES,
+  LEAD_PHOTO_PATH_PREFIX,
+  MAX_LEAD_PHOTO_BYTES,
+} from '../lib/leadPhotos.mjs'
 import {
   checkLeadIngestRateLimit,
   createLeadFromIngest,
@@ -66,6 +74,7 @@ function parseBody(req) {
  * Public:
  * - POST /api/leads  → create lead or link booking onto existing Instant Quote lead
  *   Response: { ok, id } (no PII). Optional linkedLeadId for quote→booking continuity.
+ * - POST /api/leads/blob-upload (rewrite) → private customer photo upload tokens
  *
  * Website customer reviews (same function via rewrite /api/reviews → ?resource=website-reviews):
  * - POST/GET/PATCH/DELETE handled by handleWebsiteReviewsRequest
@@ -73,6 +82,7 @@ function parseBody(req) {
  * Admin (cookie auth):
  * - GET  /api/leads
  * - GET  /api/leads?id=<leadId>
+ * - GET  /api/leads?resource=lead-photo&pathname=lead-photos/...  → private photo stream
  * - PATCH /api/leads?id=<leadId>
  *   body: {
  *     status?, note?, followUpDate?, followUpNote?, clearFollowUp?,
@@ -82,16 +92,138 @@ function parseBody(req) {
  *     internalNotes?
  *   }
  */
+async function handleLeadBlobUpload(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
+    return json(res, 405, { error: 'Method not allowed' })
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return json(res, 503, {
+      error: 'Blob storage not configured',
+      hint: 'Add BLOB_READ_WRITE_TOKEN in Vercel (Storage → Blob)',
+    })
+  }
+
+  const ip = getClientIp(req)
+  try {
+    // Separate, tighter window for photo uploads (abuse protection).
+    const rate = await checkLeadIngestRateLimit(ip, { limit: 20, windowSec: 3600 })
+    if (!rate.allowed) {
+      return json(res, 429, { error: 'Too many upload requests. Please try again later.' })
+    }
+  } catch (err) {
+    console.error('[leads/blob-upload] rate limit error:', err?.message || err)
+  }
+
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    const result = await handleUpload({
+      body,
+      request: req,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      onBeforeGenerateToken: async (pathname) => {
+        const safePath = String(pathname || '')
+          .replace(/[^a-zA-Z0-9._/-]/g, '-')
+          .slice(0, 180)
+        if (!safePath.startsWith(LEAD_PHOTO_PATH_PREFIX)) {
+          throw new Error('Invalid upload path')
+        }
+        if (safePath.includes('..')) {
+          throw new Error('Invalid upload path')
+        }
+        return {
+          allowedContentTypes: LEAD_PHOTO_CONTENT_TYPES,
+          maximumSizeInBytes: MAX_LEAD_PHOTO_BYTES,
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({ purpose: 'lead-photo' }),
+        }
+      },
+      onUploadCompleted: async () => {
+        // Client attaches URLs on lead ingest. Callback may not run on localhost.
+      },
+    })
+    return json(res, 200, result)
+  } catch (err) {
+    console.error('[leads/blob-upload]', err?.message || err)
+    const message = err?.message || 'Upload authorization failed'
+    return json(res, 400, { error: message })
+  }
+}
+
+async function handleLeadPhotoProxy(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', 'GET')
+    return json(res, 405, { error: 'Method not allowed' })
+  }
+
+  const auth = requireAdmin(req)
+  if (!auth.ok) return json(res, auth.status, { error: auth.error })
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return json(res, 503, { error: 'Blob storage not configured' })
+  }
+
+  const pathname = String(req.query?.pathname || '').trim()
+  if (!isSafeLeadPhotoPathname(pathname)) {
+    return json(res, 400, { error: 'Invalid photo path' })
+  }
+
+  try {
+    const result = await getBlob(pathname, {
+      access: 'private',
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+    })
+    if (!result?.stream) {
+      return json(res, 404, { error: 'Photo not found' })
+    }
+
+    const contentType =
+      result.blob?.contentType ||
+      result.headers?.get?.('content-type') ||
+      'application/octet-stream'
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Cache-Control', 'private, no-store')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+
+    // Node/Vercel: stream may be a Web ReadableStream
+    if (typeof result.stream.getReader === 'function' && typeof ReadableStream !== 'undefined') {
+      const reader = result.stream.getReader()
+      const chunks = []
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(Buffer.from(value))
+      }
+      return res.status(200).end(Buffer.concat(chunks))
+    }
+
+    // Fallback for Node streams
+    if (typeof result.stream.pipe === 'function') {
+      res.statusCode = 200
+      result.stream.pipe(res)
+      return
+    }
+
+    return json(res, 500, { error: 'Unable to stream photo' })
+  } catch (err) {
+    console.error('[leads/lead-photo]', err?.message || err)
+    return json(res, 404, { error: 'Photo not found' })
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store')
 
+  const resource = String(req.query?.resource || '').trim()
+
   // Folded website reviews keep us under Vercel Hobby serverless-function limits.
-  if (String(req.query?.resource || '') === 'website-reviews') {
+  if (resource === 'website-reviews') {
     return handleWebsiteReviewsRequest(req, res)
   }
 
   // Twilio STOP/START/HELP webhook (rewrite /api/sms/inbound → this resource).
-  if (String(req.query?.resource || '') === 'sms-inbound') {
+  if (resource === 'sms-inbound') {
     if (!isLeadsStorageConfigured()) {
       return json(res, 503, { error: 'Leads storage not configured' })
     }
@@ -99,11 +231,21 @@ export default async function handler(req, res) {
   }
 
   // Twilio delivery status callback (rewrite /api/sms/status → this resource).
-  if (String(req.query?.resource || '') === 'sms-status') {
+  if (resource === 'sms-status') {
     if (!isLeadsStorageConfigured()) {
       return json(res, 503, { error: 'Leads storage not configured' })
     }
     return handleSmsStatusCallback(req, res, { json })
+  }
+
+  // Private customer photo upload tokens (rewrite /api/leads/blob-upload).
+  if (resource === 'blob-upload') {
+    return handleLeadBlobUpload(req, res)
+  }
+
+  // Admin-only private photo stream for CRM lead detail.
+  if (resource === 'lead-photo') {
+    return handleLeadPhotoProxy(req, res)
   }
 
   if (!isLeadsStorageConfigured()) {

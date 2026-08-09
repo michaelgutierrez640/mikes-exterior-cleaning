@@ -29,7 +29,7 @@ async function sendFormSubmitEmail({ name, phone, email, address, service, messa
   const data = {
     name,
     phone,
-    email,
+    email: email || '(not provided)',
     address,
     service,
     message,
@@ -53,7 +53,7 @@ async function sendFormSubmitEmail({ name, phone, email, address, service, messa
  * Only call after client-side validation has passed.
  *
  * @param {object} fields
- * @param {'instant_quote'|'contact'|'booking'} fields.source
+ * @param {'instant_quote'|'contact'|'booking'|'pigeon_guard_landing'} fields.source
  * @param {string} [fields.companyWebsite] honeypot — must stay empty
  * @param {number} [fields.quotedAmount] structured quote amount (Instant Quote low end)
  * @param {string} [fields.linkedLeadId] existing Instant Quote lead to update (booking)
@@ -61,6 +61,7 @@ async function sendFormSubmitEmail({ name, phone, email, address, service, messa
  * @param {string} [fields.timeWindow] morning|afternoon|evening|custom
  * @param {string} [fields.customTime]
  * @param {boolean} [fields.smsConsent] explicit transactional SMS opt-in (never required)
+ * @param {Array<object>} [fields.photos] private blob photo metadata (lead-photos/)
  * @returns {Promise<{ ok: boolean, id?: string, linked?: boolean }>}
  */
 export async function submitLead({
@@ -80,6 +81,7 @@ export async function submitLead({
   timeWindow = undefined,
   customTime = undefined,
   smsConsent = false,
+  photos = undefined,
 }) {
   // Silent drop for honeypot fills — no Redis lead, no email
   if (String(companyWebsite || '').trim()) {
@@ -95,7 +97,7 @@ export async function submitLead({
     source,
     name,
     phone,
-    email,
+    email: email || null,
     address,
     service,
     message,
@@ -113,6 +115,9 @@ export async function submitLead({
   if (customTime) payload.customTime = customTime
   // Only forward explicit true — omit/false must never look like consent server-side.
   if (smsConsent === true) payload.smsConsent = true
+  if (Array.isArray(photos) && photos.length) {
+    payload.photos = photos
+  }
 
   // Save CRM first so a failed email still leaves an admin-visible lead when possible.
   // Require both to succeed so the visitor knows if something went wrong.
