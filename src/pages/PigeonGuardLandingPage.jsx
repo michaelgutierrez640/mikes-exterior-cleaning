@@ -45,7 +45,7 @@ const BENEFITS = [
 ]
 
 /** Landing-page sections: tighter than global .service-section, still breathable. */
-const SECTION = 'py-10 sm:py-14 lg:py-16'
+const SECTION = 'py-8 sm:py-12 lg:py-14'
 const BODY = 'text-[0.9375rem] leading-relaxed text-gray-700 sm:text-base sm:leading-[1.7]'
 
 function EstimateCtaButton({ className = '', children = 'Get My Free Pigeon Guard Estimate' }) {
