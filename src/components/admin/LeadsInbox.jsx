@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { fetchAdminLeads } from '../../services/adminApi'
 import FollowUpBadge from './FollowUpBadge'
@@ -25,6 +25,7 @@ const SOURCE_OPTIONS = [
   { value: 'instant_quote', label: 'Instant Quote' },
   { value: 'contact', label: 'Contact' },
   { value: 'booking', label: 'Booking' },
+  { value: 'pigeon_guard_landing', label: 'Pigeon Guard Landing' },
 ]
 
 const FOLLOW_UP_FILTERS = [
@@ -173,9 +174,11 @@ export default function LeadsInbox({ onUnauthorized }) {
   const [summary, setSummary] = useState({ overdue: 0, dueToday: 0, dueThisWeek: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const hasLoadedOnce = useRef(false)
 
   const load = useCallback(async () => {
-    setLoading(true)
+    // Soft refresh after first load: keep cards mounted so view/filter changes don't jump scroll.
+    if (!hasLoadedOnce.current) setLoading(true)
     setError('')
     try {
       const data = await fetchAdminLeads(filters)
@@ -188,6 +191,7 @@ export default function LeadsInbox({ onUnauthorized }) {
     } catch (err) {
       setError(err.message || 'Failed to load leads')
     } finally {
+      hasLoadedOnce.current = true
       setLoading(false)
     }
   }, [filters, onUnauthorized])

@@ -16,7 +16,7 @@ export default {
     imageAlt:
       'Residential rooftop solar panels being professionally cleaned by Mike\'s Exterior Cleaning Services in Modesto, California',
   },
-  relatedServices: ['window-cleaning', 'pressure-washing', 'gutter-cleaning'],
+  relatedServices: ['pigeon-guard', 'window-cleaning', 'pressure-washing', 'gutter-cleaning'],
   sections: {
     intro: {
       title: 'Solar Panel Cleaning for Maximum Central Valley Output',
@@ -24,6 +24,7 @@ export default {
         'California leads the nation in residential solar adoption, and the Central Valley is no exception. Thousands of Modesto-area homeowners have invested in rooftop solar to combat rising energy costs and take advantage of our abundant sunshine. But sunshine alone is not enough — dirty panels can lose 15 to 25 percent of their energy production, and in the agricultural heartland of Stanislaus and San Joaquin counties, panels get dirty faster than almost anywhere in the state. Dust from nearby fields, pollen during spring bloom, bird droppings, and hard water spots from sprinkler overspray all coat your panels in a film that blocks photons before they reach the cells.',
         'Mike\'s Exterior Cleaning Services provides professional solar panel cleaning designed specifically for the Central Valley climate. We use purified water and soft-bristle techniques that remove contaminants without scratching anti-reflective coatings or voiding manufacturer warranties. Our technicians are trained to work safely on rooftops and with ground-mounted arrays, using proper fall protection and equipment that avoids damage to panels, wiring, and mounting hardware.',
         'Whether your system sits on a single-story ranch in Salida, a two-story home in Riverbank, or a commercial array in Manteca, regular cleaning is one of the highest-return maintenance tasks you can perform. Most homeowners notice improved production within days of a professional cleaning. With a 5.0 Google rating and 44 Google reviews, our solar panel clients trust us to protect their investment and deliver measurable results — not just a visual improvement.',
+        'If pigeons are nesting under your array, pair cleaning with Solar Panel Pigeon Guard — bird proofing installed around the panel perimeter. Learn more on our Pigeon Guard page or mention nesting when you request a solar cleaning estimate.',
       ],
     },
     benefits: {
@@ -157,7 +158,11 @@ export default {
     },
     {
       q: 'Can solar panel cleaning be bundled with other services?',
-      a: 'Since we are already on your roof, bundling solar cleaning with gutter cleaning or window washing is efficient and economical. Gutter cleaning before solar service prevents debris from washing onto freshly cleaned panels. Many Modesto and Turlock clients schedule both services in a single visit for a complete exterior maintenance package.',
+      a: 'Since we are already on your roof, bundling solar cleaning with gutter cleaning, window washing, or Solar Panel Pigeon Guard is efficient and economical. Gutter cleaning before solar service prevents debris from washing onto freshly cleaned panels. If birds are nesting under your array, ask about pigeon guard bird proofing during the same visit.',
+    },
+    {
+      q: 'Do you install pigeon guard under solar panels?',
+      a: 'Yes. We install Solar Panel Pigeon Guard to help block birds from nesting underneath rooftop arrays. Visit our Pigeon Guard page for details and a free estimate focused on bird proofing.',
     },
     {
       q: 'Why trust Mike\'s Exterior with your solar investment?',

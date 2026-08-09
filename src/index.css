@@ -286,6 +286,72 @@ body {
 
 .input-light {
   @apply w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-base text-navy-900 placeholder-gray-400 outline-none transition-[border-color,box-shadow,background-color] duration-300;
+  color-scheme: light;
+}
+
+/* Compact mobile inputs (pigeon landing) — keep ≥44px touch target */
+.input-light-compact {
+  @apply w-full min-h-11 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[0.9375rem] text-navy-900 placeholder-gray-400 outline-none transition-[border-color,box-shadow,background-color] duration-300 sm:min-h-0 sm:px-4 sm:py-3.5 sm:text-base;
+  color-scheme: light;
+}
+.input-light-compact:hover {
+  @apply border-gray-300 bg-gray-50/50;
+}
+.input-light-compact:focus {
+  @apply border-royal-400 bg-white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-control-surface {
+  color-scheme: light;
+}
+
+/*
+ * Explicit radio/checkbox visuals.
+ * html uses color-scheme: dark for the shell; without this, native controls
+ * on light forms look filled/black even when unchecked.
+ */
+.form-radio,
+.form-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  background-color: #fff;
+  border: 2px solid rgba(10, 22, 40, 0.55);
+  color-scheme: light;
+  cursor: pointer;
+}
+
+.form-radio {
+  border-radius: 9999px;
+}
+
+.form-checkbox {
+  border-radius: 0.25rem;
+}
+
+.form-radio:checked {
+  border-color: #1d4ed8;
+  background-color: #fff;
+  background-image: radial-gradient(circle, #1d4ed8 0 38%, transparent 40%);
+}
+
+.form-checkbox:checked {
+  border-color: #1d4ed8;
+  background-color: #1d4ed8;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E");
+  background-size: 0.75rem 0.75rem;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.form-radio:focus-visible,
+.form-checkbox:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .input-light:hover {
@@ -411,14 +477,18 @@ body {
 
 .back-to-top {
   @apply fixed z-40 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-navy-900/88 text-white/90 backdrop-blur-2xl transition-all duration-300 hover:border-white/25 hover:bg-navy-800 hover:text-white;
+  /* Leave the common bottom-right accessibility-widget corner clear */
   bottom: calc(5.5rem + env(safe-area-inset-bottom));
-  right: max(1.25rem, env(safe-area-inset-right));
+  left: max(1.25rem, env(safe-area-inset-left));
+  right: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 @media (min-width: 1024px) {
   .back-to-top {
     bottom: max(1.75rem, env(safe-area-inset-bottom));
+    left: auto;
+    right: max(1.75rem, env(safe-area-inset-right));
   }
 }
 
@@ -433,6 +503,14 @@ body {
 
 @media (max-width: 1023px) {
   footer { padding-bottom: calc(5.75rem + env(safe-area-inset-bottom)); }
+
+  /* Compact pigeon sticky — shorter clearance; none when sticky is hidden */
+  html.pigeon-landing.pigeon-mid-sticky-cta footer {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  }
+  html.pigeon-landing:not(.pigeon-mid-sticky-cta) footer {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

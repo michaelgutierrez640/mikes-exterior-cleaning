@@ -35,10 +35,10 @@ export const SERVICES = [
     icon: 'window',
   },
   {
-    title: 'Pigeon Guard',
+    title: 'Solar Panel Pigeon Guard',
     slug: 'pigeon-guard',
-    description: 'Bird deterrent installation for solar arrays and rooflines to stop nesting and protect your panels.',
-    seo: 'Pigeon Guard Modesto',
+    description: 'Bird proofing for rooftop solar arrays — professionally installed pigeon barrier to block nesting underneath panels.',
+    seo: 'Solar Panel Pigeon Guard Modesto',
     icon: 'solar',
   },
 ]

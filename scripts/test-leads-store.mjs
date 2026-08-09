@@ -51,6 +51,127 @@ function ok(name) {
 }
 
 {
+  const withPhotos = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    email: '',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    message: 'Problem: Pigeons currently nesting',
+    smsConsent: true,
+    photos: [
+      {
+        pathname: 'lead-photos/123-roof.jpg',
+        url: 'https://example.public.blob.vercel-storage.com/lead-photos/123-roof.jpg',
+        contentType: 'image/jpeg',
+        size: 120000,
+        originalName: 'roof.jpg',
+      },
+    ],
+  })
+  // Uploads are disabled without a dedicated private store env — ingest must reject photo payloads.
+  assert.equal(withPhotos.ok, false)
+  assert.match(String(withPhotos.error || ''), /disabled|private/i)
+  ok('pigeon_guard_landing rejects photos while private store is not configured')
+}
+
+{
+  const noPhotos = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    email: '',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    message: 'Problem: Pigeons currently nesting',
+    smsConsent: true,
+  })
+  assert.equal(noPhotos.ok, true)
+  assert.equal(noPhotos.data.email, null)
+  assert.equal(noPhotos.data.city, 'Modesto')
+  assert.equal(noPhotos.data.smsConsent, true)
+  ok('pigeon_guard_landing accepts optional email without photos')
+}
+
+{
+  const multi = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam Rivera',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    service: 'Pigeon Guard',
+    problems: ['Pigeons currently nesting', 'Droppings/debris'],
+    idempotencyKey: 'pg_abc123',
+    photoWarning: 'Photos could not be uploaded',
+  })
+  assert.equal(multi.ok, true)
+  assert.deepEqual(multi.data.problems, ['Pigeons currently nesting', 'Droppings/debris'])
+  assert.equal(multi.data.idempotencyKey, 'pg_abc123')
+  assert.equal(multi.data.photoWarning, 'Photos could not be uploaded')
+
+  const emptyProblems = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    problems: [],
+  })
+  assert.equal(emptyProblems.ok, false)
+
+  const legacy = presentLead({
+    id: 'lead_legacy',
+    source: 'pigeon_guard_landing',
+    name: 'Legacy',
+    phone: '2095551212',
+    status: 'New',
+    message: 'Problem: Noise under panels',
+    photos: [
+      {
+        pathname: 'lead-photos/secret.jpg',
+        url: 'https://example.public.blob.vercel-storage.com/lead-photos/secret.jpg',
+        contentType: 'image/jpeg',
+        originalName: 'secret.jpg',
+        access: 'public',
+      },
+    ],
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  })
+  assert.deepEqual(legacy.problems, ['Noise under panels'])
+  assert.equal(legacy.photos.length, 1)
+  assert.equal(legacy.photos[0].pathname, 'lead-photos/secret.jpg')
+  assert.equal(legacy.photos[0].url, undefined)
+  assert.equal(legacy.photos[0].access, 'private')
+  ok('pigeon problems array, empty rejection, legacy string compatibility, photo URL redaction')
+}
+
+{
+  const missingCity = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: '',
+  })
+  assert.equal(missingCity.ok, false)
+  const badPhoto = validateLeadIngest({
+    source: 'pigeon_guard_landing',
+    name: 'Sam',
+    phone: '2095551212',
+    address: '456 Oak Ave',
+    city: 'Modesto',
+    photos: [{ pathname: 'completed-jobs/x.jpg', url: 'https://example.com/x.jpg' }],
+  })
+  assert.equal(badPhoto.ok, false)
+  ok('pigeon_guard_landing requires city and rejects non-lead photo paths')
+}
+
+{
   const r = validateLeadIngest({
     source: 'booking',
     name: 'Alex',

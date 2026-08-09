@@ -549,7 +549,7 @@ function projectServiceLabel(service) {
     'solar-panel-cleaning': 'Solar Panel Cleaning',
     'gutter-cleaning': 'Gutter Cleaning',
     'residential-window-cleaning': 'Residential Window Cleaning',
-    'pigeon-guard': 'Pigeon Guard',
+    'pigeon-guard': 'Solar Panel Pigeon Guard',
   }
   return map[service] || humanizeSlug(service)
 }

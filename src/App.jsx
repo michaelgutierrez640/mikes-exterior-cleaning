@@ -6,6 +6,7 @@ import Layout from './components/layout/Layout'
 import Analytics from './components/Analytics'
 
 const ServicePage = lazy(() => import('./pages/ServicePage'))
+const PigeonGuardLandingPage = lazy(() => import('./pages/PigeonGuardLandingPage'))
 const WindowCleaningCityPage = lazy(() => import('./pages/WindowCleaningCityPage'))
 const ServiceAreasPage = lazy(() => import('./pages/ServiceAreasPage'))
 const CityPage = lazy(() => import('./pages/CityPage'))
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route element={<Layout />}>
           <Route path="/services/:slug/:citySlug" element={<LazyPage><ServiceCityPage /></LazyPage>} />
+          <Route path="/services/pigeon-guard" element={<LazyPage><PigeonGuardLandingPage /></LazyPage>} />
           <Route path="/services/:slug" element={<LazyPage><ServicePage /></LazyPage>} />
           <Route path="/window-cleaning/:citySlug" element={<LazyPage><WindowCleaningCityPage /></LazyPage>} />
           <Route path="/service-areas" element={<LazyPage><ServiceAreasPage /></LazyPage>} />

@@ -21,6 +21,7 @@ export const LEAD_SOURCE_LABELS = {
   instant_quote: 'Instant Quote',
   contact: 'Contact',
   booking: 'Booking',
+  pigeon_guard_landing: 'Pigeon Guard Landing',
 }
 
 export const FOLLOW_UP_BADGE_LABELS = {

@@ -20,6 +20,17 @@ import { servicePath, cityPath } from '../utils/projectLabels'
 import { normalizeCitySlug, normalizeServiceSlug } from '../utils/projectMatch'
 import { buildServiceCityContent } from '../utils/serviceCityContent'
 
+function PigeonGuardEstimateLink({ className = '' }) {
+  return (
+    <Link
+      to="/services/pigeon-guard#estimate-form"
+      className={`btn-royal btn-md !rounded-xl ${className}`}
+    >
+      Get Pigeon Guard Estimate
+    </Link>
+  )
+}
+
 function ServiceCityFaq({ faqs, headingId, title }) {
   const [open, setOpen] = useState(0)
   if (!faqs?.length) return null
@@ -113,8 +124,14 @@ export default function ServiceCityPage() {
           <p className="mt-4 text-[1rem] leading-relaxed text-white/65">{content.heroSubtitle}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <CallButton variant="royal" />
-            <InstantQuoteButton variant="secondary" size="md" className="!rounded-xl" />
-            <BookOnlineButton variant="secondary" size="md" className="!rounded-xl" state={{ serviceSlug }} />
+            {serviceSlug === 'pigeon-guard' ? (
+              <PigeonGuardEstimateLink />
+            ) : (
+              <>
+                <InstantQuoteButton variant="secondary" size="md" className="!rounded-xl" />
+                <BookOnlineButton variant="secondary" size="md" className="!rounded-xl" state={{ serviceSlug }} />
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -181,7 +198,11 @@ export default function ServiceCityPage() {
           </div>
           <div className="mt-8 flex flex-wrap gap-3">
             <CallButton variant="royal" />
-            <InstantQuoteButton variant="secondary" size="md" className="!rounded-xl" showIcon={false} />
+            {serviceSlug === 'pigeon-guard' ? (
+              <PigeonGuardEstimateLink />
+            ) : (
+              <InstantQuoteButton variant="secondary" size="md" className="!rounded-xl" showIcon={false} />
+            )}
           </div>
         </div>
       </section>

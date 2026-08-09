@@ -17,7 +17,7 @@ const SERVICE_LOCAL_ANGLE = {
   'gutter-cleaning':
     'hand debris removal and downspout flushing before winter storms overwhelm clogged channels',
   'pigeon-guard':
-    'bird deterrent protection for solar arrays and rooflines where nesting debris cuts production and creates fire risk',
+    'Solar Panel Pigeon Guard and bird proofing for arrays where nesting, droppings, and debris collect under panels',
 }
 
 export function buildServiceCityContent(serviceSlug, city, servicePage) {
@@ -68,7 +68,10 @@ export function buildServiceCityContent(serviceSlug, city, servicePage) {
     },
     {
       q: `How do I get a free ${cityName} estimate?`,
-      a: `Call (209) 496-5519, use Instant Quote, or book online. We walk the property, explain the scope, and provide a clear written quote with no obligation.`,
+      a:
+        serviceSlug === 'pigeon-guard'
+          ? `Call (209) 496-5519 or request a free estimate on our Solar Panel Pigeon Guard page. Share photos if you have them — Mike reviews your panel layout and contacts you about bird proofing.`
+          : `Call (209) 496-5519, use Instant Quote, or book online. We walk the property, explain the scope, and provide a clear written quote with no obligation.`,
     },
   ]
 

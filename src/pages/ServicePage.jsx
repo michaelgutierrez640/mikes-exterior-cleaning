@@ -170,6 +170,18 @@ export default function ServicePage() {
         id={`${slug}-intro`}
         title={sections.intro.title}
         paragraphs={sections.intro.paragraphs}
+        cta={
+          slug === 'solar-panel-cleaning' ? (
+            <p className="mt-6">
+              <Link
+                to="/services/pigeon-guard"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-royal-600 px-5 text-[0.875rem] font-semibold text-white transition-colors hover:bg-royal-700"
+              >
+                Solar Panel Pigeon Guard →
+              </Link>
+            </p>
+          ) : null
+        }
       />
 
       {/* Benefits */}
