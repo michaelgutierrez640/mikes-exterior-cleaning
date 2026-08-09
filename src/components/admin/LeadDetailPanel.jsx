@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   fetchAdminLead,
   permanentlyDeleteAdminLead,
@@ -7,9 +7,9 @@ import {
   trashAdminLead,
   updateAdminLead,
 } from '../../services/adminApi'
+import AdminToast from './AdminToast'
 import FollowUpBadge from './FollowUpBadge'
 import {
-  APPOINTMENT_STATUSES,
   LEAD_STATUSES,
   PAYMENT_STATUSES,
   formatAppointmentDate,
@@ -94,23 +94,30 @@ function moneyOrNull(value) {
 }
 
 export default function LeadDetailPanel({ leadId, onUnauthorized }) {
-  const navigate = useNavigate()
   const [lead, setLead] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
+  const [loadError, setLoadError] = useState('')
+  const [toast, setToast] = useState(null)
   const [detailsDraft, setDetailsDraft] = useState(emptyDetailsDraft())
   const [followUpDateDraft, setFollowUpDateDraft] = useState('')
   const [followUpNoteDraft, setFollowUpNoteDraft] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
   const [bookedConfirmOpen, setBookedConfirmOpen] = useState(false)
   const [trashConfirmOpen, setTrashConfirmOpen] = useState(false)
   const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false)
   const [permanentDeleteConfirmText, setPermanentDeleteConfirmText] = useState('')
+  const [permanentlyDeleted, setPermanentlyDeleted] = useState(false)
+
+  const showToast = useCallback((message, tone = 'success') => {
+    setToast({ id: Date.now(), message, tone })
+  }, [])
+
+  const dismissToast = useCallback(() => setToast(null), [])
 
   const load = useCallback(async () => {
     setLoading(true)
-    setError('')
+    setLoadError('')
+    setPermanentlyDeleted(false)
     try {
       const data = await fetchAdminLead(leadId)
       if (data?.unauthorized) {
@@ -122,7 +129,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       setFollowUpDateDraft(data.lead?.followUpDate || '')
       setFollowUpNoteDraft(data.lead?.followUpNote || '')
     } catch (err) {
-      setError(err.message || 'Failed to load lead')
+      setLoadError(err.message || 'Failed to load lead')
       setLead(null)
     } finally {
       setLoading(false)
@@ -143,27 +150,27 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
     return Object.keys(baseline).some((key) => String(baseline[key] ?? '') !== String(detailsDraft[key] ?? ''))
   }, [lead, detailsDraft])
 
+  const busy = Boolean(pendingAction)
+
   async function persistDetails(payload) {
-    setSaving(true)
-    setMessage('')
-    setError('')
+    setPendingAction('details')
     try {
       const updated = await updateAdminLead(lead.id, payload)
       setLead(updated)
       setDetailsDraft(draftFromLead(updated))
       setFollowUpDateDraft(updated.followUpDate || '')
       setFollowUpNoteDraft(updated.followUpNote || '')
-      setMessage('Lead saved.')
       setBookedConfirmOpen(false)
+      showToast('Changes saved')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to save lead')
       setBookedConfirmOpen(false)
+      showToast(err.message || 'Failed to save lead', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
@@ -173,7 +180,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       appointmentDate: detailsDraft.appointmentDate || null,
       appointmentStartTime: detailsDraft.appointmentStartTime || null,
       appointmentTimezone: detailsDraft.appointmentTimezone || 'America/Los_Angeles',
-      appointmentStatus: detailsDraft.appointmentStatus || 'none',
+      // Preserve existing appointmentStatus without exposing a duplicate UI control.
+      appointmentStatus: detailsDraft.appointmentStatus || lead?.appointmentStatus || 'none',
       appointmentNotes: detailsDraft.appointmentNotes || null,
       quotedAmount: moneyOrNull(detailsDraft.quotedAmount),
       bookedAmount: moneyOrNull(detailsDraft.bookedAmount),
@@ -185,14 +193,13 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   function handleDetailsSave(e) {
     e.preventDefault()
-    if (!lead || !detailsDirty) return
+    if (!lead || !detailsDirty || busy) return
 
     if (detailsDraft.status === 'Booked') {
       if (!detailsDraft.appointmentDate || !detailsDraft.appointmentStartTime) {
-        setError('Appointment date and start time are required when status is Booked.')
+        showToast('Appointment date and start time are required when status is Booked.', 'error')
         return
       }
-      setError('')
       setBookedConfirmOpen(true)
       return
     }
@@ -202,10 +209,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
   async function handleFollowUpSave(e) {
     e.preventDefault()
-    if (!lead) return
-    setSaving(true)
-    setMessage('')
-    setError('')
+    if (!lead || busy) return
+    setPendingAction('followUp')
     try {
       const updated = await updateAdminLead(lead.id, {
         followUpDate: followUpDateDraft || null,
@@ -214,98 +219,94 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
       setLead(updated)
       setFollowUpDateDraft(updated.followUpDate || '')
       setFollowUpNoteDraft(updated.followUpNote || '')
-      setMessage(updated.followUpDate ? 'Follow-up saved.' : 'Follow-up date cleared.')
+      showToast(updated.followUpDate ? 'Follow-up saved' : 'Follow-up date cleared')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to save follow-up')
+      showToast(err.message || 'Failed to save follow-up', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
   async function handleFollowUpClear() {
-    if (!lead) return
-    setSaving(true)
-    setMessage('')
-    setError('')
+    if (!lead || busy) return
+    setPendingAction('clearFollowUp')
     try {
       const updated = await updateAdminLead(lead.id, { clearFollowUp: true })
       setLead(updated)
       setFollowUpDateDraft('')
       setFollowUpNoteDraft('')
-      setMessage('Follow-up cleared.')
+      showToast('Follow-up cleared')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to clear follow-up')
+      showToast(err.message || 'Failed to clear follow-up', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
   async function handleMoveToTrash() {
-    setSaving(true)
-    setMessage('')
-    setError('')
+    if (!lead || busy) return
+    setPendingAction('trash')
     try {
       const updated = await trashAdminLead(lead.id)
       setLead(updated)
       setTrashConfirmOpen(false)
-      setMessage('Lead moved to Trash.')
-      navigate('/admin/leads?inboxView=trash')
+      showToast('Lead moved to Trash')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to move lead to Trash')
+      showToast(err.message || 'Failed to move lead to Trash', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
   async function handleRestore() {
-    setSaving(true)
-    setMessage('')
-    setError('')
+    if (!lead || busy) return
+    setPendingAction('restore')
     try {
       const updated = await restoreAdminLead(lead.id)
       setLead(updated)
-      setMessage('Lead restored.')
-      navigate('/admin/leads')
+      showToast('Lead restored')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to restore lead')
+      showToast(err.message || 'Failed to restore lead', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
   async function handlePermanentDelete() {
+    if (!lead || busy) return
     if (permanentDeleteConfirmText.trim() !== 'DELETE') return
-    setSaving(true)
-    setMessage('')
-    setError('')
+    setPendingAction('permanentDelete')
     try {
       await permanentlyDeleteAdminLead(lead.id)
       setPermanentDeleteOpen(false)
-      navigate('/admin/leads?inboxView=trash')
+      setPermanentDeleteConfirmText('')
+      setLead(null)
+      setPermanentlyDeleted(true)
+      showToast('Lead permanently deleted')
     } catch (err) {
       if (err.unauthorized) {
         onUnauthorized?.()
         return
       }
-      setError(err.message || 'Failed to permanently delete lead')
+      showToast(err.message || 'Failed to permanently delete lead', 'error')
     } finally {
-      setSaving(false)
+      setPendingAction(null)
     }
   }
 
@@ -320,10 +321,16 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
   if (!lead) {
     return (
       <div className="rounded-2xl border border-black/[0.06] bg-white p-8 shadow-[0_1px_3px_rgba(10,22,40,0.06)]">
-        <p className="text-[0.875rem] text-red-700">{error || 'Lead not found.'}</p>
-        <Link to="/admin/leads" className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-700 hover:text-royal-800">
+        <p className="text-[0.875rem] text-navy-900">
+          {permanentlyDeleted ? 'Lead permanently deleted.' : loadError || 'Lead not found.'}
+        </p>
+        <Link
+          to="/admin/leads"
+          className="mt-4 inline-block text-[0.875rem] font-semibold text-royal-700 hover:text-royal-800"
+        >
           ← Back to inbox
         </Link>
+        <AdminToast toast={toast} onDismiss={dismissToast} />
       </div>
     )
   }
@@ -353,17 +360,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
           )}
         </div>
       </div>
-
-      {message && (
-        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-[0.875rem] text-emerald-800" role="status">
-          {message}
-        </p>
-      )}
-      {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-[0.875rem] text-red-700" role="alert">
-          {error}
-        </p>
-      )}
 
       <div className="rounded-2xl border border-black/[0.06] bg-white p-6 shadow-[0_1px_3px_rgba(10,22,40,0.06)] sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -533,23 +529,6 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               className="input-light"
             />
           </div>
-          <div>
-            <label htmlFor="appt-status" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
-              Appointment status
-            </label>
-            <select
-              id="appt-status"
-              value={detailsDraft.appointmentStatus}
-              onChange={(e) => updateDetail('appointmentStatus', e.target.value)}
-              className="input-light"
-            >
-              {APPOINTMENT_STATUSES.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="sm:col-span-2">
             <label htmlFor="appt-notes" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-600">
               Appointment notes (optional)
@@ -656,10 +635,10 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
         <div className="mt-6 flex flex-wrap gap-2">
           <button
             type="submit"
-            disabled={saving || !detailsDirty}
+            disabled={busy || !detailsDirty}
             className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {pendingAction === 'details' ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       </form>
@@ -714,7 +693,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="btn-secondary btn-md !rounded-xl"
-                disabled={saving}
+                disabled={busy}
                 onClick={() => setBookedConfirmOpen(false)}
               >
                 Cancel
@@ -722,10 +701,10 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="btn-royal btn-md !rounded-xl"
-                disabled={saving}
+                disabled={busy}
                 onClick={() => persistDetails(buildDetailsPayload())}
               >
-                {saving ? 'Saving…' : 'Confirm & save Booked'}
+                {pendingAction === 'details' ? 'Saving…' : 'Confirm & save Booked'}
               </button>
             </div>
           </div>
@@ -908,15 +887,15 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="submit"
-            disabled={saving}
+            disabled={busy}
             className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? 'Saving…' : 'Save follow-up'}
+            {pendingAction === 'followUp' ? 'Saving…' : 'Save follow-up'}
           </button>
           <button
             type="button"
             onClick={handleFollowUpClear}
-            disabled={saving || (!lead.followUpDate && !lead.followUpNote)}
+            disabled={busy || (!lead.followUpDate && !lead.followUpNote)}
             className="btn-secondary btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
           >
             Clear follow-up
@@ -960,15 +939,15 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={saving}
+                disabled={busy}
                 onClick={handleRestore}
                 className="btn-royal btn-md !rounded-xl disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? 'Working…' : 'Restore lead'}
+                {pendingAction === 'restore' ? 'Working…' : 'Restore lead'}
               </button>
               <button
                 type="button"
-                disabled={saving}
+                disabled={busy}
                 onClick={() => {
                   setPermanentDeleteConfirmText('')
                   setPermanentDeleteOpen(true)
@@ -987,7 +966,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
             </p>
             <button
               type="button"
-              disabled={saving}
+              disabled={busy}
               onClick={() => setTrashConfirmOpen(true)}
               className="mt-4 rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -1015,7 +994,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="btn-secondary btn-md !rounded-xl"
-                disabled={saving}
+                disabled={busy}
                 onClick={() => setTrashConfirmOpen(false)}
               >
                 Cancel
@@ -1023,10 +1002,10 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="rounded-xl bg-red-600 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                disabled={saving}
+                disabled={busy}
                 onClick={handleMoveToTrash}
               >
-                {saving ? 'Moving…' : 'Move to Trash'}
+                {pendingAction === 'trash' ? 'Moving…' : 'Move to Trash'}
               </button>
             </div>
           </div>
@@ -1065,7 +1044,7 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="btn-secondary btn-md !rounded-xl"
-                disabled={saving}
+                disabled={busy}
                 onClick={() => {
                   setPermanentDeleteOpen(false)
                   setPermanentDeleteConfirmText('')
@@ -1076,10 +1055,10 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
               <button
                 type="button"
                 className="rounded-xl bg-red-700 px-4 py-2.5 text-[0.875rem] font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={saving || permanentDeleteConfirmText.trim() !== 'DELETE'}
+                disabled={busy || permanentDeleteConfirmText.trim() !== 'DELETE'}
                 onClick={handlePermanentDelete}
               >
-                {saving ? 'Deleting…' : 'Permanently delete'}
+                {pendingAction === 'permanentDelete' ? 'Deleting…' : 'Permanently delete'}
               </button>
             </div>
           </div>
@@ -1090,6 +1069,8 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
         Lead ID <span className="font-mono">{lead.id}</span> · Updated {formatLeadDate(lead.updatedAt)}
         {lead.appointmentConfirmedAt ? ` · Appointment confirmed ${formatLeadDate(lead.appointmentConfirmedAt)}` : ''}
       </p>
+
+      <AdminToast toast={toast} onDismiss={dismissToast} />
     </div>
   )
 }

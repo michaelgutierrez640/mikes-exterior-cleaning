@@ -471,66 +471,59 @@ export default function PigeonGuardEstimateForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="pg-photos" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
-          Photos of roof, panels, nesting, or damage{' '}
-          <span className="font-normal text-gray-400">(optional, up to {MAX_LEAD_PHOTOS})</span>
-        </label>
-        {!LEAD_PHOTO_UPLOADS_ENABLED ? (
-          <p className="rounded-xl bg-amber-50 px-3.5 py-3 text-[0.8125rem] leading-snug text-amber-950">
-            Photo upload is temporarily unavailable while private photo storage is being configured.
-            You can still submit this form — Mike can request photos by text or email if needed.
+      {LEAD_PHOTO_UPLOADS_ENABLED && (
+        <div>
+          <label htmlFor="pg-photos" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
+            Photos of roof, panels, nesting, or damage{' '}
+            <span className="font-normal text-gray-400">(optional, up to {MAX_LEAD_PHOTOS})</span>
+          </label>
+          <p className="mb-1.5 text-[0.75rem] leading-snug text-gray-600">
+            JPG, PNG, HEIC, or WebP · 10 MB max per image. Photos are private to your estimate request
+            and only viewable by Mike in Admin.
           </p>
-        ) : (
-          <>
-            <p className="mb-1.5 text-[0.75rem] leading-snug text-gray-600">
-              JPG, PNG, HEIC, or WebP · 10 MB max per image. Photos are private to your estimate request
-              and only viewable by Mike in Admin.
+          <input
+            id="pg-photos"
+            type="file"
+            accept={LEAD_PHOTO_ACCEPT}
+            multiple
+            onChange={handlePhotosSelected}
+            onFocus={markStarted}
+            className="block w-full text-[0.8125rem] text-gray-600 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-royal-50 file:px-3 file:py-2.5 file:text-[0.8125rem] file:font-semibold file:text-royal-800"
+          />
+          {photoError && (
+            <p className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
+              {photoError}
             </p>
-            <input
-              id="pg-photos"
-              type="file"
-              accept={LEAD_PHOTO_ACCEPT}
-              multiple
-              onChange={handlePhotosSelected}
-              onFocus={markStarted}
-              className="block w-full text-[0.8125rem] text-gray-600 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-royal-50 file:px-3 file:py-2.5 file:text-[0.8125rem] file:font-semibold file:text-royal-800"
-            />
-            {photoError && (
-              <p className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
-                {photoError}
-              </p>
-            )}
-            {photos.length > 0 && (
-              <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {photos.map((photo, index) => (
-                  <li key={`${photo.previewUrl}-${index}`} className="relative overflow-hidden rounded-lg bg-gray-100">
-                    {photo.heic ? (
-                      <div className="flex aspect-square items-center justify-center p-2 text-center text-[0.65rem] text-gray-500">
-                        HEIC ready
-                      </div>
-                    ) : (
-                      <img
-                        src={photo.previewUrl}
-                        alt=""
-                        className="aspect-square h-full w-full object-cover"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(index)}
-                      className="absolute top-1 right-1 rounded bg-navy-950/75 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white"
-                      aria-label={`Remove photo ${index + 1}`}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
-      </div>
+          )}
+          {photos.length > 0 && (
+            <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {photos.map((photo, index) => (
+                <li key={`${photo.previewUrl}-${index}`} className="relative overflow-hidden rounded-lg bg-gray-100">
+                  {photo.heic ? (
+                    <div className="flex aspect-square items-center justify-center p-2 text-center text-[0.65rem] text-gray-500">
+                      HEIC ready
+                    </div>
+                  ) : (
+                    <img
+                      src={photo.previewUrl}
+                      alt=""
+                      className="aspect-square h-full w-full object-cover"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 rounded bg-navy-950/75 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white"
+                    aria-label={`Remove photo ${index + 1}`}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <SmsConsentCheckbox id="pg-sms-consent" checked={smsConsent} onChange={setSmsConsent} />
 
