@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { BUSINESS, HEADER_NAV_LINKS, NAV_LINKS } from '../../config/business'
 import { BookOnlineButton, CallButton, InstantQuoteButton, PhoneLink } from '../ui/Button'
 import BrandLogo from '../ui/BrandLogo'
@@ -39,8 +39,12 @@ function NavLabel({ link }) {
 }
 
 export default function Header() {
+  const { pathname } = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const pigeonLanding = pathname === '/services/pigeon-guard'
+  // Compact sticky chrome on pigeon landing after the first screenful (mobile only via CSS).
+  const compactMobile = pigeonLanding && scrolled && !menuOpen
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -60,12 +64,17 @@ export default function Header() {
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('pigeon-landing', pigeonLanding)
+    return () => document.documentElement.classList.remove('pigeon-landing')
+  }, [pigeonLanding])
+
   const closeMenu = () => setMenuOpen(false)
 
   return (
     <header className="fixed top-0 right-0 left-0 z-50">
       <div
-        className={`transition-[background-color,box-shadow,border-color] duration-500 ${
+        className={`transition-[background-color,box-shadow,border-color,padding] duration-300 ${
           scrolled
             ? 'border-b border-white/[0.06] bg-navy-950/80 backdrop-blur-2xl'
             : 'bg-transparent'
@@ -75,14 +84,26 @@ export default function Header() {
           boxShadow: scrolled ? '0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.18)' : 'none',
         }}
       >
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-7 py-3.5 sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14">
+        <div
+          className={[
+            'mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center sm:gap-5 sm:px-11 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-7 lg:px-14',
+            compactMobile ? 'gap-3 px-5 py-1.5 lg:gap-7 lg:px-14 lg:py-3.5' : 'gap-4 px-7 py-3.5',
+          ].join(' ')}
+        >
           <Link
             to="/"
             className="relative z-20 flex shrink-0 items-center"
             aria-label={`${BUSINESS.name} home`}
             onClick={closeMenu}
           >
-            <BrandLogo priority />
+            <BrandLogo
+              priority
+              className={
+                compactMobile
+                  ? 'h-9 w-auto max-w-none object-contain object-left lg:h-[62px]'
+                  : 'h-[48px] w-auto max-w-none object-contain object-left sm:h-[62px]'
+              }
+            />
           </Link>
 
           <nav
@@ -122,7 +143,10 @@ export default function Header() {
           <button
             type="button"
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center justify-self-end rounded-xl border border-white/15 bg-white/[0.06] text-white backdrop-blur-xl transition-all duration-300 active:scale-95 lg:hidden"
+            className={[
+              'flex shrink-0 items-center justify-center justify-self-end border border-white/15 bg-white/[0.06] text-white backdrop-blur-xl transition-all duration-300 active:scale-95 lg:hidden',
+              compactMobile ? 'h-9 w-9 rounded-lg' : 'h-10 w-10 rounded-xl',
+            ].join(' ')}
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}

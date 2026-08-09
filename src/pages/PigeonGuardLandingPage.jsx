@@ -131,7 +131,10 @@ export default function PigeonGuardLandingPage() {
           <p className="mt-3 max-w-2xl text-[0.9375rem] leading-relaxed text-white/85 sm:mt-4 sm:text-lg">
             {hero.subtitle}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7 sm:gap-4">
+          <div
+            id="pigeon-hero-ctas"
+            className="mt-6 flex flex-wrap items-center gap-3 sm:mt-7 sm:gap-4"
+          >
             <EstimateCtaButton className="!rounded-xl" />
             <CallButton
               variant="secondary"
@@ -152,15 +155,14 @@ export default function PigeonGuardLandingPage() {
             <h2 id="pigeon-problem" className="font-display text-2xl font-semibold text-navy-900 sm:text-3xl">
               Why pigeons under solar panels are a problem
             </h2>
-            <div className={`mt-4 space-y-4 ${BODY}`}>
+            <div className={`mt-3 space-y-3 sm:mt-4 sm:space-y-4 ${BODY}`}>
               <p>
-                Pigeons nest in the sheltered gap beneath rooftop solar panels. Nesting brings droppings, noise,
-                nesting debris, and mess onto the roof and around the array.
+                Pigeons nest under rooftop solar panels. That brings droppings, noise, nesting debris, and mess onto
+                the roof and around the array.
               </p>
               <p>
-                Over time, debris and droppings can stain surfaces, create cleanup headaches, and contribute to wear
-                around mounts and roofing materials. Bird proofing with a professionally installed pigeon barrier helps
-                block birds from getting underneath your panels in the first place.
+                Debris and droppings can stain surfaces and create cleanup headaches. A professionally installed pigeon
+                barrier helps block birds from getting underneath your panels.
               </p>
             </div>
           </ScrollReveal>
@@ -265,10 +267,10 @@ export default function PigeonGuardLandingPage() {
         </div>
       </section>
 
-      {/* 6. Estimate form — extra bottom space so sticky mobile CTA never covers controls */}
+      {/* 6. Estimate form — sticky CTA hides when submit is visible, so keep normal clearance */}
       <section
         id="estimate-form"
-        className={`${SECTION} scroll-mt-24 bg-white pb-[calc(8.5rem+env(safe-area-inset-bottom))] lg:pb-16`}
+        className={`${SECTION} scroll-mt-24 bg-white pb-10 sm:pb-14 lg:pb-16`}
         aria-labelledby="pigeon-estimate"
       >
         <div className="section-container max-w-2xl">
@@ -289,7 +291,7 @@ export default function PigeonGuardLandingPage() {
 
       {faqs?.length > 0 && (
         <section
-          className={`${SECTION} bg-section-faq pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-16`}
+          className={`${SECTION} bg-section-faq pb-10 sm:pb-14 lg:pb-16`}
           aria-labelledby="pigeon-faq"
         >
           <div className="section-container max-w-2xl">

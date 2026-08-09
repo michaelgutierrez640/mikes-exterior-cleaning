@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 
 export default function BackToTop() {
+  const { pathname } = useLocation()
   const [visible, setVisible] = useState(false)
+  const [hideForPigeonSticky, setHideForPigeonSticky] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 500)
@@ -10,11 +13,19 @@ export default function BackToTop() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  useEffect(() => {
+    const onSticky = (e) => setHideForPigeonSticky(Boolean(e.detail?.visible))
+    window.addEventListener('pigeon-sticky-cta', onSticky)
+    setHideForPigeonSticky(document.documentElement.classList.contains('pigeon-mid-sticky-cta'))
+    return () => window.removeEventListener('pigeon-sticky-cta', onSticky)
+  }, [pathname])
+
   const scrollUp = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
 
-  if (!visible) return null
+  // Hide while the pigeon mid-page sticky CTA is up so controls never stack.
+  if (!visible || hideForPigeonSticky) return null
 
   return (
     <button

@@ -192,8 +192,16 @@ export default function PigeonGuardEstimateForm() {
     )
   }
 
+  const fieldClass = (hasError) =>
+    `input-light-compact ${hasError ? 'border-red-300 focus:border-red-400' : ''}`
+
   return (
-    <form className="space-y-5" onSubmit={handleSubmit} noValidate aria-label="Pigeon guard estimate form">
+    <form
+      className="form-control-surface space-y-3.5 sm:space-y-5"
+      onSubmit={handleSubmit}
+      noValidate
+      aria-label="Pigeon guard estimate form"
+    >
       <div className="absolute -left-[9999px] top-auto h-0 w-0 overflow-hidden" aria-hidden="true">
         <label htmlFor="pg-company-website">Company website</label>
         <input
@@ -206,9 +214,9 @@ export default function PigeonGuardEstimateForm() {
         />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-3.5 sm:grid-cols-2 sm:gap-5">
         <div>
-          <label htmlFor="pg-name" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+          <label htmlFor="pg-name" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
             Full name <span className="text-amber-500">*</span>
           </label>
           <input
@@ -218,7 +226,7 @@ export default function PigeonGuardEstimateForm() {
             onChange={(e) => updateField('name', e.target.value)}
             onFocus={markStarted}
             autoComplete="name"
-            className={`input-light ${errors.name ? 'border-red-300 focus:border-red-400' : ''}`}
+            className={fieldClass(errors.name)}
             aria-invalid={Boolean(errors.name)}
             aria-describedby={errors.name ? 'pg-name-error' : undefined}
           />
@@ -229,7 +237,7 @@ export default function PigeonGuardEstimateForm() {
           )}
         </div>
         <div>
-          <label htmlFor="pg-phone" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+          <label htmlFor="pg-phone" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
             Phone <span className="text-amber-500">*</span>
           </label>
           <input
@@ -240,7 +248,7 @@ export default function PigeonGuardEstimateForm() {
             onFocus={markStarted}
             autoComplete="tel"
             placeholder="(209) 496-5519"
-            className={`input-light ${errors.phone ? 'border-red-300 focus:border-red-400' : ''}`}
+            className={fieldClass(errors.phone)}
             aria-invalid={Boolean(errors.phone)}
             aria-describedby={errors.phone ? 'pg-phone-error' : undefined}
           />
@@ -253,7 +261,7 @@ export default function PigeonGuardEstimateForm() {
       </div>
 
       <div>
-        <label htmlFor="pg-email" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+        <label htmlFor="pg-email" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           Email <span className="font-normal text-gray-400">(optional)</span>
         </label>
         <input
@@ -263,7 +271,7 @@ export default function PigeonGuardEstimateForm() {
           onChange={(e) => updateField('email', e.target.value)}
           onFocus={markStarted}
           autoComplete="email"
-          className={`input-light ${errors.email ? 'border-red-300 focus:border-red-400' : ''}`}
+          className={fieldClass(errors.email)}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? 'pg-email-error' : undefined}
         />
@@ -274,9 +282,9 @@ export default function PigeonGuardEstimateForm() {
         )}
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-3.5 sm:grid-cols-2 sm:gap-5">
         <div>
-          <label htmlFor="pg-address" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+          <label htmlFor="pg-address" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
             Property address <span className="text-amber-500">*</span>
           </label>
           <input
@@ -286,7 +294,7 @@ export default function PigeonGuardEstimateForm() {
             onChange={(e) => updateField('address', e.target.value)}
             onFocus={markStarted}
             autoComplete="street-address"
-            className={`input-light ${errors.address ? 'border-red-300 focus:border-red-400' : ''}`}
+            className={fieldClass(errors.address)}
             aria-invalid={Boolean(errors.address)}
             aria-describedby={errors.address ? 'pg-address-error' : undefined}
           />
@@ -297,7 +305,7 @@ export default function PigeonGuardEstimateForm() {
           )}
         </div>
         <div>
-          <label htmlFor="pg-city" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+          <label htmlFor="pg-city" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
             City <span className="text-amber-500">*</span>
           </label>
           <input
@@ -307,7 +315,7 @@ export default function PigeonGuardEstimateForm() {
             onChange={(e) => updateField('city', e.target.value)}
             onFocus={markStarted}
             autoComplete="address-level2"
-            className={`input-light ${errors.city ? 'border-red-300 focus:border-red-400' : ''}`}
+            className={fieldClass(errors.city)}
             aria-invalid={Boolean(errors.city)}
             aria-describedby={errors.city ? 'pg-city-error' : undefined}
           />
@@ -320,7 +328,7 @@ export default function PigeonGuardEstimateForm() {
       </div>
 
       <div>
-        <label htmlFor="pg-panels" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+        <label htmlFor="pg-panels" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           Approximate number of solar panels <span className="font-normal text-gray-400">(optional)</span>
         </label>
         <input
@@ -331,32 +339,46 @@ export default function PigeonGuardEstimateForm() {
           onChange={(e) => updateField('panelCount', e.target.value)}
           onFocus={markStarted}
           placeholder="e.g. 24"
-          className="input-light"
+          className="input-light-compact"
         />
       </div>
 
-      <fieldset>
-        <legend className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+      <fieldset className="form-control-surface">
+        <legend className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           What best describes the problem? <span className="text-amber-500">*</span>
         </legend>
-        <div className="space-y-2.5" role="radiogroup" aria-describedby={errors.problem ? 'pg-problem-error' : undefined}>
-          {PROBLEM_OPTIONS.map((opt) => (
-            <label
-              key={opt.value}
-              className="flex cursor-pointer items-start gap-3 rounded-xl border border-black/[0.06] bg-white px-4 py-3 text-[0.875rem] text-navy-900 transition hover:border-royal-200"
-            >
-              <input
-                type="radio"
-                name="pg-problem"
-                value={opt.value}
-                checked={form.problem === opt.value}
-                onChange={() => updateField('problem', opt.value)}
-                onFocus={markStarted}
-                className="mt-0.5 h-4 w-4 accent-royal-700"
-              />
-              <span>{opt.label}</span>
-            </label>
-          ))}
+        <div
+          className="space-y-2"
+          role="radiogroup"
+          aria-required="true"
+          aria-describedby={errors.problem ? 'pg-problem-error' : undefined}
+        >
+          {PROBLEM_OPTIONS.map((opt) => {
+            const selected = form.problem === opt.value
+            const radioId = `pg-problem-${opt.value.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`
+            return (
+              <label
+                key={opt.value}
+                htmlFor={radioId}
+                className={[
+                  'flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border bg-white px-3.5 py-2.5 text-[0.875rem] text-navy-900 transition sm:px-4 sm:py-3',
+                  selected ? 'border-royal-300 ring-1 ring-royal-200' : 'border-black/[0.08] hover:border-royal-200',
+                ].join(' ')}
+              >
+                <input
+                  id={radioId}
+                  type="radio"
+                  name="pg-problem"
+                  value={opt.value}
+                  checked={selected}
+                  onChange={() => updateField('problem', opt.value)}
+                  onFocus={markStarted}
+                  className="form-radio"
+                />
+                <span>{opt.label}</span>
+              </label>
+            )
+          })}
         </div>
         {errors.problem && (
           <p id="pg-problem-error" className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
@@ -366,7 +388,7 @@ export default function PigeonGuardEstimateForm() {
       </fieldset>
 
       <div>
-        <label htmlFor="pg-notes" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+        <label htmlFor="pg-notes" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           Notes <span className="font-normal text-gray-400">(optional)</span>
         </label>
         <textarea
@@ -376,16 +398,16 @@ export default function PigeonGuardEstimateForm() {
           onChange={(e) => updateField('notes', e.target.value)}
           onFocus={markStarted}
           placeholder="Anything else about access, timing, or what you’re seeing under the panels"
-          className="input-light min-h-[6rem] resize-y"
+          className="input-light-compact min-h-[5rem] resize-y sm:min-h-[6rem]"
         />
       </div>
 
       <div>
-        <label htmlFor="pg-photos" className="mb-2 block text-[0.8125rem] font-medium text-gray-600">
+        <label htmlFor="pg-photos" className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 sm:mb-2">
           Photos of roof, panels, nesting, or damage{' '}
           <span className="font-normal text-gray-400">(optional, up to {MAX_LEAD_PHOTOS})</span>
         </label>
-        <p className="mb-2 text-[0.75rem] leading-snug text-gray-500">
+        <p className="mb-1.5 text-[0.75rem] leading-snug text-gray-600">
           JPG, PNG, HEIC, or WebP · 10 MB max per image. Photos stay private in your estimate request.
         </p>
         <input
@@ -395,7 +417,7 @@ export default function PigeonGuardEstimateForm() {
           multiple
           onChange={handlePhotosSelected}
           onFocus={markStarted}
-          className="block w-full text-[0.8125rem] text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-royal-50 file:px-3 file:py-2 file:text-[0.8125rem] file:font-semibold file:text-royal-800"
+          className="block w-full text-[0.8125rem] text-gray-600 file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-royal-50 file:px-3 file:py-2.5 file:text-[0.8125rem] file:font-semibold file:text-royal-800"
         />
         {photoError && (
           <p className="mt-1.5 text-[0.75rem] text-red-600" role="alert">
@@ -440,9 +462,10 @@ export default function PigeonGuardEstimateForm() {
       )}
 
       <button
+        id="pg-submit"
         type="submit"
         disabled={status === 'sending'}
-        className="btn-royal btn-md w-full !rounded-xl sm:w-auto"
+        className="btn-royal btn-md w-full !min-h-11 !rounded-xl sm:w-auto"
       >
         {status === 'sending' ? 'Sending…' : 'Get My Free Pigeon Guard Estimate'}
       </button>
