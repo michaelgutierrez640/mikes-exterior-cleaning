@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { CallButton } from '../ui/Button'
+import {
+  trackPigeonGuardCallClicked,
+  trackPigeonGuardEstimateClicked,
+} from '../../utils/analytics'
 import { scrollToPigeonEstimateForm } from '../../utils/scroll'
 
 function isPigeonGuardRoute(pathname) {
@@ -114,6 +118,11 @@ export default function MobileCTA() {
           }
           showIcon={false}
           sourceHint={compact ? 'pigeon_guard_sticky_call' : 'mobile_cta_call'}
+          onClick={
+            compact
+              ? () => trackPigeonGuardCallClicked('pigeon_guard_sticky_call')
+              : undefined
+          }
         >
           {compact ? 'Call' : 'Call Now'}
         </CallButton>
@@ -121,7 +130,10 @@ export default function MobileCTA() {
           pathname === '/services/pigeon-guard' ? (
             <a
               href="#estimate-form"
-              onClick={scrollToPigeonEstimateForm}
+              onClick={(e) => {
+                trackPigeonGuardEstimateClicked('pigeon_guard_sticky_estimate')
+                scrollToPigeonEstimateForm(e)
+              }}
               className={
                 compact
                   ? 'btn-royal btn-sm flex-1 !min-h-11 !rounded-lg !px-3 !py-2 !text-[0.875rem]'
@@ -133,6 +145,7 @@ export default function MobileCTA() {
           ) : (
             <Link
               to="/services/pigeon-guard#estimate-form"
+              onClick={() => trackPigeonGuardEstimateClicked('pigeon_guard_sticky_estimate_nav')}
               className={
                 compact
                   ? 'btn-royal btn-sm flex-1 !min-h-11 !rounded-lg !px-3 !py-2 !text-[0.875rem]'
