@@ -3,7 +3,7 @@ import { BUSINESS } from '../config/business'
 import { SERVICE_CITIES } from '../config/serviceAreas'
 import { WINDOW_CLEANING_CITY_SLUGS } from '../content/cities/window-cleaning'
 import { getServiceAreasPageSeo, getServiceAreasPageSchemas } from '../config/seo'
-import { absoluteUrl, DEFAULT_OG_IMAGE } from '../config/site'
+import { DEFAULT_OG_IMAGE } from '../config/site'
 import { SERVICE_PAGES } from '../content/services'
 import SeoHead from '../components/seo/SeoHead'
 import JsonLd from '../components/seo/JsonLd'
@@ -83,7 +83,7 @@ export default function ServiceAreasPage() {
           </ScrollReveal>
           <ScrollReveal className="section-content">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {SERVICE_CITIES.filter((c) => WINDOW_CLEANING_CITY_SLUGS.includes(c.slug)).map((city, i) => (
+              {SERVICE_CITIES.filter((c) => WINDOW_CLEANING_CITY_SLUGS.includes(c.slug)).map((city) => (
                 <Link
                   key={city.slug}
                   to={`/window-cleaning/${city.slug}`}

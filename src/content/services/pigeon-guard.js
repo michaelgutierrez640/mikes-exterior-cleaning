@@ -49,7 +49,7 @@ export default {
     process: {
       title: 'How Solar Panel Pigeon Guard Works',
       steps: [
-        { title: 'Send your information and photos', text: 'Share property details and optional photos of the roof, panels, nesting, or debris.' },
+        { title: 'Send your information', text: 'Share property details and what you are seeing under or around the panels.' },
         { title: 'Mike reviews the panel layout', text: 'Your request is reviewed against the array layout and access points you describe.' },
         { title: 'Receive an estimate', text: 'Get a clear estimate based on your panels and the problem you are seeing.' },
         { title: 'Schedule installation', text: 'Book professional installation around the panel perimeter when you are ready.' },

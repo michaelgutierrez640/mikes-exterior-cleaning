@@ -3,19 +3,14 @@
  * Pure logic is unit-tested; network callers are injected for tests.
  */
 
+import { createIdempotencyKey as createLeadIdempotencyKey } from './idempotencyKey.js'
+
 export const SUBMIT_TIMEOUT_MS = 25000
 export const UPLOAD_TIMEOUT_MS = 45000
 export const FORM_SUBMIT_TIMEOUT_MS = 8000
 
 export function createIdempotencyKey() {
-  try {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return `pg_${crypto.randomUUID()}`
-    }
-  } catch {
-    // fall through
-  }
-  return `pg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+  return createLeadIdempotencyKey('pg')
 }
 
 export function withTimeout(promise, ms, label = 'Request') {

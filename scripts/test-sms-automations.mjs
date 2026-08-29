@@ -21,7 +21,6 @@ import {
 } from '../lib/smsAutomations.mjs'
 import { isLeadDueForReminder, isLeadDueForReviewRequest, runSmsCronJobs } from '../lib/smsCron.mjs'
 import {
-  buildBookingConfirmationMessage,
   buildCustomerQuoteReceivedMessage,
   buildOwnerNewLeadMessage,
   buildReminderMessage,

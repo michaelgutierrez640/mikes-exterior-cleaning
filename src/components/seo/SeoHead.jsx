@@ -77,6 +77,10 @@ export default function SeoHead({
     if (canonical) {
       upsertLink('canonical', canonical)
       upsertMeta('property', 'og:url', canonical)
+    } else if (noindex) {
+      // Soft 404 / noindex routes must not keep the previous page or shell homepage canonical.
+      document.querySelector('link[rel="canonical"]')?.remove()
+      document.querySelector('meta[property="og:url"]')?.remove()
     }
   }, [title, description, keywords, canonical, ogType, ogImage, ogImageAlt, noindex])
 

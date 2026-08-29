@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useGoogleReviews, useGoogleReviewsLink } from '../../context/GoogleReviewsContext'
+import { useGoogleReviews } from '../../context/GoogleReviewsContext'
 import { getReviewerInitials } from '../../config/googleReviews'
 import { fetchPublishedWebsiteReviews } from '../../services/websiteReviewsApi'
 import ScrollReveal from '../ScrollReveal'

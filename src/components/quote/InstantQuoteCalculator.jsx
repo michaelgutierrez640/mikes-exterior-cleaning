@@ -45,6 +45,11 @@ export default function InstantQuoteCalculator() {
     setTimeout(() => {
       setStep(nextStep)
       setAnimating(false)
+      // Keep the active step clear of the fixed header after Continue/Back (esp. mobile).
+      const target = document.getElementById('instant-quote-calculator')
+      if (target && typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ behavior: 'auto', block: 'start' })
+      }
     }, 180)
   }, [])
 
@@ -94,7 +99,10 @@ export default function InstantQuoteCalculator() {
   const currentStepIndex = STEPS.indexOf(step)
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_340px] lg:gap-10 xl:grid-cols-[1fr_380px]">
+    <div
+      id="instant-quote-calculator"
+      className="grid scroll-mt-28 gap-8 lg:grid-cols-[1fr_340px] lg:gap-10 xl:grid-cols-[1fr_380px]"
+    >
       <div className="min-w-0">
         {step !== 'confirm' && <QuoteStepIndicator currentStep={step} />}
 
@@ -139,8 +147,13 @@ export default function InstantQuoteCalculator() {
         </div>
 
         {step !== 'confirm' && (
-          <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-between">
-            {currentStepIndex > 0 ? (
+          <div
+            className={[
+              'mt-8 flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-between',
+              // Clear the fixed mobile estimate bar so Continue / See My Estimate stay tappable.
+              quote.lineItems.length > 0 && step !== 'services' ? 'pb-20 lg:pb-0' : '',
+            ].join(' ')}
+          >            {currentStepIndex > 0 ? (
               <button
                 type="button"
                 onClick={() => goToStep(STEPS[currentStepIndex - 1])}

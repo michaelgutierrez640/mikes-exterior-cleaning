@@ -437,7 +437,8 @@ async function main() {
   }
 
   const beforeAfterCandidates = images.filter((img) => img.ba || img.pathCategory === 'before-after')
-  const galleryImages = images.filter((img) => !img.ba && img.pathCategory !== 'before-after')
+  const _galleryImages = images.filter((img) => !img.ba && img.pathCategory !== 'before-after')
+  void _galleryImages
 
   const pairs = []
   const used = new Set()

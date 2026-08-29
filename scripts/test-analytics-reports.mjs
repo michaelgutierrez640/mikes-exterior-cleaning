@@ -243,8 +243,34 @@ test('quote completion has single trackQuoteSubmitted path and submit lock', () 
   const form = readSrc('src/components/quote/QuoteContactForm.jsx')
   assert.ok(form.includes('trackQuoteSubmitted'))
   assert.ok(form.includes('submitLock'))
+  assert.ok(form.includes('idempotencyKey'))
   assert.ok(!form.includes("trackInternalEvent('instant_quote_completed'"))
   assert.strictEqual((form.match(/trackQuoteSubmitted/g) || []).length, 2) // import + call
+})
+
+test('instant quote / contact / booking reuse client idempotency keys on retry', () => {
+  const quote = readSrc('src/components/quote/QuoteContactForm.jsx')
+  const contact = readSrc('src/components/ContactForm.jsx')
+  const booking = readSrc('src/components/booking/BookingForm.jsx')
+  const bookingSvc = readSrc('src/services/submitBooking.js')
+  assert.ok(quote.includes("createIdempotencyKey('iq')"))
+  assert.ok(quote.includes('idempotencyKey: idempotencyKeyRef.current'))
+  assert.ok(contact.includes("createIdempotencyKey('contact')"))
+  assert.ok(contact.includes('idempotencyKey: idempotencyKeyRef.current'))
+  assert.ok(booking.includes("createIdempotencyKey('book')"))
+  assert.ok(booking.includes('idempotencyKey: idempotencyKeyRef.current'))
+  assert.ok(bookingSvc.includes('idempotencyKey: booking.idempotencyKey'))
+})
+
+test('404 SEO omits fake /404 canonical', () => {
+  const seo = readSrc('src/config/seo.js')
+  const head = readSrc('src/components/seo/SeoHead.jsx')
+  const match = seo.match(/export function getNotFoundPageSeo\(\) \{[\s\S]*?\n\}/)
+  assert.ok(match, 'getNotFoundPageSeo missing')
+  assert.ok(!match[0].includes("absoluteUrl('/404')"))
+  assert.ok(!match[0].includes('canonical:'))
+  assert.ok(head.includes("querySelector('link[rel=\"canonical\"]')?.remove()"))
+  assert.ok(head.includes('else if (noindex)'))
 })
 
 test('public phone links use PhoneLink or CallButton (not raw phoneHref anchors)', () => {

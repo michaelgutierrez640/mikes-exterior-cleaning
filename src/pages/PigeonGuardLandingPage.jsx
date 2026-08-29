@@ -21,8 +21,8 @@ import { scrollToPigeonEstimateForm } from '../utils/scroll'
 
 const HOW_IT_WORKS = [
   {
-    title: 'Send your information and photos',
-    text: 'Share your property details and optional photos of the roof, panels, nesting, or debris.',
+    title: 'Send your information',
+    text: 'Share your property details and what you are seeing under or around the panels.',
   },
   {
     title: 'Mike reviews the panel layout',
@@ -287,8 +287,8 @@ export default function PigeonGuardLandingPage() {
               Get your free pigeon guard estimate
             </h2>
             <p className={`mt-3 ${BODY}`}>
-              Tell Mike what you&apos;re seeing under your solar panels. Photos help when you have them — they&apos;re
-              optional.
+              Tell Mike what you&apos;re seeing under your solar panels — city, problems, and access notes help him
+              prepare an accurate estimate.
             </p>
             <div className="mt-6 sm:mt-7">
               <PigeonGuardEstimateForm />

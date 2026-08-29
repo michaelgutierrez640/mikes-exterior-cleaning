@@ -369,7 +369,8 @@ export function getNotFoundPageSeo() {
     description:
       'The page you requested could not be found. Browse our window cleaning, pressure washing, gutter, and solar services in Modesto and the Central Valley — or get an instant quote.',
     keywords: 'Mike\'s Exterior Cleaning Services, Modesto exterior cleaning',
-    canonical: absoluteUrl('/404'),
+    // Soft 404s share one component across arbitrary unknown paths — do not invent a /404 URL.
+    // SeoHead sets noindex; omitting canonical avoids pointing crawlers at a non-existent route.
   }
 }
 

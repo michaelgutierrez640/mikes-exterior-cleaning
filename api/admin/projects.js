@@ -48,15 +48,13 @@ import {
  */
 
 function stripFacebookRequestFields(body = {}) {
-  const {
-    postToFacebook: _postToFacebook,
-    facebookCaption: _facebookCaption,
-    facebookPostStatus: _facebookPostStatus,
-    facebookPostId: _facebookPostId,
-    facebookPostedAt: _facebookPostedAt,
-    facebookPostError: _facebookPostError,
-    ...projectBody
-  } = body || {}
+  const projectBody = { ...(body || {}) }
+  delete projectBody.postToFacebook
+  delete projectBody.facebookCaption
+  delete projectBody.facebookPostStatus
+  delete projectBody.facebookPostId
+  delete projectBody.facebookPostedAt
+  delete projectBody.facebookPostError
   return {
     projectBody,
     postToFacebook: Boolean(body?.postToFacebook),

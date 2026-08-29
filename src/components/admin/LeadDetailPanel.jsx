@@ -614,7 +614,9 @@ export default function LeadDetailPanel({ leadId, onUnauthorized }) {
 
         {detailsDraft.status === 'Completed' && (
           <p className="mt-3 text-[0.8125rem] text-gray-500">
-            Enter completed revenue and payment status when the job is finished. Review-request messages are not sent yet.
+            Enter completed revenue and payment status when the job is finished. Review-request SMS (when SMS is
+            enabled and the customer opted in) is sent automatically after the configured delay — nothing is sent
+            from this screen.
           </p>
         )}
 

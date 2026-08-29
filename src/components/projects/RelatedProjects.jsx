@@ -18,24 +18,12 @@ export default function RelatedProjects({
   id,
   variant = 'cards',
 }) {
-  if (variant === 'placement') {
-    return (
-      <PublishedProjectsSection
-        service={service}
-        city={city}
-        limit={limit}
-        heading={heading}
-        subheading={subheading}
-        showViewAll={showViewAll}
-        id={id}
-      />
-    )
-  }
-
   const [projects, setProjects] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const usePlacement = variant === 'placement'
 
   useEffect(() => {
+    if (usePlacement) return undefined
     let cancelled = false
     async function load() {
       try {
@@ -51,7 +39,21 @@ export default function RelatedProjects({
     return () => {
       cancelled = true
     }
-  }, [service, city, limit])
+  }, [service, city, limit, usePlacement])
+
+  if (usePlacement) {
+    return (
+      <PublishedProjectsSection
+        service={service}
+        city={city}
+        limit={limit}
+        heading={heading}
+        subheading={subheading}
+        showViewAll={showViewAll}
+        id={id}
+      />
+    )
+  }
 
   if (!loaded || projects.length === 0) return null
 
