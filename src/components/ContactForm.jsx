@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { BUSINESS } from '../config/business'
 import { submitLead } from '../services/submitLead'
 import { trackInternalEvent } from '../utils/analytics'
+import { createIdempotencyKey } from '../utils/idempotencyKey'
 
 const SERVICE_OPTIONS = [
   'Window Cleaning',
@@ -16,13 +17,11 @@ export default function ContactForm() {
   const [status, setStatus] = useState('idle')
   const [errorMsg, setErrorMsg] = useState('')
   const submitLock = useRef(false)
+  const idempotencyKeyRef = useRef(createIdempotencyKey('contact'))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (submitLock.current || status === 'sending') return
-
-    setStatus('sending')
-    setErrorMsg('')
 
     const form = e.target
     const name = form.name.value.trim()
@@ -40,6 +39,8 @@ export default function ContactForm() {
     }
 
     submitLock.current = true
+    setStatus('sending')
+    setErrorMsg('')
 
     try {
       await submitLead({
@@ -52,6 +53,7 @@ export default function ContactForm() {
         subject: `Free Quote Request — ${BUSINESS.name}`,
         source: 'contact',
         companyWebsite,
+        idempotencyKey: idempotencyKeyRef.current,
       })
 
       trackInternalEvent('contact_form_submitted', {
@@ -61,6 +63,9 @@ export default function ContactForm() {
 
       setStatus('success')
       form.reset()
+      // New attempt after success gets a fresh key; retries after error keep the same key.
+      idempotencyKeyRef.current = createIdempotencyKey('contact')
+      submitLock.current = false
     } catch {
       submitLock.current = false
       setStatus('error')

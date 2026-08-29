@@ -41,5 +41,6 @@ export async function submitBookingRequest(booking) {
     customTime: booking.customTime,
     quotedAmount,
     smsConsent: booking.smsConsent === true,
+    idempotencyKey: booking.idempotencyKey || undefined,
   })
 }

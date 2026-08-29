@@ -29,7 +29,7 @@ export function isCalendarIntegrationEnabled() {
  * @param {string} dateISO - YYYY-MM-DD
  * @returns {Promise<{ available: boolean, busySlots: Array<{ start: string, end: string }> }>}
  */
-export async function getCalendarAvailability(dateISO) {
+export async function getCalendarAvailability(_dateISO) {
   if (!isCalendarIntegrationEnabled()) {
     return {
       available: true,

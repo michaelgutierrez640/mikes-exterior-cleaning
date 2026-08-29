@@ -12,6 +12,7 @@ import TimeWindowPicker from './TimeWindowPicker'
 import BookingConfirmation from './BookingConfirmation'
 import { trackInternalEvent } from '../../utils/analytics'
 import { clearBookingPrefill } from '../../utils/bookingPrefill'
+import { createIdempotencyKey } from '../../utils/idempotencyKey'
 
 function validateBooking(form, selectedServiceIds, timeWindow, customTime) {
   const errors = {}
@@ -71,6 +72,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
   const [submitted, setSubmitted] = useState(false)
   const [calendarNote, setCalendarNote] = useState('')
   const submitLock = useRef(false)
+  const idempotencyKeyRef = useRef(createIdempotencyKey('book'))
 
   const estimateRange = prefill?.estimateRange ?? ''
   const quoteDetails = prefill?.quoteDetails ?? ''
@@ -134,6 +136,7 @@ export default function BookingForm({ prefill = null, compact = false }) {
         linkedLeadId: linkedLeadId || undefined,
         quotedAmount: quotedAmount ?? undefined,
         smsConsent: smsConsent === true,
+        idempotencyKey: idempotencyKeyRef.current,
       })
       trackInternalEvent('booking_requested', {
         service: serviceNames.join(', ') || null,

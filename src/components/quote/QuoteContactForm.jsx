@@ -4,6 +4,7 @@ import SmsConsentCheckbox from '../forms/SmsConsentCheckbox'
 import { submitLead } from '../../services/submitLead'
 import { buildQuoteSummaryText } from '../../utils/quotePricing'
 import { trackQuoteSubmitted } from '../../utils/analytics'
+import { createIdempotencyKey } from '../../utils/idempotencyKey'
 
 function validateContact({ name, phone, email, address }) {
   const errors = {}
@@ -28,6 +29,7 @@ export default function QuoteContactForm({
   const [status, setStatus] = useState('idle')
   const [submitError, setSubmitError] = useState('')
   const submitLock = useRef(false)
+  const idempotencyKeyRef = useRef(createIdempotencyKey('iq'))
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -56,7 +58,8 @@ export default function QuoteContactForm({
     const summaryText = buildQuoteSummaryText(selectedServices, answers, quote)
 
     try {
-      // Exactly one CRM lead + one FormSubmit email (via submitLead)
+      // Exactly one CRM lead + one FormSubmit email (via submitLead).
+      // Reuse the same idempotency key on retry so a FormSubmit failure cannot duplicate CRM rows.
       const result = await submitLead({
         name: form.name.trim(),
         phone: form.phone.trim(),
@@ -71,6 +74,7 @@ export default function QuoteContactForm({
         quotedAmount: Number.isFinite(quote?.totalLow) ? quote.totalLow : undefined,
         // Only true when the customer checks the box (never pre-checked)
         smsConsent: smsConsent === true,
+        idempotencyKey: idempotencyKeyRef.current,
       })
 
       // Exactly one instant_quote_completed first-party event
